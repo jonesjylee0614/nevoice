@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音识别接口测试</title>
+    <link rel="stylesheet" href="../components/common.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>语音识别接口测试</h1>
+            <p>专门测试离线和在线语音识别API接口</p>
+            
+            <!-- 输入法风格说明 -->
+            <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                <h4 style="color: #1976d2; margin: 0 0 10px 0;">💡 输入法风格实时识别说明</h4>
+                <div style="font-size: 0.9rem; line-height: 1.6;">
+                    <p><strong>使用方法：</strong></p>
+                    <ol style="margin: 5px 0; padding-left: 20px;">
+                        <li>点击"连接"建立WebSocket连接</li>
+                        <li>点击"开始实时识别"开始录音</li>
+                        <li>正常说话，<span style="color: #007bff;">实时区域</span>显示当前句子（蓝色斜体）</li>
+                        <li>停顿1.5秒，句子自动确认到<span style="color: #333;">确认区域</span>（黑色正体）</li>
+                        <li>继续说下一句话，重复上述过程</li>
+                    </ol>
+                    <p><strong>特点：</strong>像手机输入法一样，每句话独立识别和确认，不会重复显示buffer内容。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h3>服务器配置</h3>
+            <div class="input-group">
+                <label for="serverUrl">服务器地址:</label>
+                <select id="serverEnv" onchange="changeServerEnvironment()">
+                    <option value="localhost">本地开发 (localhost:8210)</option>
+                    <option value="wsl-localhost">WSL内部 (localhost:8210)</option>
+                    <option value="wsl-host">WSL宿主机 (172.31.77.180:8210)</option>
+                    <option value="wsl-bridge">WSL桥接 (127.0.0.1:8210)</option>
+                    <option value="development">开发环境 (172.31.77.180:8210)</option>
+                    <option value="production">生产环境 (127.0.0.1:8210)</option>
+                    <option value="custom">自定义</option>
+                </select>
+                <input type="text" id="serverUrl" value="http://localhost:8210" placeholder="输入服务器地址">
+                <button class="btn" onclick="checkServerStatus()">检查连接</button>
+                <span id="serverStatus" class="status-indicator status-checking">未检查</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 统一导航区域 - 自动生成 -->
+
+            <!-- 离线语音识别接口 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">POST</span>
+                        离线语音识别接口
+                    </div>
+                    <div class="api-description">上传音频文件进行语音转文字，不保存声纹特征</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label for="offlineAudioFile">音频文件:</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="offlineAudioFile" class="file-input" accept="audio/*" onchange="handleFileSelect(this, 'offlineAudioFileLabel')">
+                            <label for="offlineAudioFile" class="file-input-label" id="offlineAudioFileLabel">
+                                点击选择音频文件或拖拽文件到此处<br>
+                                <small>支持 WAV, MP3, M4A 等格式</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="offlineLanguage">语言类型:</label>
+                        <select id="offlineLanguage">
+                            <option value="zh-cn">中文 (zh-cn)</option>
+                            <option value="en-us">英文 (en-us)</option>
+                            <option value="auto">自动检测</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="testOfflineRecognition()">
+                        <span id="offlineLoading" class="loading hidden"></span>
+                        测试离线语音识别
+                    </button>
+                    <div id="offlineResponse" class="response-section hidden">
+                        <div class="response-header">
+                            <span id="offlineStatus" class="response-status"></span>
+                            <span id="offlineTime" class="response-time"></span>
+                        </div>
+                        <div id="offlineContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 在线语音识别接口 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">POST</span>
+                        在线语音识别接口
+                    </div>
+                    <div class="api-description">接收base64编码的音频数据进行实时语音识别</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label for="onlineAudioFile">音频文件 (转为base64):</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="onlineAudioFile" class="file-input" accept="audio/*" onchange="handleFileSelect(this, 'onlineAudioFileLabel')">
+                            <label for="onlineAudioFile" class="file-input-label" id="onlineAudioFileLabel">
+                                点击选择音频文件或拖拽文件到此处<br>
+                                <small>文件将转换为base64格式发送</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="onlineFormat">音频格式:</label>
+                        <select id="onlineFormat">
+                            <option value="wav">WAV</option>
+                            <option value="mp3">MP3</option>
+                            <option value="m4a">M4A</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="onlineSampleRate">采样率:</label>
+                        <select id="onlineSampleRate">
+                            <option value="16000">16000 Hz (推荐)</option>
+                            <option value="22050">22050 Hz</option>
+                            <option value="44100">44100 Hz</option>
+                            <option value="48000">48000 Hz</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="testOnlineRecognition()">
+                        <span id="onlineLoading" class="loading hidden"></span>
+                        测试在线语音识别
+                    </button>
+                    <div id="onlineResponse" class="response-section hidden">
+                        <div class="response-header">
+                            <span id="onlineStatus" class="response-status"></span>
+                            <span id="onlineTime" class="response-time"></span>
+                        </div>
+                        <div id="onlineContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 实时语音识别 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">LIVE</span>
+                        实时语音识别（输入法风格）
+                    </div>
+                    <div class="api-description">边说话边识别，类似输入法的实时反馈体验</div>
+                </div>
+                <div class="api-body">
+                    <!-- 连接状态 -->
+                    <div class="form-group">
+                        <label>WebSocket连接:</label>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span id="wsStatus" class="status-indicator status-offline">未连接</span>
+                            <button class="btn" onclick="connectWebSocket()" id="connectBtn">连接</button>
+                            <button class="btn btn-danger" onclick="disconnectWebSocket()" id="disconnectBtn" disabled>断开</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 录音控制 -->
+                    <div class="form-group">
+                        <label>录音控制:</label>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <button class="btn" id="startRealtimeBtn" onclick="startRealtimeRecognition()">开始实时识别</button>
+                            <button class="btn btn-danger" id="stopRealtimeBtn" onclick="stopRealtimeRecognition()" disabled>停止识别</button>
+                            <button class="btn" id="clearRealtimeBtn" onclick="clearRealtimeResults()">清空结果</button>
+                            <span id="realtimeTimer" style="margin-left: 10px; color: #666; font-weight: bold;">00:00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 实时识别显示区域 -->
+                    <div class="form-group">
+                        <label>实时识别结果:</label>
+                        <div id="realtimeDisplay" style="border: 2px solid #e9ecef; border-radius: 8px; padding: 15px; min-height: 150px; background: #f8f9fa; font-family: 'Segoe UI', sans-serif; line-height: 1.8;">
+                            <div style="margin-bottom: 10px;">
+                                <strong>实时内容：</strong>
+                                <span id="partialText" style="color: #007bff; font-style: italic;">等待语音输入...</span>
+                            </div>
+                            <div>
+                                <strong>确认文本：</strong>
+                                <div id="finalText" style="color: #333; font-weight: 500; margin-top: 5px; border-top: 1px solid #dee2e6; padding-top: 10px; min-height: 80px;">暂无</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 详细日志 -->
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="showLogs" onchange="toggleLogs()"> 显示详细日志
+                        </label>
+                        <button class="btn" onclick="downloadLogs()" style="margin-left: 15px; font-size: 0.8rem; padding: 5px 10px;">下载日志</button>
+                        <button class="btn" onclick="fetchServerLogs()" style="margin-left: 5px; font-size: 0.8rem; padding: 5px 10px;">获取服务器日志</button>
+                    </div>
+                    
+                    <div id="realtimeResponse" class="response-section hidden">
+                        <div class="response-header">
+                            <span class="response-status status-200">详细识别日志</span>
+                            <button class="btn" onclick="clearLogs()" style="font-size: 0.8rem; padding: 5px 10px;">清空日志</button>
+                        </div>
+                        <div id="realtimeContent" class="response-content" style="max-height: 300px; overflow-y: auto;">等待开始识别...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 批量测试 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-get">批量</span>
+                        批量语音识别测试
+                    </div>
+                    <div class="api-description">测试所有语音识别接口的可用性</div>
+                </div>
+                <div class="api-body">
+                    <button class="btn" onclick="runBatchRecognitionTest()">
+                        <span id="batchLoading" class="loading hidden"></span>
+                        运行批量测试
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllResults(['offlineResponse', 'onlineResponse', 'realtimeResponse', 'batchResults'])">清空所有结果</button>
+                    <div id="batchResults" class="response-section hidden">
+                        <div class="response-header">
+                            <span class="response-status">批量测试结果</span>
+                        </div>
+                        <div id="batchContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/config.js"></script>
+    <script src="../components/common.js"></script>
+    <script src="../components/navigation.js"></script>
+    <script>
+        // 全局变量
+        let websocket = null;
+        let isRealtimeRecording = false;
+        let realtimeStream = null;
+        let realtimeMediaRecorder = null;
+        let realtimeTimer = null;
+        let realtimeStartTime = 0;
+        let audioContext = null;
+        let scriptProcessor = null;
+        
+        // 录音相关变量
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingInterval = null;
+        let recordingStartTime = 0;
+        
+        // 实时语音识别变量
+        let partialTexts = [];
+        let finalTexts = [];
+
+        // 环境切换
+        function changeServerEnvironment() {
+            const envSelect = document.getElementById('serverEnv');
+            const urlInput = document.getElementById('serverUrl');
+            
+            const selectedEnv = envSelect.value;
+            if (selectedEnv === 'custom') {
+                urlInput.disabled = false;
+                urlInput.focus();
+            } else {
+                urlInput.disabled = true;
+                urlInput.value = Config.SERVER_OPTIONS[selectedEnv];
+                updateServerUrl(urlInput.value);
+            }
+        }
+
+        // 离线语音识别测试
+        async function testOfflineRecognition() {
+            showLoading('offlineLoading');
+            
+            const audioFile = document.getElementById('offlineAudioFile').files[0];
+            const language = document.getElementById('offlineLanguage').value;
+
+            if (!audioFile) {
+                showResponse('offlineResponse', 'offlineStatus', 'offlineTime', 'offlineContent', 
+                           400, 0, '请选择音频文件');
+                hideLoading('offlineLoading');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioFile);
+                formData.append('language', language);
+
+                const startTime = Date.now();
+                const response = await fetch(`${baseUrl}/voice-recognize-offline`, {
+                    method: 'POST',
+                    body: formData,
+                    signal: AbortSignal.timeout(Config.TIMEOUT.FILE_UPLOAD)
+                });
+                const responseTime = Date.now() - startTime;
+                
+                const contentType = response.headers.get('content-type');
+                let content;
+                if (contentType && contentType.includes('application/json')) {
+                    content = await response.json();
+                } else {
+                    content = await response.text();
+                }
+
+                showResponse('offlineResponse', 'offlineStatus', 'offlineTime', 'offlineContent', 
+                           response.status, responseTime, content);
+            } catch (error) {
+                showResponse('offlineResponse', 'offlineStatus', 'offlineTime', 'offlineContent', 
+                           0, 0, `网络错误: ${error.message}`);
+            } finally {
+                hideLoading('offlineLoading');
+            }
+        }
+
+        // 在线语音识别测试
+        async function testOnlineRecognition() {
+            showLoading('onlineLoading');
+            
+            const audioFile = document.getElementById('onlineAudioFile').files[0];
+            const format = document.getElementById('onlineFormat').value;
+            const sampleRate = parseInt(document.getElementById('onlineSampleRate').value);
+
+            if (!audioFile) {
+                showResponse('onlineResponse', 'onlineStatus', 'onlineTime', 'onlineContent', 
+                           400, 0, '请选择音频文件');
+                hideLoading('onlineLoading');
+                return;
+            }
+
+            try {
+                // 将文件转换为base64
+                const base64Data = await fileToBase64(audioFile);
+
+                const requestData = {
+                    audio_data: base64Data,
+                    format: format,
+                    sample_rate: sampleRate
+                };
+
+                const startTime = Date.now();
+                const response = await fetch(`${baseUrl}/voice-recognize-online`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData),
+                    signal: AbortSignal.timeout(Config.TIMEOUT.FILE_UPLOAD)
+                });
+                const responseTime = Date.now() - startTime;
+                
+                const content = await response.json();
+
+                showResponse('onlineResponse', 'onlineStatus', 'onlineTime', 'onlineContent', 
+                           response.status, responseTime, content);
+            } catch (error) {
+                showResponse('onlineResponse', 'onlineStatus', 'onlineTime', 'onlineContent', 
+                           0, 0, `网络错误: ${error.message}`);
+            } finally {
+                hideLoading('onlineLoading');
+            }
+        }
+
+        // 文件转base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1]; // 移除data:audio/...;base64,前缀
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 开始录音
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await processRecordedAudio(audioBlob);
+                };
+
+                mediaRecorder.start();
+                recordingStartTime = Date.now();
+
+                // 更新UI状态
+                document.getElementById('startRecordBtn').disabled = true;
+                document.getElementById('stopRecordBtn').disabled = false;
+                document.getElementById('recordingStatus').textContent = '录音中...';
+                document.getElementById('recordingStatus').style.color = '#e74c3c';
+                
+                // 显示结果区域
+                document.getElementById('realtimeResponse').classList.remove('hidden');
+                document.getElementById('realtimeContent').textContent = '录音中，点击停止按钮完成录音...';
+
+                // 开始计时
+                recordingInterval = setInterval(updateRecordingTime, 100);
+
+            } catch (error) {
+                alert('无法访问麦克风: ' + error.message);
+            }
+        }
+
+        // 停止录音
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+
+            // 更新UI状态
+            document.getElementById('startRecordBtn').disabled = false;
+            document.getElementById('stopRecordBtn').disabled = true;
+            document.getElementById('recordingStatus').textContent = '处理中...';
+            document.getElementById('recordingStatus').style.color = '#f39c12';
+
+            // 停止计时
+            if (recordingInterval) {
+                clearInterval(recordingInterval);
+                recordingInterval = null;
+            }
+        }
+
+        // 更新录音时间
+        function updateRecordingTime() {
+            const elapsed = Date.now() - recordingStartTime;
+            const seconds = Math.floor(elapsed / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            
+            const timeStr = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            document.getElementById('recordingTime').textContent = timeStr;
+        }
+
+        // 处理录音文件
+        async function processRecordedAudio(audioBlob) {
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recorded_audio.wav');
+
+                const response = await fetch(`${baseUrl}/voice-recognize-offline`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('realtimeContent').textContent = 
+                        `识别结果: ${result.text || '(无法识别)'}\n` +
+                        `音频时长: ${result.duration?.toFixed(2) || 'N/A'} 秒\n` +
+                        `采样率: ${result.sample_rate || 'N/A'} Hz`;
+                } else {
+                    document.getElementById('realtimeContent').textContent = `识别失败: ${result.error}`;
+                }
+
+                document.getElementById('recordingStatus').textContent = '录音完成';
+                document.getElementById('recordingStatus').style.color = '#27ae60';
+
+            } catch (error) {
+                document.getElementById('realtimeContent').textContent = `处理失败: ${error.message}`;
+                document.getElementById('recordingStatus').textContent = '处理失败';
+                document.getElementById('recordingStatus').style.color = '#e74c3c';
+            }
+        }
+
+        // 批量测试
+        async function runBatchRecognitionTest() {
+            showLoading('batchLoading');
+            
+            const results = [];
+            let allPassed = true;
+
+            // 测试健康检查
+            try {
+                const response = await fetch(`${baseUrl}${Config.ENDPOINTS.HEALTH}`);
+                const content = await response.text();
+                const passed = response.ok && content === 'success';
+                results.push(`✓ 健康检查: ${passed ? '通过' : '失败'} (${response.status})`);
+                if (!passed) allPassed = false;
+            } catch (error) {
+                results.push(`✗ 健康检查: 失败 - ${error.message}`);
+                allPassed = false;
+            }
+
+            // 测试离线语音识别接口可用性
+            try {
+                const formData = new FormData();
+                const response = await fetch(`${baseUrl}/voice-recognize-offline`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                // 期望400错误（因为没有音频文件），说明端点可用
+                const passed = response.status === 400;
+                results.push(`${passed ? '✓' : '✗'} 离线语音识别: ${passed ? '可用' : '不可用'} (${response.status})`);
+                if (!passed) allPassed = false;
+            } catch (error) {
+                results.push(`✗ 离线语音识别: 失败 - ${error.message}`);
+                allPassed = false;
+            }
+
+            // 测试在线语音识别接口可用性
+            try {
+                const response = await fetch(`${baseUrl}/voice-recognize-online`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                
+                // 期望400错误（因为没有音频数据），说明端点可用
+                const passed = response.status === 400;
+                results.push(`${passed ? '✓' : '✗'} 在线语音识别: ${passed ? '可用' : '不可用'} (${response.status})`);
+                if (!passed) allPassed = false;
+            } catch (error) {
+                results.push(`✗ 在线语音识别: 失败 - ${error.message}`);
+                allPassed = false;
+            }
+
+            const summary = `语音识别接口批量测试完成！\n总体结果: ${allPassed ? '✓ 全部通过' : '✗ 部分失败'}\n\n` + results.join('\n');
+            
+            document.getElementById('batchResults').classList.remove('hidden');
+            document.getElementById('batchContent').textContent = summary;
+            
+            hideLoading('batchLoading');
+        }
+
+        // ==================== 实时语音识别功能 ====================
+        
+        // 连接WebSocket
+        function connectWebSocket() {
+            // 检查服务器状态
+            if (!baseUrl) {
+                addLog('error', '请先设置服务器地址');
+                return;
+            }
+            
+            const wsUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/recognize';
+            addLog('info', `正在连接: ${wsUrl}`);
+            
+            try {
+                // 如果已有连接，先关闭
+                if (websocket) {
+                    addLog('info', '关闭现有连接');
+                    websocket.close();
+                    websocket = null;
+                }
+                
+                addLog('info', '创建新的WebSocket连接');
+                websocket = new WebSocket(wsUrl);
+                websocket.binaryType = 'arraybuffer';  // 设置二进制数据类型
+                
+                websocket.onopen = function(event) {
+                    addLog('success', 'WebSocket连接已建立');
+                    
+                    document.getElementById('wsStatus').className = 'status-indicator status-online';
+                    document.getElementById('wsStatus').textContent = '已连接';
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('disconnectBtn').disabled = false;
+                    document.getElementById('startRealtimeBtn').disabled = false;
+                    
+                    addLog('success', `WebSocket连接成功: ${wsUrl}`);
+                    
+                    // 发送测试消息验证连接
+                    const testMessage = JSON.stringify({
+                        type: 'start'
+                    });
+                    websocket.send(testMessage);
+                    addLog('info', '已发送连接测试消息');
+                };
+                
+                websocket.onmessage = function(event) {
+                    try {
+                        addLog('info', `收到消息: ${event.data.length > 100 ? event.data.substring(0, 100) + '...' : event.data}`);
+                        const data = JSON.parse(event.data);
+                        handleWebSocketMessage(data);
+                    } catch (error) {
+                        addLog('error', `消息解析失败: ${error.message}`);
+                        console.error('WebSocket Message Error:', error, event.data);
+                    }
+                };
+                
+                websocket.onclose = function(event) {
+                    addLog('info', `WebSocket连接关闭事件触发: code=${event.code}, reason="${event.reason}"`);
+                    
+                    document.getElementById('wsStatus').className = 'status-indicator status-offline';
+                    document.getElementById('wsStatus').textContent = '已断开';
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+                    document.getElementById('startRealtimeBtn').disabled = true;
+                    
+                    const reason = event.reason || '未知原因';
+                    const code = event.code;
+                    
+                    if (code !== 1000) {
+                        addLog('error', `WebSocket连接关闭: ${code} - ${reason}`);
+                    } else {
+                        addLog('info', 'WebSocket连接正常关闭');
+                    }
+                    
+                    // 停止录音
+                    if (isRealtimeRecording) {
+                        stopRealtimeRecognition();
+                    }
+                };
+                
+                websocket.onerror = function(error) {
+                    addLog('error', `WebSocket连接错误: ${error.type || '连接失败'}`);
+                    console.error('WebSocket Error:', error);
+                };
+                
+                // 连接超时检查
+                setTimeout(() => {
+                    if (websocket && websocket.readyState === WebSocket.CONNECTING) {
+                        addLog('error', 'WebSocket连接超时');
+                        websocket.close();
+                    }
+                }, 10000);
+                
+            } catch (error) {
+                addLog('error', `WebSocket连接失败: ${error.message}`);
+                console.error('WebSocket Connection Error:', error);
+            }
+        }
+        
+        // 断开WebSocket
+        function disconnectWebSocket() {
+            if (websocket) {
+                websocket.close(1000, '用户主动断开');
+                websocket = null;
+            }
+            
+            if (isRealtimeRecording) {
+                stopRealtimeRecognition();
+            }
+        }
+        
+        // 处理WebSocket消息
+        function handleWebSocketMessage(data) {
+            const timestamp = new Date().toLocaleTimeString();
+            const partialTextElement = document.getElementById('partialText');
+            const finalTextDiv = document.getElementById('finalText');
+            
+            switch (data.type) {
+                case 'started':
+                    addLog('info', `识别已开始: ${data.message}`);
+                    // 清空之前的内容
+                    partialTextElement.textContent = '正在监听...';
+                    partialTextElement.style.color = '#007bff';
+                    break;
+                    
+                case 'partial':
+                    // 实时识别结果 - 只显示当前正在说的话
+                    if (data.text && data.text.trim()) {
+                        partialTextElement.textContent = data.text;
+                        partialTextElement.style.color = '#007bff';
+                        partialTextElement.style.fontStyle = 'italic';
+                        
+                        addLog('partial', `实时: ${data.text} (置信度: ${(data.confidence * 100).toFixed(1)}%)`);
+                    } else {
+                        partialTextElement.textContent = '正在监听...';
+                        partialTextElement.style.color = '#6c757d';
+                    }
+                    break;
+                    
+                case 'final':
+                    // 最终确认的句子 - 添加到最终文本区域
+                    if (data.text && data.text.trim()) {
+                        // 获取当前最终文本内容
+                        let currentFinalText = finalTextDiv.textContent;
+                        
+                        // 如果是第一次添加文本，清除"暂无"
+                        if (currentFinalText === '暂无' || currentFinalText === '') {
+                            finalTextDiv.textContent = data.text;
+                        } else {
+                            // 添加新句子，用空格分隔
+                            finalTextDiv.textContent = currentFinalText + ' ' + data.text;
+                        }
+                        
+                        // 清空实时显示区域，准备下一句
+                        partialTextElement.textContent = '正在监听...';
+                        partialTextElement.style.color = '#007bff';
+                        partialTextElement.style.fontStyle = 'normal';
+                        
+                        addLog('final', `确认: ${data.text}`);
+                        
+                        // 自动滚动到最新内容
+                        finalTextDiv.scrollTop = finalTextDiv.scrollHeight;
+                    }
+                    break;
+                    
+                case 'error':
+                    addLog('error', `识别错误: ${data.message}`);
+                    partialTextElement.textContent = '识别出错';
+                    partialTextElement.style.color = '#dc3545';
+                    break;
+                    
+                case 'session_end':
+                    addLog('info', `会话结束: ${data.message}, 共识别 ${data.total_sentences} 句话`);
+                    partialTextElement.textContent = '会话已结束';
+                    partialTextElement.style.color = '#6c757d';
+                    break;
+                    
+                case 'reset_confirm':
+                    addLog('info', `会话重置: ${data.message}`);
+                    partialTextElement.textContent = '等待语音输入...';
+                    partialTextElement.style.color = '#007bff';
+                    break;
+                    
+                default:
+                    addLog('info', `未知消息类型: ${data.type} - ${JSON.stringify(data)}`);
+            }
+        }
+        
+        // 开始实时语音识别
+        async function startRealtimeRecognition() {
+            // 检查WebSocket连接状态
+            if (!websocket) {
+                addLog('error', '请先连接WebSocket');
+                alert('请先点击"连接"按钮建立WebSocket连接');
+                return;
+            }
+            
+            if (websocket.readyState !== WebSocket.OPEN) {
+                addLog('error', `WebSocket状态异常: ${websocket.readyState}`);
+                alert('WebSocket连接未就绪，请重新连接');
+                return;
+            }
+
+            // 检查浏览器是否支持AudioContext
+            if (!window.AudioContext && !window.webkitAudioContext) {
+                addLog('error', '浏览器不支持AudioContext');
+                alert('您的浏览器不支持高级音频功能，请使用现代浏览器');
+                return;
+            }
+
+            try {
+                addLog('info', '正在请求麦克风权限...');
+                
+                // 获取麦克风权限
+                realtimeStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+                
+                addLog('success', '麦克风权限获取成功');
+                
+                // 创建AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 16000
+                });
+                
+                addLog('info', `AudioContext创建成功，采样率: ${audioContext.sampleRate}`);
+                
+                // 创建音频源
+                const source = audioContext.createMediaStreamSource(realtimeStream);
+                
+                // 创建ScriptProcessor用于获取音频数据
+                const bufferSize = 4096;
+                scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+                
+                scriptProcessor.onaudioprocess = function(event) {
+                    if (!isRealtimeRecording || !websocket || websocket.readyState !== WebSocket.OPEN) {
+                        return;
+                    }
+                    
+                    const inputBuffer = event.inputBuffer;
+                    const inputData = inputBuffer.getChannelData(0);
+                    
+                    // 检查音频质量 - 避免发送静音或无效数据
+                    const rms = Math.sqrt(inputData.reduce((sum, sample) => sum + sample * sample, 0) / inputData.length);
+                    const silenceThreshold = 0.01; // RMS静音阈值
+                    
+                    if (rms < silenceThreshold) {
+                        // 静音时减少发送频率，但仍需发送以保持连接
+                        const now = Date.now();
+                        if (now - (scriptProcessor.lastSilentSend || 0) < 1000) {
+                            return; // 静音时1秒发送一次
+                        }
+                        scriptProcessor.lastSilentSend = now;
+                    }
+                    
+                    // 转换为16位PCM
+                    const pcmData = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        // 将float32转换为int16，添加轻微的噪声门限
+                        let sample = Math.max(-1, Math.min(1, inputData[i]));
+                        pcmData[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    }
+                    
+                    // 转换为base64
+                    const buffer = new ArrayBuffer(pcmData.length * 2);
+                    const view = new DataView(buffer);
+                    for (let i = 0; i < pcmData.length; i++) {
+                        view.setInt16(i * 2, pcmData[i], true); // little endian
+                    }
+                    
+                    const uint8Array = new Uint8Array(buffer);
+                    const base64Data = btoa(String.fromCharCode.apply(null, uint8Array));
+                    
+                    // 发送PCM数据
+                    try {
+                        const message = JSON.stringify({
+                            type: 'chunk',
+                            audio: base64Data,
+                            format: 'pcm',
+                            sample_rate: 16000,
+                            rms: rms.toFixed(4), // 添加音频质量信息
+                            timestamp: Date.now()
+                        });
+                        
+                        websocket.send(message);
+                        
+                        // 只在有实际音频时显示详细日志
+                        if (rms > silenceThreshold) {
+                            addLog('info', `发送音频: RMS=${rms.toFixed(4)}, 大小=${(uint8Array.length / 1024).toFixed(1)}KB`);
+                        }
+                    } catch (error) {
+                        addLog('error', `PCM数据发送失败: ${error.message}`);
+                    }
+                };
+                
+                // 连接音频处理链
+                source.connect(scriptProcessor);
+                scriptProcessor.connect(audioContext.destination);
+                
+                // 发送开始消息
+                websocket.send(JSON.stringify({
+                    type: 'start'
+                }));
+                addLog('info', '已发送开始识别消息');
+
+                // 启动录制
+                isRealtimeRecording = true;
+                realtimeStartTime = Date.now();
+
+                // 更新UI
+                document.getElementById('startRealtimeBtn').disabled = true;
+                document.getElementById('stopRealtimeBtn').disabled = false;
+                document.getElementById('clearRealtimeBtn').disabled = true;
+                
+                // 清空显示
+                document.getElementById('partialText').textContent = '正在监听...';
+                document.getElementById('partialText').style.color = '#28a745';
+                
+                // 开始计时器
+                realtimeTimer = setInterval(updateRealtimeTimer, 1000);
+                
+                addLog('success', '实时语音识别已开始 (PCM格式)');
+
+            } catch (error) {
+                addLog('error', `启动实时识别失败: ${error.message}`);
+                console.error('Realtime Recognition Error:', error);
+                
+                if (error.name === 'NotAllowedError') {
+                    alert('麦克风权限被拒绝，请允许麦克风访问后重试');
+                } else if (error.name === 'NotFoundError') {
+                    alert('未找到麦克风设备，请检查设备连接');
+                } else {
+                    alert(`启动录音失败: ${error.message}`);
+                }
+                
+                // 清理资源
+                cleanupAudioResources();
+            }
+        }
+        
+        // 停止实时语音识别
+        function stopRealtimeRecognition() {
+            try {
+                addLog('info', '正在停止实时识别...');
+                
+                // 停止录制
+                isRealtimeRecording = false;
+
+                // 发送结束信号
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify({
+                        type: 'end'
+                    }));
+                    addLog('info', '已发送结束识别消息');
+                }
+
+                // 清理音频资源
+                cleanupAudioResources();
+
+                // 停止计时器
+                if (realtimeTimer) {
+                    clearInterval(realtimeTimer);
+                    realtimeTimer = null;
+                }
+
+                // 重置状态
+                realtimeStartTime = 0;
+
+                // 更新UI
+                document.getElementById('startRealtimeBtn').disabled = false;
+                document.getElementById('stopRealtimeBtn').disabled = true;
+                document.getElementById('clearRealtimeBtn').disabled = false;
+                document.getElementById('realtimeTimer').textContent = '00:00';
+                document.getElementById('partialText').textContent = '已停止录音';
+                document.getElementById('partialText').style.color = '#6c757d';
+
+                addLog('success', '实时语音识别已停止');
+
+            } catch (error) {
+                addLog('error', `停止录音时出错: ${error.message}`);
+                console.error('Stop Recording Error:', error);
+            }
+        }
+        
+        // 更新计时器
+        function updateRealtimeTimer() {
+            if (realtimeStartTime > 0) {
+                const elapsed = Date.now() - realtimeStartTime;
+                const seconds = Math.floor(elapsed / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                
+                const timeStr = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                document.getElementById('realtimeTimer').textContent = timeStr;
+            }
+        }
+        
+        // 添加日志
+        function addLog(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logContent = document.getElementById('realtimeContent');
+            
+            let colorClass = '';
+            let icon = '';
+            switch (type) {
+                case 'success': colorClass = 'color: #28a745'; icon = '✅'; break;
+                case 'error': colorClass = 'color: #dc3545'; icon = '❌'; break;
+                case 'partial': colorClass = 'color: #007bff'; icon = '🗣️'; break;
+                case 'final': colorClass = 'color: #28a745; font-weight: bold'; icon = '✅'; break;
+                case 'info': colorClass = 'color: #6c757d'; icon = 'ℹ️'; break;
+                default: colorClass = 'color: #333'; icon = '📝';
+            }
+            
+            const logLine = `[${timestamp}] ${icon} ${message}\n`;
+            logContent.textContent += logLine;
+            
+            // 自动滚动到底部
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        // 切换日志显示
+        function toggleLogs() {
+            const showLogs = document.getElementById('showLogs').checked;
+            const responseDiv = document.getElementById('realtimeResponse');
+            
+            if (showLogs) {
+                responseDiv.classList.remove('hidden');
+            } else {
+                responseDiv.classList.add('hidden');
+            }
+        }
+        
+        // 清空日志
+        function clearLogs() {
+            document.getElementById('realtimeContent').textContent = '';
+            addLog('info', '日志已清空');
+        }
+
+        // 下载前端日志
+        function downloadLogs() {
+            const logContent = document.getElementById('realtimeContent').textContent;
+            if (!logContent.trim()) {
+                alert('没有日志内容可下载');
+                return;
+            }
+            
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `speech-recognition-frontend-logs-${timestamp}.txt`;
+            
+            const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            URL.revokeObjectURL(url);
+            addLog('info', `前端日志已下载: ${filename}`);
+        }
+
+        // 获取服务器端日志
+        async function fetchServerLogs() {
+            try {
+                showLoading('batchLoading');
+                addLog('info', '正在获取服务器日志...');
+                
+                const response = await fetch(`${baseUrl}/logs/websocket`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(10000)
+                });
+                
+                if (response.ok) {
+                    const logData = await response.text();
+                    
+                    // 显示在日志区域
+                    const logContent = document.getElementById('realtimeContent');
+                    logContent.textContent += `\n\n===== 服务器日志 (${new Date().toLocaleTimeString()}) =====\n`;
+                    logContent.textContent += logData;
+                    logContent.scrollTop = logContent.scrollHeight;
+                    
+                    // 自动下载
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    const filename = `speech-recognition-server-logs-${timestamp}.txt`;
+                    
+                    const blob = new Blob([logData], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    URL.revokeObjectURL(url);
+                    addLog('success', `服务器日志已获取并下载: ${filename}`);
+                    
+                } else {
+                    addLog('error', `获取服务器日志失败: ${response.status} ${response.statusText}`);
+                }
+                
+            } catch (error) {
+                addLog('error', `获取服务器日志出错: ${error.message}`);
+            } finally {
+                hideLoading('batchLoading');
+            }
+        }
+
+        // 清空实时识别结果
+        function clearRealtimeResults() {
+            const partialTextElement = document.getElementById('partialText');
+            const finalTextDiv = document.getElementById('finalText');
+            
+            // 重置显示文本
+            partialTextElement.textContent = '等待语音输入...';
+            partialTextElement.style.color = '#007bff';
+            partialTextElement.style.fontStyle = 'normal';
+            finalTextDiv.textContent = '暂无';
+            
+            // 如果WebSocket连接存在且录音中，通知后端重置会话
+            if (websocket && websocket.readyState === WebSocket.OPEN && isRealtimeRecording) {
+                try {
+                    websocket.send(JSON.stringify({
+                        type: 'reset',
+                        timestamp: Date.now()
+                    }));
+                } catch (error) {
+                    addLog('error', `会话重置消息发送失败: ${error.message}`);
+                }
+            }
+            
+            addLog('info', '实时识别结果和会话状态已清空');
+        }
+
+        // 清理音频资源
+        function cleanupAudioResources() {
+            if (scriptProcessor) {
+                scriptProcessor.disconnect();
+                scriptProcessor.onaudioprocess = null;
+                scriptProcessor.onerror = null;
+                scriptProcessor.onclose = null;
+                scriptProcessor = null;
+            }
+            if (audioContext) {
+                if (audioContext.state !== 'closed') {
+                    audioContext.close().catch(e => console.error('Error closing AudioContext:', e));
+                }
+                audioContext = null;
+            }
+            if (realtimeStream) {
+                realtimeStream.getTracks().forEach(track => track.stop());
+                realtimeStream = null;
+            }
+        }
+
+        // 页面初始化
+        window.addEventListener('load', function() {
+            // 设置拖拽上传
+            setupDragAndDrop('offlineAudioFileLabel', 'offlineAudioFile');
+            setupDragAndDrop('onlineAudioFileLabel', 'onlineAudioFile');
+            
+            // 初始化环境选择
+            changeServerEnvironment();
+            
+            // 页面卸载时清理资源
+            window.addEventListener('beforeunload', function() {
+                if (isRealtimeRecording) {
+                    stopRealtimeRecognition();
+                }
+                if (websocket) {
+                    disconnectWebSocket();
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

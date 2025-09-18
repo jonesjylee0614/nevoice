@@ -1,0 +1,16 @@
+package service
+
+import (
+	"gofly/internal/model/base"
+	"gofly/internal/model/biz"
+	"gofly/pkg/ioc"
+)
+
+// {{ .tableNameUpper }} 录音范文列表
+type {{ .tableNameUpper }} struct {
+	base.DaoImpl[*biz.{{ .tableNameUpper }}]
+}
+
+func init() {
+	ioc.PrepareDao(new({{ .tableNameUpper }}))
+}

@@ -1,0 +1,112 @@
+import type { RouteRecordRaw } from 'vue-router';
+import { defineStore } from 'pinia';
+import router from '@/router';
+import type { LoginData } from '@/api/user';
+import { getUserInfo, login as userLogin, logout as userLogout } from '@/api/user';
+import { clearToken, getToken, setToken } from '@/utils/auth';
+import { removeRouteListener } from '@/utils/route-listener';
+import { encryptBase64 } from '@/utils/crypto';
+import useAppStore from '../app';
+import type { UserState } from './types';
+
+const useUserStore = defineStore('user', {
+  state: (): UserState => ({
+    name: undefined,
+    nickname: undefined,
+    avatar: undefined,
+    introduction: undefined,
+    userId: 0,
+    businessID: 0,
+    rooturl: '',
+    city: '',
+    company: '',
+    sessionTimeout: false, // 登录是否已过期
+    role: '',
+    perms: []
+  }),
+
+  getters: {
+    userInfo(state: UserState): UserState {
+      return { ...state };
+    }
+  },
+
+  actions: {
+    setTokenData(info: string | undefined) {
+      setToken(info);
+    },
+    // Set user's information
+    setInfo(partial: Partial<UserState>) {
+      this.$patch(partial);
+    },
+    // Reset user's information
+    resetInfo() {
+      this.$reset();
+    },
+
+    // Get user's information/获取用户信息
+    async info() {
+      const res = await getUserInfo();
+      this.setInfo(res);
+    },
+    // 设置token
+    async setTokenArr(token: any) {
+      setToken(token);
+    },
+    // 登录/Login
+    async login(loginForm: LoginData) {
+      const { cipherHex, secret } = encryptBase64(loginForm, loginForm.secret);
+      const data = {
+        encryptStr: cipherHex,
+        secret
+      };
+
+      try {
+        const res = await userLogin(data);
+        setToken(res);
+        return this.afterLoginAction();
+      } catch (err) {
+        clearToken();
+        return false;
+      }
+    },
+    // 登录成功后加载菜单
+    async afterLoginAction() {
+      if (!getToken()) return false;
+      this.info();
+      const appStore = useAppStore();
+      await appStore.fetchServerMenuConfig();
+      // 注册路由
+      if (!appStore.getIsDynamicAddedRoute) {
+        appStore.appAsyncRoute.forEach(route => {
+          router.addRoute(route as unknown as RouteRecordRaw);
+        });
+        appStore.setDynamicAddedRoute(true);
+      }
+      return true;
+    },
+    logoutCallBack() {
+      const appStore = useAppStore();
+      this.resetInfo();
+      clearToken();
+      removeRouteListener();
+      appStore.clearServerMenu();
+    },
+    setSessionTimeout(flag: boolean) {
+      this.sessionTimeout = flag;
+    },
+    // 退出登录
+    async logout(goLogin = false) {
+      try {
+        await userLogout();
+      } finally {
+        this.logoutCallBack();
+      }
+      setToken(undefined);
+      // this.setSessionTimeout(false);
+      goLogin && router.push('/login');
+    }
+  }
+});
+
+export default useUserStore;

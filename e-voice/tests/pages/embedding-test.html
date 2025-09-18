@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedding接口测试</title>
+    <link rel="stylesheet" href="../components/common.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Embedding接口测试</h1>
+            <p>专门测试文本和数据嵌入向量相关的API接口</p>
+        </div>
+
+        <div class="config-section">
+            <h3>服务器配置</h3>
+            <div class="input-group">
+                <label for="serverUrl">服务器地址:</label>
+                <select id="serverEnv" onchange="changeServerEnvironment()">
+                    <option value="localhost">本地开发 (localhost:8210)</option>
+                    <option value="wsl-localhost">WSL内部 (localhost:8210)</option>
+                    <option value="wsl-host">WSL宿主机 (172.31.77.180:8210)</option>
+                    <option value="wsl-bridge">WSL桥接 (127.0.0.1:8210)</option>
+                    <option value="development">开发环境 (172.31.77.180:8210)</option>
+                    <option value="production">生产环境 (127.0.0.1:8210)</option>
+                    <option value="custom">自定义</option>
+                </select>
+                <input type="text" id="serverUrl" value="http://localhost:8210" placeholder="输入服务器地址">
+                <button class="btn" onclick="checkServerStatus()">检查连接</button>
+                <span id="serverStatus" class="status-indicator status-checking">未检查</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 统一导航区域 - 自动生成 -->
+
+            <!-- 基础Embedding接口 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">POST</span>
+                        基础Embedding接口
+                    </div>
+                    <div class="api-description">处理embedding请求，接受JSON数据并返回向量化结果</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label for="embeddingData">请求数据 (JSON):</label>
+                        <textarea id="embeddingData" placeholder="输入JSON数据">{"test": "data", "message": "hello"}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>预设测试数据:</label>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn" onclick="loadPresetData('simple')">简单数据</button>
+                            <button class="btn" onclick="loadPresetData('complex')">复杂数据</button>
+                            <button class="btn" onclick="loadPresetData('chinese')">中文测试</button>
+                            <button class="btn" onclick="loadPresetData('medical')">医学词汇</button>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="testEmbedding()">
+                        <span id="embeddingLoading" class="loading hidden"></span>
+                        测试Embedding接口
+                    </button>
+                    <div id="embeddingResponse" class="response-section hidden">
+                        <div class="response-header">
+                            <span id="embeddingStatus" class="response-status"></span>
+                            <span id="embeddingTime" class="response-time"></span>
+                        </div>
+                        <div id="embeddingContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 批量Embedding测试 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">POST</span>
+                        批量Embedding测试
+                    </div>
+                    <div class="api-description">同时测试多个不同的数据格式和内容</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label>测试选项:</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            <label><input type="checkbox" id="testSimple" checked> 简单文本</label>
+                            <label><input type="checkbox" id="testComplex" checked> 复杂JSON</label>
+                            <label><input type="checkbox" id="testChinese" checked> 中文内容</label>
+                            <label><input type="checkbox" id="testMedical" checked> 医学术语</label>
+                            <label><input type="checkbox" id="testLarge" checked> 大数据量</label>
+                            <label><input type="checkbox" id="testEmpty"> 空数据</label>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="runBatchEmbeddingTest()">
+                        <span id="batchLoading" class="loading hidden"></span>
+                        运行批量测试
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllResults(['embeddingResponse', 'batchResults'])">清空所有结果</button>
+                    <div id="batchResults" class="response-section hidden">
+                        <div class="response-header">
+                            <span class="response-status">批量测试结果</span>
+                        </div>
+                        <div id="batchContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 性能压力测试 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">POST</span>
+                        性能压力测试
+                    </div>
+                    <div class="api-description">测试接口在高并发和大数据量情况下的性能表现</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label for="concurrentRequests">并发请求数:</label>
+                        <input type="number" id="concurrentRequests" value="5" min="1" max="20">
+                    </div>
+                    <div class="form-group">
+                        <label for="requestInterval">请求间隔 (毫秒):</label>
+                        <input type="number" id="requestInterval" value="100" min="0" max="5000">
+                    </div>
+                    <button class="btn" onclick="runStressTest()">
+                        <span id="stressLoading" class="loading hidden"></span>
+                        开始压力测试
+                    </button>
+                    <div id="stressResults" class="response-section hidden">
+                        <div class="response-header">
+                            <span class="response-status">压力测试结果</span>
+                        </div>
+                        <div id="stressContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/config.js"></script>
+    <script src="../components/common.js"></script>
+    <script src="../components/navigation.js"></script>
+    <script>
+        // 预设测试数据
+        const presetData = {
+            simple: { "text": "Hello World", "type": "simple" },
+            complex: {
+                "user_id": 12345,
+                "content": {
+                    "title": "测试标题",
+                    "body": "这是一段测试文本，包含中英文混合内容。This is a test content with mixed languages.",
+                    "tags": ["AI", "机器学习", "语音识别"],
+                    "metadata": {
+                        "timestamp": new Date().toISOString(),
+                        "version": "1.0.0",
+                        "language": "zh-CN"
+                    }
+                }
+            },
+            chinese: {
+                "文本": "中文测试内容",
+                "描述": "这是一个包含中文字符的测试数据",
+                "关键词": ["自然语言处理", "机器学习", "人工智能"],
+                "数值": 123.456
+            },
+            medical: {
+                "patient_info": "患者信息",
+                "symptoms": ["发热", "咳嗽", "乏力"],
+                "diagnosis": "上呼吸道感染",
+                "medications": ["阿莫西林", "布洛芬", "氨溴索"],
+                "icd_code": "J06.9"
+            }
+        };
+
+        // 环境切换
+        function changeServerEnvironment() {
+            const envSelect = document.getElementById('serverEnv');
+            const urlInput = document.getElementById('serverUrl');
+            
+            const selectedEnv = envSelect.value;
+            if (selectedEnv === 'custom') {
+                urlInput.disabled = false;
+                urlInput.focus();
+            } else {
+                urlInput.disabled = true;
+                urlInput.value = Config.SERVER_OPTIONS[selectedEnv];
+                updateServerUrl(urlInput.value);
+            }
+        }
+
+        // 加载预设数据
+        function loadPresetData(type) {
+            const textarea = document.getElementById('embeddingData');
+            if (presetData[type]) {
+                textarea.value = JSON.stringify(presetData[type], null, 2);
+            }
+        }
+
+        // 基础Embedding测试
+        async function testEmbedding() {
+            showLoading('embeddingLoading');
+            
+            const data = document.getElementById('embeddingData').value.trim();
+            
+            try {
+                let jsonData;
+                try {
+                    jsonData = JSON.parse(data);
+                } catch {
+                    throw new Error('无效的JSON格式');
+                }
+
+                const startTime = Date.now();
+                const response = await fetch(`${baseUrl}${Config.ENDPOINTS.EMBEDDING}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(jsonData),
+                    signal: AbortSignal.timeout(Config.TIMEOUT.DEFAULT)
+                });
+                const responseTime = Date.now() - startTime;
+                
+                const contentType = response.headers.get('content-type');
+                let content;
+                if (contentType && contentType.includes('application/json')) {
+                    content = await response.json();
+                } else {
+                    content = await response.text();
+                }
+
+                showResponse('embeddingResponse', 'embeddingStatus', 'embeddingTime', 'embeddingContent', 
+                           response.status, responseTime, content);
+            } catch (error) {
+                showResponse('embeddingResponse', 'embeddingStatus', 'embeddingTime', 'embeddingContent', 
+                           0, 0, `错误: ${error.message}`);
+            } finally {
+                hideLoading('embeddingLoading');
+            }
+        }
+
+        // 批量Embedding测试
+        async function runBatchEmbeddingTest() {
+            showLoading('batchLoading');
+            
+            const results = [];
+            const testOptions = {
+                testSimple: document.getElementById('testSimple').checked,
+                testComplex: document.getElementById('testComplex').checked,
+                testChinese: document.getElementById('testChinese').checked,
+                testMedical: document.getElementById('testMedical').checked,
+                testLarge: document.getElementById('testLarge').checked,
+                testEmpty: document.getElementById('testEmpty').checked
+            };
+
+            let totalTests = 0;
+            let passedTests = 0;
+
+            // 测试不同类型的数据
+            for (const [testType, enabled] of Object.entries(testOptions)) {
+                if (!enabled) continue;
+
+                totalTests++;
+                const testName = testType.replace('test', '');
+                
+                try {
+                    let testData;
+                    switch (testType) {
+                        case 'testSimple':
+                            testData = presetData.simple;
+                            break;
+                        case 'testComplex':
+                            testData = presetData.complex;
+                            break;
+                        case 'testChinese':
+                            testData = presetData.chinese;
+                            break;
+                        case 'testMedical':
+                            testData = presetData.medical;
+                            break;
+                        case 'testLarge':
+                            testData = { 
+                                largeText: 'A'.repeat(10000),
+                                data: Array.from({length: 100}, (_, i) => ({ id: i, value: `item${i}` }))
+                            };
+                            break;
+                        case 'testEmpty':
+                            testData = {};
+                            break;
+                    }
+
+                    const startTime = Date.now();
+                    const response = await fetch(`${baseUrl}${Config.ENDPOINTS.EMBEDDING}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(testData),
+                        signal: AbortSignal.timeout(Config.TIMEOUT.DEFAULT)
+                    });
+                    const responseTime = Date.now() - startTime;
+
+                    if (response.ok) {
+                        results.push(`✓ ${testName}: 成功 (${response.status}, ${responseTime}ms)`);
+                        passedTests++;
+                    } else {
+                        results.push(`✗ ${testName}: 失败 (${response.status}, ${responseTime}ms)`);
+                    }
+                } catch (error) {
+                    results.push(`✗ ${testName}: 错误 - ${error.message}`);
+                }
+            }
+
+            const summary = `Embedding批量测试完成！\n通过率: ${passedTests}/${totalTests} (${((passedTests/totalTests)*100).toFixed(1)}%)\n\n` + results.join('\n');
+            
+            document.getElementById('batchResults').classList.remove('hidden');
+            document.getElementById('batchContent').textContent = summary;
+            
+            hideLoading('batchLoading');
+        }
+
+        // 压力测试
+        async function runStressTest() {
+            showLoading('stressLoading');
+            
+            const concurrentRequests = parseInt(document.getElementById('concurrentRequests').value);
+            const requestInterval = parseInt(document.getElementById('requestInterval').value);
+            
+            const results = [];
+            const startTime = Date.now();
+            
+            try {
+                // 并发请求
+                const promises = [];
+                for (let i = 0; i < concurrentRequests; i++) {
+                    setTimeout(async () => {
+                        const requestStart = Date.now();
+                        try {
+                            const response = await fetch(`${baseUrl}${Config.ENDPOINTS.EMBEDDING}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ test: `concurrent_${i}`, timestamp: Date.now() }),
+                                signal: AbortSignal.timeout(Config.TIMEOUT.DEFAULT)
+                            });
+                            const requestTime = Date.now() - requestStart;
+                            results.push({
+                                index: i,
+                                status: response.status,
+                                time: requestTime,
+                                success: response.ok
+                            });
+                        } catch (error) {
+                            results.push({
+                                index: i,
+                                status: 0,
+                                time: Date.now() - requestStart,
+                                success: false,
+                                error: error.message
+                            });
+                        }
+                    }, i * requestInterval);
+                }
+
+                // 等待所有请求完成
+                await new Promise(resolve => {
+                    const checkInterval = setInterval(() => {
+                        if (results.length >= concurrentRequests) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                });
+
+                const totalTime = Date.now() - startTime;
+                const successCount = results.filter(r => r.success).length;
+                const avgResponseTime = results.reduce((sum, r) => sum + r.time, 0) / results.length;
+                
+                const summary = `压力测试完成！
+总用时: ${totalTime}ms
+成功率: ${successCount}/${concurrentRequests} (${((successCount/concurrentRequests)*100).toFixed(1)}%)
+平均响应时间: ${avgResponseTime.toFixed(2)}ms
+最快响应: ${Math.min(...results.map(r => r.time))}ms
+最慢响应: ${Math.max(...results.map(r => r.time))}ms
+
+详细结果:
+${results.map(r => 
+    `请求${r.index}: ${r.success ? '✓' : '✗'} ${r.status} (${r.time}ms)${r.error ? ' - ' + r.error : ''}`
+).join('\n')}`;
+
+                document.getElementById('stressResults').classList.remove('hidden');
+                document.getElementById('stressContent').textContent = summary;
+            } catch (error) {
+                document.getElementById('stressResults').classList.remove('hidden');
+                document.getElementById('stressContent').textContent = `压力测试失败: ${error.message}`;
+            } finally {
+                hideLoading('stressLoading');
+            }
+        }
+
+        // 页面初始化
+        window.addEventListener('load', function() {
+            // 初始化环境选择
+            changeServerEnvironment();
+        });
+    </script>
+</body>
+</html> 

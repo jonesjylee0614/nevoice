@@ -1,0 +1,34 @@
+<template>
+  <ACol class="banner">
+    <ACol :span="8">
+      <ATypographyTitle :heading="5" style="margin-top: 0">
+        {{ $t('workplace.welcome') }} {{ userInfo.name }}
+      </ATypographyTitle>
+    </ACol>
+    <ADivider class="panel-border" />
+  </ACol>
+</template>
+
+<script lang="ts" setup>
+import { useUserStore } from '@/store';
+
+const userStore = useUserStore();
+const userInfo = computed(() => {
+  return {
+    name: userStore.name
+  };
+});
+</script>
+
+<style scoped lang="less">
+.banner {
+  width: 100%;
+  padding: 20px 20px 0 20px;
+  background-color: var(--color-bg-2);
+  border-radius: 4px 4px 0 0;
+}
+
+:deep(.arco-icon-home) {
+  margin-right: 6px;
+}
+</style>

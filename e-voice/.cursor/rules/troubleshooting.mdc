@@ -1,0 +1,68 @@
+# 故障排除和常见问题
+
+## 快速问题定位
+遇到问题时，首先检查 [tests/TROUBLESHOOTING.md](mdc:tests/TROUBLESHOOTING.md) 获取详细解决方案。
+
+## 高频问题速查
+
+### 1. 权限错误 (WSL环境)
+**错误**: `Permission denied: '/data'`
+**解决**: 检查 [rest.py](mdc:rest.py) 中是否使用相对路径 `data/voice/print/`
+
+### 2. libsox库缺失
+**错误**: `libsox.so: cannot open shared object file`
+**解决**: 
+```bash
+sudo apt-get update
+sudo apt-get install -y libsox-dev sox
+sudo ldconfig
+```
+
+### 3. 端口连接问题
+**错误**: `Connection refused port 8210`
+**解决**: 
+- 检查 [rest.py](mdc:rest.py) 端口配置 (默认8210)
+- 确认 [start_rest.sh](mdc:start_rest.sh) 端口一致
+- 验证测试页面环境配置
+
+### 4. 模型依赖问题
+**错误**: `ModuleNotFoundError`
+**解决**: 
+```bash
+pip install -r requirements.txt
+# 检查conda环境是否激活
+```
+
+### 5. WSL Python环境
+**错误**: `python: command not found`
+**解决**: 
+- 确保在WSL中激活正确的conda环境
+- 或直接使用 `python rest.py` 而非gunicorn
+
+## 调试技巧
+1. 查看服务器日志: `tail -f gte.log`
+2. 检查浏览器控制台错误
+3. 使用 [tests/test_page.html](mdc:tests/test_page.html) 环境切换功能
+4. 验证系统依赖: `find /usr -name "*libsox*"`
+
+## 开发环境配置检查清单
+- [ ] WSL2已安装并配置
+- [ ] Conda环境已创建并激活
+- [ ] libsox-dev sox已安装
+- [ ] Python依赖已安装 (requirements.txt)
+- [ ] Milvus服务已启动 (如需要)
+- [ ] 音频文件目录已创建 (data/voice/print)
+
+## 快速重启服务器
+```bash
+# 停止服务器
+pkill -f "rest:app"
+# 或
+pkill -f "python.*rest.py"
+
+# 重新启动
+python rest.py
+# 或
+./start_rest.sh
+```
+ 

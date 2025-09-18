@@ -1,0 +1,108 @@
+<template>
+  <div ref="el" class="relative !h-full w-full overflow-hidden" style="height: 100%"></div>
+</template>
+
+<script lang="ts" setup>
+import { useDebounceFn } from '@vueuse/core';
+import CodeMirror from 'codemirror';
+import { useAppStore } from '@/store';
+import { useWindowSizeFn } from '@/hooks/event/useWindowSizeFn';
+import { MODE } from './../typing';
+// css
+import './codemirror.css';
+import 'codemirror/theme/idea.css';
+import 'codemirror/theme/material-palenight.css';
+// modes
+import 'codemirror/mode/javascript/javascript.js';
+import 'codemirror/mode/css/css.js';
+import 'codemirror/mode/htmlmixed/htmlmixed.js';
+const props = defineProps({
+  mode: {
+    type: String as PropType<MODE>,
+    default: MODE.JSON,
+    validator(value: any) {
+      // 这个值必须匹配下列字符串中的一个
+      return Object.values(MODE).includes(value);
+    }
+  },
+  value: { type: String, default: '' },
+  readonly: { type: Boolean, default: false }
+});
+
+const emit = defineEmits(['change']);
+
+const el = ref();
+let editor: Nullable<CodeMirror.Editor>;
+
+const debounceRefresh = useDebounceFn(refresh, 100);
+const appStore = useAppStore();
+watch(
+  () => props.value,
+  async value => {
+    await nextTick();
+    const oldValue = editor?.getValue();
+    if (value !== oldValue) {
+      editor?.setValue(value || '');
+    }
+  },
+  { flush: 'post' }
+);
+watch(
+  () => appStore.getTheme,
+  async value => {
+    setTheme();
+  },
+  { flush: 'post' }
+);
+
+watchEffect(() => {
+  editor?.setOption('mode', props.mode);
+});
+
+function setTheme() {
+  unref(editor)?.setOption(
+    // 'light' ? : 'material-palenight',
+    'theme',
+    appStore.getTheme == 'light' ? 'idea' : 'material-palenight'
+  );
+}
+
+function refresh() {
+  editor?.refresh();
+}
+
+async function init() {
+  const addonOptions = {
+    autoCloseBrackets: true,
+    autoCloseTags: true,
+    foldGutter: true,
+    gutters: ['CodeMirror-linenumbers']
+  };
+
+  editor = CodeMirror(el.value!, {
+    value: '',
+    mode: props.mode,
+    readOnly: props.readonly,
+    tabSize: 2,
+    theme: 'material-palenight',
+    lineWrapping: true,
+    lineNumbers: true,
+    ...addonOptions
+  });
+  editor?.setValue(props.value as any);
+  setTheme();
+  editor?.on('change', () => {
+    emit('change', editor?.getValue());
+  });
+}
+
+onMounted(async () => {
+  await nextTick();
+  init();
+  useWindowSizeFn(debounceRefresh as any);
+});
+
+onUnmounted(() => {
+  editor = null;
+});
+</script>

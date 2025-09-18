@@ -1,0 +1,123 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.0.9 Chrome/128.0.6613.186 Electron/32.2.5 Safari/537.36" version="26.0.9">
+  <diagram name="Page-1" id="13e1069c-82ec-6db2-03f1-153e76fe0fe0">
+    <mxGraphModel dx="2206" dy="1426" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" background="none" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="98xtRrGrHig74upnZwhh-1" value="" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};participant=umlActor;" parent="1" vertex="1">
+          <mxGeometry x="110" y="130" width="20" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="CxKnU0Nz4vTyaHLi65yB-2" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="98xtRrGrHig74upnZwhh-1" vertex="1">
+          <mxGeometry x="5" y="210" width="10" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-2" value="智能系统" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="210" y="130" width="100" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-3" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="98xtRrGrHig74upnZwhh-2" vertex="1">
+          <mxGeometry x="45" y="125" width="10" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-10" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="98xtRrGrHig74upnZwhh-2" vertex="1">
+          <mxGeometry x="45" y="230" width="10" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-11" value="录入发言人声纹特征" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;dashed=1;" parent="98xtRrGrHig74upnZwhh-2" source="98xtRrGrHig74upnZwhh-3" target="98xtRrGrHig74upnZwhh-10" edge="1">
+          <mxGeometry x="0.9375" y="-30" relative="1" as="geometry">
+            <mxPoint x="10" y="280" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="90" y="180" />
+              <mxPoint x="90" y="250" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-4" value="参照范文录入指定N条语音&lt;div&gt;需要设计一下话术&lt;/div&gt;" style="html=1;verticalAlign=bottom;startArrow=oval;endArrow=block;startSize=8;curved=0;rounded=0;entryX=0;entryY=0;entryDx=0;entryDy=5;" parent="1" source="98xtRrGrHig74upnZwhh-1" target="98xtRrGrHig74upnZwhh-3" edge="1">
+          <mxGeometry x="0.0369" y="10" relative="1" as="geometry">
+            <mxPoint x="175" y="260" as="sourcePoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-14" value="" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};participant=umlActor;" parent="1" vertex="1">
+          <mxGeometry x="600" y="130" width="20" height="630" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-26" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="98xtRrGrHig74upnZwhh-14" vertex="1">
+          <mxGeometry x="5" y="430" width="10" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-15" value="智能系统" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};strokeColor=default;" parent="1" vertex="1">
+          <mxGeometry x="750" y="130" width="100" height="630" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-16" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="98xtRrGrHig74upnZwhh-15" vertex="1">
+          <mxGeometry x="45" y="125" width="10" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-18" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="98xtRrGrHig74upnZwhh-15" vertex="1">
+          <mxGeometry x="45" y="240" width="10" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-19" value="" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;dashed=1;" parent="98xtRrGrHig74upnZwhh-15" source="98xtRrGrHig74upnZwhh-16" target="98xtRrGrHig74upnZwhh-18" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="55" y="220" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="90" y="165" />
+              <mxPoint x="90" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-21" value="2. 系统截取一段语音&lt;div&gt;通过声纹识别发言人&lt;/div&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];rotation=0;" parent="98xtRrGrHig74upnZwhh-19" vertex="1" connectable="0">
+          <mxGeometry x="-0.0038" y="-1" relative="1" as="geometry">
+            <mxPoint x="61" y="8" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-23" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="98xtRrGrHig74upnZwhh-15" vertex="1">
+          <mxGeometry x="45" y="390" width="10" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-24" value="3. 语音识别成文字" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;dashed=1;" parent="98xtRrGrHig74upnZwhh-15" source="98xtRrGrHig74upnZwhh-16" target="98xtRrGrHig74upnZwhh-23" edge="1">
+          <mxGeometry x="0.5128" y="10" relative="1" as="geometry">
+            <mxPoint x="55" y="370" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="110" y="140" />
+              <mxPoint x="110" y="400" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nWj6iwoqaf7rQfDBLXXy-1" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="98xtRrGrHig74upnZwhh-15">
+          <mxGeometry x="45" y="490" width="10" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nWj6iwoqaf7rQfDBLXXy-2" value="4、大模型整理语句，&lt;div&gt;处理错别字、专业术语等&lt;/div&gt;" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" edge="1" target="nWj6iwoqaf7rQfDBLXXy-1" parent="98xtRrGrHig74upnZwhh-15" source="98xtRrGrHig74upnZwhh-23">
+          <mxGeometry x="-0.0625" y="10" relative="1" as="geometry">
+            <mxPoint x="70" y="470" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="90" y="420" />
+              <mxPoint x="90" y="500" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-17" value="1. 会议&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;发言&lt;/span&gt;&lt;div&gt;当有停顿或音频时长达到3秒&lt;/div&gt;&lt;div&gt;就请求一次系统&lt;/div&gt;" style="html=1;verticalAlign=bottom;startArrow=oval;endArrow=block;startSize=8;curved=0;rounded=0;entryX=0;entryY=0;entryDx=0;entryDy=5;" parent="1" target="98xtRrGrHig74upnZwhh-16" edge="1">
+          <mxGeometry x="-0.027" y="10" relative="1" as="geometry">
+            <mxPoint x="610" y="260" as="sourcePoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="98xtRrGrHig74upnZwhh-27" value="5. 返回发言人和文本信息" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;curved=0;rounded=0;" parent="1" source="nWj6iwoqaf7rQfDBLXXy-1" target="98xtRrGrHig74upnZwhh-26" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="750" y="430" as="sourcePoint" />
+            <mxPoint x="670" y="430" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="710" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CxKnU0Nz4vTyaHLi65yB-1" value="return" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;curved=0;rounded=0;" parent="1" source="98xtRrGrHig74upnZwhh-10" target="CxKnU0Nz4vTyaHLi65yB-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="230" y="390" as="sourcePoint" />
+            <mxPoint x="150" y="390" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CxKnU0Nz4vTyaHLi65yB-3" value="声纹录入" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="160" y="60" width="70" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="CxKnU0Nz4vTyaHLi65yB-4" value="实时记录" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="680" y="60" width="70" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,83 @@
+dbconf:
+     # 数据库类型 mysql, sqlite3, postgres, sqlserver
+     driver: mysql
+     #服务器地址 本地建议 127.0.0.1
+     hostname: 127.0.0.1
+     #端口 默认3306
+     hostport: 3306
+     #用户名
+     username: gofly
+     #密码
+     password: gofly
+     #数据库名，pg系列可以通过  database/schema 定位到具体的schema
+     database: gofly_single
+     #数据表前缀
+     prefix:
+redis:
+     host: 127.0.0.1
+     port: 6379
+     password:
+     db: 11
+jwt:
+     secret: 3Bde3BGEbYqtqyEUzW3ry8jKFcaPH17fRmTmqE7MDr05Lwj95uruRKrrkb44TJ4s
+     jwt_ttl: 43200
+app:
+     name: 'app'
+     #版本号
+     version: 1.3.0
+     #环境状态：dev=开发，pro=生产
+     env: dev
+     #运行服务端口（根据您的实际情况修改）
+     port: 8108
+     #接口合法性验证
+     apisecret: gofly@888
+     #接口JWT验证、跨域域名-不添加请求时报403 (开发、部署必改),部署域名时：“https://en.goflys.cn”替换成您的域名
+     allowurl: http://localhost:9105,http://localhost:9106,https://en.goflys.cn,http://localhost:6020,http://localhost:5173/
+     #token超时时间单位分钟 
+     tokenouttime: 10 
+     #调用cpu个数
+     cpunum: 3
+     # Gin 框架在运行的时候默认是debug模式 有： 开发：debug，生产：release，测试模式：test
+     runlogtype: release
+     # 配置代码生成时-前端代码根目录位置(开发必改)
+     vueobjroot: /home/leozy/Desktop/developer/git/python/evoice/e-voice-admin-front
+     #配置企业私有仓网址
+     companyPrivateHouse: 
+     # 配置根域名访问重定向路径,默认是业务端后台
+     rootview: webbusiness
+     #不需要token-根模块
+     noVerifyTokenRoot: resource,webbusiness,webadmin,wxapp,openapi,print_voice
+     #不需要api接口合法性验证-根模块md5加密
+     noVerifyAPIRoot: resource,webbusiness,webadmin,openapi,print_voice
+     #不需要验证token-具体请求路径
+     noVerifyToken: /common/uploadfile/get_image,/common/install/index,/common/install/save,/user/login,/user/logout,/user/refreshtoken,/user/get_code,/user/resetPassword,/user/get_logininfo,/user/get_Captcha
+     #不需要接口合法性-具体请求路径
+     noVerifyAPI: /common/install/index,/common/install/save,
+     #是否允许跨域请求
+     allow-cros: false
+     #允许跨域的域名，默认*
+     allow-origin: '*'
+     micro:
+        py_voice:
+            host: http://127.0.0.1:8210
+log:
+     level: debug  # 日志等级 debug | info | warn | error ，默认 info
+     enable-sql-log: true # 是否开启sql日志，报错的日志一直会有，开关不影响
+     enable-ioc-log: false # 是否开启ioc日志
+     enable-router-log: false # 是否开启路由注册日志
+#     filepath: ./runtime/logs # 日志路径 不配置则只输出到控制台
+     filename: app.log # 日志文件名 默认为项目名
+     max-size: 500 # 日志文件最大大小（MB）
+     max-age: 30 # 日志文件最大大小（MB）
+     compress: true # 是否使用 gzip 压缩方式压缩轮转后的日志文件
+     color: 1 # 是否允许颜色 1是 非1否
+api:
+    enable: true
+    title: api接口文档
+    version: 1.0
+    username: 
+    password:
+voice:
+     # 用户声纹存放路径 后面拼接用户id/声纹文件名即可访问
+     print-path: /home/leozy/Desktop/developer/git/python/evoice/e-voice/data/voice/print
+     meeting-path: /home/leozy/Desktop/developer/git/python/evoice/e-voice/data/meeting/offline

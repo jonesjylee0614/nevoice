@@ -1,0 +1,74 @@
+---
+globs: *.py
+alwaysApply: false
+---
+# E-Voice 智能语音识别项目概述
+
+## 项目结构
+这是一个基于Flask的语音识别和声纹识别系统，主要文件结构如下：
+
+### 核心服务文件
+- [rest.py](mdc:rest.py) - 主要的REST API服务器，处理语音注册、识别等核心功能
+- [rest_prints.py](mdc:rest_prints.py) - 声纹识别相关的API端点
+- [start_rest.sh](mdc:start_rest.sh) - 生产环境服务器启动脚本
+
+### 功能模块
+- `speech_recognition/` - 语音识别模块
+  - [recognize.py](mdc:speech_recognition/recognize.py) - 语音转文字的核心功能
+- `pipeline/` - 声纹验证管道
+  - [spk_v_pipeline.py](mdc:pipeline/spk_v_pipeline.py) - 声纹特征提取
+- `es/` - 向量数据库操作
+  - [voice.py](mdc:es/voice.py) - 声纹向量存储和检索
+- `zh_correct/` - 中文文本纠错
+  - [correct.py](mdc:zh_correct/correct.py) - 医学词汇纠错
+
+### 测试和配置
+- `tests/` - 测试工具目录（已重构为模块化）
+  - [test_page.html](mdc:tests/test_page.html) - 主测试入口
+  - `components/` - 共用组件（CSS、JS、配置）
+  - `pages/` - 专项测试页面
+- [requirements.txt](mdc:requirements.txt) - Python依赖
+- [README.md](mdc:README.md) - 项目说明文档
+
+## 重要端口和地址
+- 默认服务端口: 8210 (可通过环境变量PORT配置)
+- 开发环境: http://172.31.77.180:8210
+- 本地测试: http://localhost:8210
+
+## 常见问题参考
+如遇到错误，请参考 [tests/TROUBLESHOOTING.md](mdc:tests/TROUBLESHOOTING.md)
+# E-Voice 智能语音识别项目概述
+
+## 项目结构
+这是一个基于Flask的语音识别和声纹识别系统，主要文件结构如下：
+
+### 核心服务文件
+- [rest.py](mdc:rest.py) - 主要的REST API服务器，处理语音注册、识别等核心功能
+- [rest_prints.py](mdc:rest_prints.py) - 声纹识别相关的API端点
+- [start_rest.sh](mdc:start_rest.sh) - 生产环境服务器启动脚本
+
+### 功能模块
+- `speech_recognition/` - 语音识别模块
+  - [recognize.py](mdc:speech_recognition/recognize.py) - 语音转文字的核心功能
+- `pipeline/` - 声纹验证管道
+  - [spk_v_pipeline.py](mdc:pipeline/spk_v_pipeline.py) - 声纹特征提取
+- `es/` - 向量数据库操作
+  - [voice.py](mdc:es/voice.py) - 声纹向量存储和检索
+- `zh_correct/` - 中文文本纠错
+  - [correct.py](mdc:zh_correct/correct.py) - 医学词汇纠错
+
+### 测试和配置
+- `tests/` - 测试工具目录（已重构为模块化）
+  - [test_page.html](mdc:tests/test_page.html) - 主测试入口
+  - `components/` - 共用组件（CSS、JS、配置）
+  - `pages/` - 专项测试页面
+- [requirements.txt](mdc:requirements.txt) - Python依赖
+- [README.md](mdc:README.md) - 项目说明文档
+
+## 重要端口和地址
+- 默认服务端口: 8210 (可通过环境变量PORT配置)
+- 开发环境: http://172.31.77.180:8210
+- 本地测试: http://localhost:8210
+
+## 常见问题参考
+如遇到错误，请参考 [tests/TROUBLESHOOTING.md](mdc:tests/TROUBLESHOOTING.md)

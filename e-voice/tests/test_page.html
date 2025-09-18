@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REST API 测试工具</title>
+    <link rel="stylesheet" href="components/common.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>REST API 测试工具</h1>
+            <p>便捷的接口测试界面，支持多种HTTP请求方式</p>
+        </div>
+
+        <div class="config-section">
+            <h3>服务器配置</h3>
+            <div class="input-group">
+                <label for="serverUrl">服务器地址:</label>
+                <select id="serverEnv" onchange="changeServerEnvironment()">
+                    <option value="localhost">本地开发 (localhost:8210)</option>
+                    <option value="wsl-localhost">WSL内部 (localhost:8210)</option>
+                    <option value="wsl-host">WSL宿主机 (172.31.77.180:8210)</option>
+                    <option value="wsl-bridge">WSL桥接 (127.0.0.1:8210)</option>
+                    <option value="development">开发环境 (172.31.77.180:8210)</option>
+                    <option value="production">生产环境 (127.0.0.1:8210)</option>
+                    <option value="custom">自定义</option>
+                </select>
+                <input type="text" id="serverUrl" value="http://localhost:8210" placeholder="输入服务器地址">
+                <button class="btn" onclick="checkServerStatus()">检查连接</button>
+                <span id="serverStatus" class="status-indicator status-checking">未检查</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 统一导航区域 - 自动生成 -->
+
+            <!-- 健康检查接口 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-get">GET</span>
+                        健康检查接口
+                    </div>
+                    <div class="api-description">检查服务器是否正常运行，返回 "success"</div>
+                </div>
+                <div class="api-body">
+                    <button class="btn" onclick="testHealthCheck()">
+                        <span id="healthLoading" class="loading hidden"></span>
+                        测试健康检查
+                    </button>
+                    <div id="healthResponse" class="response-section hidden">
+                        <div class="response-header">
+                            <span id="healthStatus" class="response-status"></span>
+                            <span id="healthTime" class="response-time"></span>
+                        </div>
+                        <div id="healthContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Embedding接口 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">POST</span>
+                        Embedding接口
+                    </div>
+                    <div class="api-description">处理embedding请求，接受JSON数据</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label for="embeddingData">请求数据 (JSON):</label>
+                        <textarea id="embeddingData" placeholder="输入JSON数据">{"test": "data", "message": "hello"}</textarea>
+                    </div>
+                    <button class="btn" onclick="testEmbedding()">
+                        <span id="embeddingLoading" class="loading hidden"></span>
+                        测试Embedding接口
+                    </button>
+                    <div id="embeddingResponse" class="response-section hidden">
+                        <div class="response-header">
+                            <span id="embeddingStatus" class="response-status"></span>
+                            <span id="embeddingTime" class="response-time"></span>
+                        </div>
+                        <div id="embeddingContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 语音注册接口 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">POST</span>
+                        语音注册接口
+                    </div>
+                    <div class="api-description">上传音频文件进行语音识别和注册</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label for="username">用户名:</label>
+                        <input type="text" id="username" value="test_user" placeholder="输入用户名">
+                    </div>
+                    <div class="form-group">
+                        <label for="userid">用户ID:</label>
+                        <input type="number" id="userid" value="123" placeholder="输入用户ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="audioFile">音频文件:</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="audioFile" class="file-input" accept="audio/*" onchange="handleFileSelect(this)">
+                            <label for="audioFile" class="file-input-label" id="audioFileLabel">
+                                点击选择音频文件或拖拽文件到此处<br>
+                                <small>支持 WAV, MP3, M4A 等格式</small>
+                            </label>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="testVoiceRegister()">
+                        <span id="voiceLoading" class="loading hidden"></span>
+                        测试语音注册
+                    </button>
+                    <div id="voiceResponse" class="response-section hidden">
+                        <div class="response-header">
+                            <span id="voiceStatus" class="response-status"></span>
+                            <span id="voiceTime" class="response-time"></span>
+                        </div>
+                        <div id="voiceContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自定义接口测试 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-get">自定义</span>
+                        自定义接口测试
+                    </div>
+                    <div class="api-description">测试任意接口，支持GET和POST请求</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label for="customMethod">请求方法:</label>
+                        <select id="customMethod">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="OPTIONS">OPTIONS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="customPath">接口路径:</label>
+                        <input type="text" id="customPath" placeholder="例如: /new-endpoint" value="/">
+                    </div>
+                    <div class="form-group">
+                        <label for="customHeaders">请求头 (JSON):</label>
+                        <textarea id="customHeaders" placeholder="例如: {&quot;Content-Type&quot;: &quot;application/json&quot;}">{"Content-Type": "application/json"}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="customBody">请求体:</label>
+                        <textarea id="customBody" placeholder="POST请求的数据内容"></textarea>
+                    </div>
+                    <button class="btn" onclick="testCustomAPI()">
+                        <span id="customLoading" class="loading hidden"></span>
+                        发送自定义请求
+                    </button>
+                    <div id="customResponse" class="response-section hidden">
+                        <div class="response-header">
+                            <span id="customStatus" class="response-status"></span>
+                            <span id="customTime" class="response-time"></span>
+                        </div>
+                        <div id="customContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 批量测试 -->
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-get">批量</span>
+                        批量测试
+                    </div>
+                    <div class="api-description">一键测试所有可用接口</div>
+                </div>
+                <div class="api-body">
+                    <button class="btn" onclick="runBatchTest()">
+                        <span id="batchLoading" class="loading hidden"></span>
+                        运行批量测试
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllResults()">清空所有结果</button>
+                    <div id="batchResults" class="response-section hidden">
+                        <div class="response-header">
+                            <span class="response-status">批量测试结果</span>
+                        </div>
+                        <div id="batchContent" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="components/config.js"></script>
+    <script src="components/common.js"></script>
+    <script src="components/navigation.js"></script>
+    <script>
+
+        // 环境切换
+        function changeServerEnvironment() {
+            const envSelect = document.getElementById('serverEnv');
+            const urlInput = document.getElementById('serverUrl');
+            
+            const selectedEnv = envSelect.value;
+            if (selectedEnv === 'custom') {
+                urlInput.disabled = false;
+                urlInput.focus();
+            } else {
+                urlInput.disabled = true;
+                urlInput.value = Config.SERVER_OPTIONS[selectedEnv];
+                updateServerUrl(urlInput.value);
+                }
+        }
+
+        // 主页面特定功能函数
+
+        // 健康检查测试
+        async function testHealthCheck() {
+            showLoading('healthLoading');
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${baseUrl}/`, {
+                    method: 'GET'
+                });
+                const responseTime = Date.now() - startTime;
+                const content = await response.text();
+
+                showResponse('healthResponse', 'healthStatus', 'healthTime', 'healthContent', 
+                           response.status, responseTime, content);
+            } catch (error) {
+                showResponse('healthResponse', 'healthStatus', 'healthTime', 'healthContent', 
+                           0, 0, `网络错误: ${error.message}`);
+            } finally {
+                hideLoading('healthLoading');
+            }
+        }
+
+        // Embedding接口测试
+        async function testEmbedding() {
+            showLoading('embeddingLoading');
+            
+            const data = document.getElementById('embeddingData').value.trim();
+            
+            try {
+                let jsonData;
+                try {
+                    jsonData = JSON.parse(data);
+                } catch {
+                    throw new Error('无效的JSON格式');
+                }
+
+                const startTime = Date.now();
+                const response = await fetch(`${baseUrl}/embedding`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(jsonData)
+                });
+                const responseTime = Date.now() - startTime;
+                const content = await response.json();
+
+                showResponse('embeddingResponse', 'embeddingStatus', 'embeddingTime', 'embeddingContent', 
+                           response.status, responseTime, content);
+            } catch (error) {
+                showResponse('embeddingResponse', 'embeddingStatus', 'embeddingTime', 'embeddingContent', 
+                           0, 0, `错误: ${error.message}`);
+            } finally {
+                hideLoading('embeddingLoading');
+            }
+        }
+
+        // 语音注册测试
+        async function testVoiceRegister() {
+            showLoading('voiceLoading');
+            
+            const username = document.getElementById('username').value.trim();
+            const userid = document.getElementById('userid').value.trim();
+            const audioFile = document.getElementById('audioFile').files[0];
+
+            if (!username || !userid) {
+                showResponse('voiceResponse', 'voiceStatus', 'voiceTime', 'voiceContent', 
+                           400, 0, '用户名和用户ID不能为空');
+                hideLoading('voiceLoading');
+                return;
+            }
+
+            if (!audioFile) {
+                showResponse('voiceResponse', 'voiceStatus', 'voiceTime', 'voiceContent', 
+                           400, 0, '请选择音频文件');
+                hideLoading('voiceLoading');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioFile);
+                formData.append('username', username);
+                formData.append('userid', userid);
+
+                const startTime = Date.now();
+                const response = await fetch(`${baseUrl}/voice-register`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const responseTime = Date.now() - startTime;
+                
+                const contentType = response.headers.get('content-type');
+                let content;
+                if (contentType && contentType.includes('application/json')) {
+                    content = await response.json();
+                } else {
+                    content = await response.text();
+                }
+
+                showResponse('voiceResponse', 'voiceStatus', 'voiceTime', 'voiceContent', 
+                           response.status, responseTime, content);
+            } catch (error) {
+                showResponse('voiceResponse', 'voiceStatus', 'voiceTime', 'voiceContent', 
+                           0, 0, `网络错误: ${error.message}`);
+            } finally {
+                hideLoading('voiceLoading');
+            }
+        }
+
+        // 自定义接口测试
+        async function testCustomAPI() {
+            showLoading('customLoading');
+            
+            const method = document.getElementById('customMethod').value;
+            const path = document.getElementById('customPath').value.trim();
+            const headersText = document.getElementById('customHeaders').value.trim();
+            const body = document.getElementById('customBody').value.trim();
+
+            try {
+                let headers = {};
+                if (headersText) {
+                    try {
+                        headers = JSON.parse(headersText);
+                    } catch {
+                        throw new Error('请求头JSON格式错误');
+                    }
+                }
+
+                const requestOptions = {
+                    method: method,
+                    headers: headers
+                };
+
+                if (method !== 'GET' && method !== 'HEAD' && body) {
+                    requestOptions.body = body;
+                }
+
+                const url = path.startsWith('/') ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
+                
+                const startTime = Date.now();
+                const response = await fetch(url, requestOptions);
+                const responseTime = Date.now() - startTime;
+                
+                const contentType = response.headers.get('content-type');
+                let content;
+                if (contentType && contentType.includes('application/json')) {
+                    content = await response.json();
+                } else {
+                    content = await response.text();
+                }
+
+                showResponse('customResponse', 'customStatus', 'customTime', 'customContent', 
+                           response.status, responseTime, content);
+            } catch (error) {
+                showResponse('customResponse', 'customStatus', 'customTime', 'customContent', 
+                           0, 0, `错误: ${error.message}`);
+            } finally {
+                hideLoading('customLoading');
+            }
+        }
+
+        // 批量测试
+        async function runBatchTest() {
+            showLoading('batchLoading');
+            
+            const results = [];
+            let allPassed = true;
+
+            // 测试健康检查
+            try {
+                const response = await fetch(`${baseUrl}/`);
+                const content = await response.text();
+                const passed = response.ok && content === 'success';
+                results.push(`✓ 健康检查: ${passed ? '通过' : '失败'} (${response.status})`);
+                if (!passed) allPassed = false;
+            } catch (error) {
+                results.push(`✗ 健康检查: 失败 - ${error.message}`);
+                allPassed = false;
+            }
+
+            // 测试Embedding接口
+            try {
+                const response = await fetch(`${baseUrl}/embedding`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: 'data' })
+                });
+                const passed = response.ok;
+                results.push(`${passed ? '✓' : '✗'} Embedding接口: ${passed ? '通过' : '失败'} (${response.status})`);
+                if (!passed) allPassed = false;
+            } catch (error) {
+                results.push(`✗ Embedding接口: 失败 - ${error.message}`);
+                allPassed = false;
+            }
+
+            // 测试CORS
+            try {
+                const response = await fetch(`${baseUrl}/voice-register`, {
+                    method: 'OPTIONS',
+                    headers: { 'Origin': 'http://localhost:3000' }
+                });
+                const corsHeaders = response.headers.get('access-control-allow-origin');
+                const passed = corsHeaders !== null;
+                results.push(`${passed ? '✓' : '✗'} CORS支持: ${passed ? '通过' : '失败'}`);
+                if (!passed) allPassed = false;
+            } catch (error) {
+                results.push(`✗ CORS支持: 失败 - ${error.message}`);
+                allPassed = false;
+            }
+
+            const summary = `批量测试完成！总体结果: ${allPassed ? '✓ 全部通过' : '✗ 部分失败'}\n\n` + results.join('\n');
+            
+            document.getElementById('batchResults').classList.remove('hidden');
+            document.getElementById('batchContent').textContent = summary;
+            
+            hideLoading('batchLoading');
+        }
+
+        // 清空所有结果
+        function clearAllResults() {
+            const responseElements = [
+                'healthResponse', 'embeddingResponse', 'voiceResponse', 
+                'customResponse', 'batchResults'
+            ];
+            
+            responseElements.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+        }
+
+        // 文件选择处理
+        function handleFileSelect(input) {
+            const label = document.getElementById('audioFileLabel');
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                label.classList.add('file-selected');
+                label.innerHTML = `
+                    已选择文件: ${file.name}<br>
+                    <small>大小: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                `;
+            } else {
+                label.classList.remove('file-selected');
+                label.innerHTML = `
+                    点击选择音频文件或拖拽文件到此处<br>
+                    <small>支持 WAV, MP3, M4A 等格式</small>
+                `;
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            // 设置拖拽上传
+            setupDragAndDrop('audioFileLabel', 'audioFile');
+            
+            // 初始化环境选择
+            changeServerEnvironment();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,22 @@
+tmp
+.history
+.github
+tmp
+runtime/app
+runtime/logs
+
+.local
+# local env files
+*.exe
+*.exe~
+
+.idea
+install.lock
+*.class
+.DS_Store
+
+resource/uploads
+
+admin-server
+gofly
+*.log

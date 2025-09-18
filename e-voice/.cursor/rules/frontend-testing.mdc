@@ -1,0 +1,182 @@
+---
+globs: tests/**/*.html,tests/**/*.js,tests/**/*.css
+alwaysApply: false
+---
+# 前端测试页面开发规范
+
+## 模块化架构
+测试页面已重构为模块化结构：
+- [tests/test_page.html](mdc:tests/test_page.html) - 主入口页面
+- `tests/components/` - 共用组件
+- `tests/pages/` - 专项测试页面
+
+## 共用组件使用
+每个测试页面应引入：
+```html
+<link rel="stylesheet" href="../components/common.css">
+<script src="../components/config.js"></script>
+<script src="../components/common.js"></script>
+```
+
+## 服务器配置模式
+使用统一的环境切换:
+```html
+<select id="serverEnv" onchange="changeServerEnvironment()">
+    <option value="localhost">本地开发 (localhost:8210)</option>
+    <option value="development">开发环境 (172.31.77.180:8210)</option>
+    <option value="production">生产环境 (127.0.0.1:8210)</option>
+    <option value="custom">自定义</option>
+</select>
+```
+
+## 配置管理
+在 [tests/components/config.js](mdc:tests/components/config.js) 中管理:
+```javascript
+const Config = {
+    DEFAULT_SERVER_URL: 'http://localhost:8210',
+    SERVER_OPTIONS: {
+        'localhost': 'http://localhost:8210',
+        'development': 'http://172.31.77.180:8210',
+        'production': 'http://127.0.0.1:8210'
+    },
+    ENDPOINTS: {
+        HEALTH: '/',
+        EMBEDDING: '/embedding',
+        VOICE_REGISTER: '/voice-register'
+    }
+};
+```
+
+## 标准功能模块
+
+### 1. 文件上传处理
+```javascript
+function handleFileSelect(input, labelId) {
+    // 使用共用函数处理文件选择
+}
+
+// 设置拖拽上传
+setupDragAndDrop('audioFileLabel', 'audioFile');
+```
+
+### 2. 响应显示
+```javascript
+showResponse('voiceResponse', 'voiceStatus', 'voiceTime', 'voiceContent', 
+           response.status, responseTime, content);
+```
+
+### 3. 加载状态
+```javascript
+showLoading('voiceLoading');
+// 处理请求
+hideLoading('voiceLoading');
+```
+
+## CSS类名规范
+- `.api-section` - API测试区块
+- `.form-group` - 表单组
+- `.btn` - 按钮样式
+- `.response-section` - 响应显示区域
+- `.loading` - 加载动画
+- `.hidden` - 隐藏元素
+
+## 新页面创建流程
+1. 在 `tests/pages/` 创建新HTML文件
+2. 引入共用组件 (CSS/JS)
+3. 实现特定的测试功能
+4. 在主页面添加导航链接
+5. 更新 [tests/README.md](mdc:tests/README.md) 文档
+
+## 响应式设计
+- 支持移动端和桌面端
+- 使用flex布局和grid布局
+- 媒体查询适配小屏幕
+# 前端测试页面开发规范
+
+## 模块化架构
+测试页面已重构为模块化结构：
+- [tests/test_page.html](mdc:tests/test_page.html) - 主入口页面
+- `tests/components/` - 共用组件
+- `tests/pages/` - 专项测试页面
+
+## 共用组件使用
+每个测试页面应引入：
+```html
+<link rel="stylesheet" href="../components/common.css">
+<script src="../components/config.js"></script>
+<script src="../components/common.js"></script>
+```
+
+## 服务器配置模式
+使用统一的环境切换:
+```html
+<select id="serverEnv" onchange="changeServerEnvironment()">
+    <option value="localhost">本地开发 (localhost:8210)</option>
+    <option value="development">开发环境 (172.31.77.180:8210)</option>
+    <option value="production">生产环境 (127.0.0.1:8210)</option>
+    <option value="custom">自定义</option>
+</select>
+```
+
+## 配置管理
+在 [tests/components/config.js](mdc:tests/components/config.js) 中管理:
+```javascript
+const Config = {
+    DEFAULT_SERVER_URL: 'http://localhost:8210',
+    SERVER_OPTIONS: {
+        'localhost': 'http://localhost:8210',
+        'development': 'http://172.31.77.180:8210',
+        'production': 'http://127.0.0.1:8210'
+    },
+    ENDPOINTS: {
+        HEALTH: '/',
+        EMBEDDING: '/embedding',
+        VOICE_REGISTER: '/voice-register'
+    }
+};
+```
+
+## 标准功能模块
+
+### 1. 文件上传处理
+```javascript
+function handleFileSelect(input, labelId) {
+    // 使用共用函数处理文件选择
+}
+
+// 设置拖拽上传
+setupDragAndDrop('audioFileLabel', 'audioFile');
+```
+
+### 2. 响应显示
+```javascript
+showResponse('voiceResponse', 'voiceStatus', 'voiceTime', 'voiceContent', 
+           response.status, responseTime, content);
+```
+
+### 3. 加载状态
+```javascript
+showLoading('voiceLoading');
+// 处理请求
+hideLoading('voiceLoading');
+```
+
+## CSS类名规范
+- `.api-section` - API测试区块
+- `.form-group` - 表单组
+- `.btn` - 按钮样式
+- `.response-section` - 响应显示区域
+- `.loading` - 加载动画
+- `.hidden` - 隐藏元素
+
+## 新页面创建流程
+1. 在 `tests/pages/` 创建新HTML文件
+2. 引入共用组件 (CSS/JS)
+3. 实现特定的测试功能
+4. 在主页面添加导航链接
+5. 更新 [tests/README.md](mdc:tests/README.md) 文档
+
+## 响应式设计
+- 支持移动端和桌面端
+- 使用flex布局和grid布局
+- 媒体查询适配小屏幕

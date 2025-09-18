@@ -1,0 +1,106 @@
+---
+alwaysApply: true
+---
+
+# E-Voice 开发指南
+
+## 环境要求
+- Python 3.12+ 
+- WSL2 (Windows环境)
+- Conda环境管理
+- 需要安装 libsox-dev sox (音频处理库)
+
+## 关键开发原则
+
+### 1. 路径使用规范
+- **绝对避免**使用绝对路径如 `/data/...`
+- **始终使用**相对路径，如 `data/voice/print/`
+- 音频文件存储路径: `data/voice/print/{userid}/`
+
+### 2. 错误处理标准
+```python
+try:
+    # 业务逻辑
+    pass
+except Exception as e:
+    print(f"详细错误信息: {traceback.format_exc()}")
+    return {'error': f'处理失败: {str(e)}'}, 500
+```
+
+### 3. 端口配置
+- 服务器默认端口: 8210
+- 支持环境变量 PORT 配置
+- 测试页面配置要与服务器端口一致
+
+### 4. 依赖管理
+- 所有Python依赖记录在 [requirements.txt](mdc:requirements.txt)
+- 系统级依赖记录在 [install.sh](mdc:install.sh)
+- WSL环境问题参考 [tests/TROUBLESHOOTING.md](mdc:tests/TROUBLESHOOTING.md)
+
+## 常见修改场景
+
+### 添加新API接口
+1. 在 [rest.py](mdc:rest.py) 中添加路由
+2. 在 `tests/pages/` 中创建专项测试页面
+3. 更新 [tests/test_page.html](mdc:tests/test_page.html) 的导航
+
+### 音频处理相关
+- 确保 libsox 库已安装
+- 音频文件保存使用相对路径
+- 支持格式: WAV, MP3, M4A, FLAC
+
+### 测试页面开发
+- 使用 `tests/components/` 中的共用组件
+- 遵循现有的UI设计模式
+- 支持环境切换功能
+# E-Voice 开发指南
+
+## 环境要求
+- Python 3.12+ 
+- WSL2 (Windows环境)
+- Conda环境管理
+- 需要安装 libsox-dev sox (音频处理库)
+
+## 关键开发原则
+
+### 1. 路径使用规范
+- **绝对避免**使用绝对路径如 `/data/...`
+- **始终使用**相对路径，如 `data/voice/print/`
+- 音频文件存储路径: `data/voice/print/{userid}/`
+
+### 2. 错误处理标准
+```python
+try:
+    # 业务逻辑
+    pass
+except Exception as e:
+    print(f"详细错误信息: {traceback.format_exc()}")
+    return {'error': f'处理失败: {str(e)}'}, 500
+```
+
+### 3. 端口配置
+- 服务器默认端口: 8210
+- 支持环境变量 PORT 配置
+- 测试页面配置要与服务器端口一致
+
+### 4. 依赖管理
+- 所有Python依赖记录在 [requirements.txt](mdc:requirements.txt)
+- 系统级依赖记录在 [install.sh](mdc:install.sh)
+- WSL环境问题参考 [tests/TROUBLESHOOTING.md](mdc:tests/TROUBLESHOOTING.md)
+
+## 常见修改场景
+
+### 添加新API接口
+1. 在 [rest.py](mdc:rest.py) 中添加路由
+2. 在 `tests/pages/` 中创建专项测试页面
+3. 更新 [tests/test_page.html](mdc:tests/test_page.html) 的导航
+
+### 音频处理相关
+- 确保 libsox 库已安装
+- 音频文件保存使用相对路径
+- 支持格式: WAV, MP3, M4A, FLAC
+
+### 测试页面开发
+- 使用 `tests/components/` 中的共用组件
+- 遵循现有的UI设计模式
+- 支持环境切换功能

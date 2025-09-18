@@ -1,0 +1,41 @@
+<template>
+  <AInputNumber
+    v-if="type === 'number'"
+    :style="{ width: '80px' }"
+    size="small"
+    :default-value="defaultValue as number"
+    @change="handleChange"
+  />
+  <AInput
+    v-else-if="type === 'string'"
+    :style="{ width: '100px' }"
+    size="small"
+    :default-value="defaultValue as string"
+    @change="handleChange"
+  />
+  <ASwitch v-else :default-checked="defaultValue as boolean" size="small" @change="handleChange" />
+</template>
+
+<script lang="ts" setup>
+const props = defineProps({
+  type: {
+    type: String,
+    default: ''
+  },
+  name: {
+    type: String,
+    default: ''
+  },
+  defaultValue: {
+    type: [String, Boolean, Number],
+    default: ''
+  }
+});
+const emit = defineEmits(['inputChange']);
+const handleChange = (value: unknown) => {
+  emit('inputChange', {
+    value,
+    key: props.name
+  });
+};
+</script>

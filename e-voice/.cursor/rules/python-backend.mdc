@@ -1,0 +1,126 @@
+---
+alwaysApply: false
+---
+
+# Python后端开发规范
+
+## Flask应用结构
+主应用在 [rest.py](mdc:rest.py)，使用Flask + SocketIO + CORS架构
+
+## 关键模块导入
+```python
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask_socketio import SocketIO
+import traceback  # 用于详细错误日志
+```
+
+## 路径处理规范
+❌ **错误示例**:
+```python
+folder = f"/data/voice/print/{userid}"  # 绝对路径，WSL权限问题
+```
+
+✅ **正确示例**:
+```python
+folder = f"data/voice/print/{userid}"  # 相对路径，避免权限问题
+```
+
+## 错误处理模式
+```python
+@app.route('/voice-register', methods=['POST'])
+def handle_audio_stream():
+    try:
+        # 业务逻辑
+        return json.dumps(data, cls=NumpyEncoder), 200
+    except Exception as e:
+        torch.cuda.empty_cache()  # 清理GPU内存
+        print(f"错误详情: {str(e)}")
+        return {'error': f'音频处理失败: {str(e)}'}, 500
+```
+
+## 音频处理注意事项
+- 使用 soundfile 读取音频: `sf.read(audio_stream)`
+- 备用 pydub 处理: `AudioSegment.from_file()`
+- 保存路径: `data/voice/print/{userid}/{filename}`
+- 文件名格式: `{timestamp}.{uuid}.{original_filename}`
+
+## 依赖说明
+- `soundfile` - 音频文件读写
+- `pydub` - 音频格式转换
+- `librosa` - 音频处理 (需要libsox支持)
+- `torch` - 深度学习推理
+- `modelscope` - 语音识别模型
+
+## 性能优化
+- 使用 `torch.cuda.empty_cache()` 清理GPU内存
+- 音频处理完成后及时删除临时文件
+- 大文件上传设置合理的超时时间
+
+## 向量数据库集成
+使用 Milvus 存储声纹特征:
+```python
+from milvus.voice import insert_voice, voice_prints_coll2
+insert_voice(voice_prints_coll2, [username], [userid], [filename], [txt_res], [timestamp], [embeddings])
+```
+# Python后端开发规范
+
+## Flask应用结构
+主应用在 [rest.py](mdc:rest.py)，使用Flask + SocketIO + CORS架构
+
+## 关键模块导入
+```python
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask_socketio import SocketIO
+import traceback  # 用于详细错误日志
+```
+
+## 路径处理规范
+❌ **错误示例**:
+```python
+folder = f"/data/voice/print/{userid}"  # 绝对路径，WSL权限问题
+```
+
+✅ **正确示例**:
+```python
+folder = f"data/voice/print/{userid}"  # 相对路径，避免权限问题
+```
+
+## 错误处理模式
+```python
+@app.route('/voice-register', methods=['POST'])
+def handle_audio_stream():
+    try:
+        # 业务逻辑
+        return json.dumps(data, cls=NumpyEncoder), 200
+    except Exception as e:
+        torch.cuda.empty_cache()  # 清理GPU内存
+        print(f"错误详情: {str(e)}")
+        return {'error': f'音频处理失败: {str(e)}'}, 500
+```
+
+## 音频处理注意事项
+- 使用 soundfile 读取音频: `sf.read(audio_stream)`
+- 备用 pydub 处理: `AudioSegment.from_file()`
+- 保存路径: `data/voice/print/{userid}/{filename}`
+- 文件名格式: `{timestamp}.{uuid}.{original_filename}`
+
+## 依赖说明
+- `soundfile` - 音频文件读写
+- `pydub` - 音频格式转换
+- `librosa` - 音频处理 (需要libsox支持)
+- `torch` - 深度学习推理
+- `modelscope` - 语音识别模型
+
+## 性能优化
+- 使用 `torch.cuda.empty_cache()` 清理GPU内存
+- 音频处理完成后及时删除临时文件
+- 大文件上传设置合理的超时时间
+
+## 向量数据库集成
+使用 Milvus 存储声纹特征:
+```python
+from milvus.voice import insert_voice, voice_prints_coll2
+insert_voice(voice_prints_coll2, [username], [userid], [filename], [txt_res], [timestamp], [embeddings])
+```

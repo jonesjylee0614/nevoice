@@ -1,0 +1,1 @@
+import{color_default as e,utils_default$1 as t}from"./index-eM6Wc6ON.js";const n=(n,r)=>t.lang.round(e.parse(n)[r]);var r=n;export{r as channel_default};
