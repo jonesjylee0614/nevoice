@@ -6,9 +6,14 @@ import sys
 import time
 import json
 import base64
-import websocket
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import pytest
+
+pytest.skip("功能验证脚本仅供手动运行，自动化测试默认跳过", allow_module_level=True)
+
+import websocket
 from loguru import logger
 
 # 添加项目根目录到路径

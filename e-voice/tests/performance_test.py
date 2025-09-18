@@ -11,10 +11,15 @@ import threading
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from pathlib import Path
-import websocket
 import base64
 import wave
+
 import numpy as np
+import pytest
+
+pytest.skip("性能测试脚本仅用于手动执行，默认跳过", allow_module_level=True)
+
+import websocket
 from loguru import logger
 
 # 添加项目根目录到路径

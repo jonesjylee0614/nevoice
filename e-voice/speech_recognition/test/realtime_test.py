@@ -1,6 +1,11 @@
 import logging
+from pathlib import Path
 
 import librosa
+import pytest
+
+pytest.importorskip("funasr")
+
 from funasr import AutoModel
 from modelscope.utils.logger import get_logger
 
@@ -9,10 +14,12 @@ logger.setLevel(logging.CRITICAL)
 
 model = AutoModel(model="paraformer-zh-streaming", disable_update=True)
 
+audio_path = Path(__file__).resolve().parents[2] / "resource" / "asr_speaker_demo.wav"
+if not audio_path.exists():
+    pytest.skip("缺少实时识别示例音频，跳过集成测试", allow_module_level=True)
+
 # 以16000Hz的采样率读取文件
-# speech, sample_rate = librosa.load(os.path.join(model.model_path, "example/asr_example.wav"), sr=16000)
-speech, sample_rate = librosa.load("/home/leozy/Desktop/developer/git/leo/evoice/e-voice/resource/asr_speaker_demo.wav",
-                                   sr=16000)
+speech, sample_rate = librosa.load(audio_path, sr=16000)
 
 # 将字节数据转换为 numpy 数组
 # speech = np.frombuffer(speech, dtype=np.float16)
