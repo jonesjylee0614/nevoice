@@ -8,12 +8,17 @@ import json
 import os
 import time
 import traceback
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import numpy as np
 import soundfile as sf
 
 from speech_recognition.recognize import recognize
+
+try:  # FunASR 流式识别
+    from funasr import AutoModel  # type: ignore
+except Exception:  # pragma: no cover - FunASR 未安装时回退
+    AutoModel = None
 
 from .audio_utils import extract_text_from_result, resolve_temp_dir
 from .logging import audio_logger, key_logger, recognition_logger
@@ -61,7 +66,7 @@ class RealtimeSpeechSession:
         
         # 保留兼容属性
         self.current_sentence = ""  # 兼容现有接口：full_sentence
-        self.cache = {}  # ModelScope流式识别缓存
+        self.cache: Dict[str, Any] = {}  # 流式识别缓存
         self.sample_rate = 16000
         self.chunk_size = [0, 10, 5]  # 流式识别参数
         self.encoder_chunk_look_back = 4
@@ -97,9 +102,35 @@ class RealtimeSpeechSession:
         self._recent_final_texts = []  # 最近若干final原文
         self.last_partial_confidence = 0.0
 
-        # 关闭流式模型以提高兼容性与稳定性（回退离线识别）
-        self.streaming_model = None
-        
+        # 流式识别模型（默认启用 FunASR，失败时回退离线）
+        self.streaming_model: Optional[Any] = None
+        self._streaming_backend: Optional[str] = None
+        self._streaming_available = False
+        self._pending_streaming_result: Optional[Dict[str, Any]] = None
+        self._last_streaming_result: Optional[Dict[str, Any]] = None
+        self._last_streaming_text_sent = ""
+        self._streaming_latency_ms = 0
+        if AutoModel is not None:
+            try:
+                self.streaming_model = AutoModel(
+                    model="paraformer-zh-streaming",
+                    disable_update=True,
+                )
+                self._streaming_backend = "funasr"
+                self._streaming_available = True
+                recognition_logger.info(
+                    "✅ [streaming] 成功初始化 FunASR 模型 paraformer-zh-streaming"
+                )
+            except Exception as exc:  # pragma: no cover - 依赖缺失/权重下载失败
+                recognition_logger.warning(
+                    f"⚠️ [streaming] FunASR 流式模型初始化失败，使用离线回退: {exc}"
+                )
+                self.streaming_model = None
+        else:  # pragma: no cover - FunASR 未安装
+            recognition_logger.warning(
+                "⚠️ [streaming] 未检测到 FunASR，使用离线回退"
+            )
+
         # 🌐 基于网络标准的质量监控系统
         self.quality_stats = {
             'total_chunks': 0,
@@ -132,10 +163,16 @@ class RealtimeSpeechSession:
     def reset(self):
         """重置会话状态"""
         self.audio_chunks.clear()
-        
+
+        if self._streaming_available and self.streaming_model is not None:
+            try:
+                self._streaming_infer(np.array([], dtype=np.float32), is_final=True)
+            except Exception:  # pragma: no cover - 防御性兜底
+                pass
+
         # 🎯 【修改】重置新的简化状态管理
         self.full_sentence = ""
-        
+
         # 🗑️ 【废弃】以下状态变量已被移除
         # self.confirmed_text = ""
         # self.candidate_text = ""
@@ -151,6 +188,10 @@ class RealtimeSpeechSession:
         self.full_sentence = ""  # 🔧【2025-01-19 修复】同时重置主状态字段
         self.confirmed_sentences = []
         self.cache.clear()
+        self._pending_streaming_result = None
+        self._last_streaming_result = None
+        self._last_streaming_text_sent = ""
+        self._streaming_latency_ms = 0
         self.audio_buffer = np.array([], dtype=np.float32)
         self.last_update_time = time.time()
         self.last_activity_time = time.time()
@@ -386,6 +427,84 @@ class RealtimeSpeechSession:
             'confirmed_length': len("".join(self.confirmed_sentences))
         }
 
+    def _streaming_infer(
+        self, audio_chunk: Optional[np.ndarray], is_final: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """调用流式识别模型并缓存最近一次结果。"""
+
+        if not self._streaming_available or self.streaming_model is None:
+            return None
+
+        try:
+            if audio_chunk is None:
+                audio_chunk = np.array([], dtype=np.float32)
+            if not isinstance(audio_chunk, np.ndarray):
+                audio_chunk = np.asarray(audio_chunk, dtype=np.float32)
+            if audio_chunk.ndim > 1:
+                audio_chunk = audio_chunk.flatten()
+
+            start_time = time.time()
+            if self._streaming_backend == "funasr":
+                result = self.streaming_model.generate(
+                    input=audio_chunk.astype(np.float32, copy=False),
+                    cache=self.cache,
+                    is_final=is_final,
+                    chunk_size=self.chunk_size,
+                    encoder_chunk_look_back=self.encoder_chunk_look_back,
+                    decoder_chunk_look_back=self.decoder_chunk_look_back,
+                )
+            else:  # pragma: no cover - 仅支持FunASR后端
+                return None
+
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            text = extract_text_from_result(result)
+            confidence = 0.0
+            if isinstance(result, dict):
+                confidence = float(
+                    result.get("confidence")
+                    or result.get("score")
+                    or 0.0
+                )
+            elif isinstance(result, (list, tuple)) and result:
+                first = result[0]
+                if isinstance(first, dict):
+                    confidence = float(
+                        first.get("confidence")
+                        or first.get("score")
+                        or 0.0
+                    )
+
+            payload = {
+                "text": text,
+                "confidence": confidence,
+                "raw": result,
+                "processing_time_ms": elapsed_ms,
+                "is_final": is_final,
+            }
+
+            self._last_streaming_result = payload
+            self._streaming_latency_ms = elapsed_ms
+
+            if not is_final:
+                if text and text != self._last_streaming_text_sent:
+                    self._pending_streaming_result = payload
+                else:
+                    self._pending_streaming_result = None
+            else:
+                # final flush不通过partial发送
+                self._pending_streaming_result = None
+
+            return payload
+        except Exception as exc:  # pragma: no cover - 推理异常退化
+            recognition_logger.warning(
+                f"⚠️ [streaming] 流式推理失败，切换离线回退: {exc}"
+            )
+            self.streaming_model = None
+            self._streaming_backend = None
+            self._streaming_available = False
+            self._pending_streaming_result = None
+            return None
+
     def add_audio_chunk(self, audio_data, audio_format='pcm', sample_rate=16000, seq=None):
         """
         添加音频块
@@ -575,6 +694,26 @@ class RealtimeSpeechSession:
                 'zero_ratio': zero_ratio
             })
 
+            if self._streaming_available and self.streaming_model is not None:
+                streaming_payload = self._streaming_infer(audio_array, is_final=False)
+                if streaming_payload is not None:
+                    text = streaming_payload.get("text") or ""
+                    if text and text != self.full_sentence:
+                        self.full_sentence = text
+                        self.current_sentence = text
+                    elif not text and not self.full_sentence:
+                        self.full_sentence = text
+                        self.current_sentence = text
+
+                    self.last_update_time = time.time()
+
+                    confidence_val = streaming_payload.get("confidence")
+                    if confidence_val is not None:
+                        try:
+                            self.last_partial_confidence = float(confidence_val)
+                        except (TypeError, ValueError):  # pragma: no cover - 容错
+                            pass
+
             # 🔧【2025-01-19 修复】移除缓冲区裁剪逻辑，解决"吞字回删"问题
             # 问题原因：在用户说话过程中截断音频缓冲区，导致get_partial_result()获得不完整的上下文
             # 解决方案：保持句内缓冲区完整，只在finalize_current_sentence()中清空缓冲区
@@ -650,58 +789,95 @@ class RealtimeSpeechSession:
             audio_logger.error(f"详细错误: {traceback.format_exc()}")
 
     def get_partial_result(self):
-        """
-        【再次重构】获取当前句子的识别结果。
-        通过识别当前句子的完整音频缓冲区来解决“吞字”问题。
-        """
+        """获取当前句子的实时识别结果，优先返回流式推理输出。"""
+
+        if self._streaming_available and self.streaming_model is not None:
+            pending = self._pending_streaming_result
+            if not pending:
+                return None
+
+            text = pending.get("text") or ""
+            if not text.strip():
+                self._pending_streaming_result = None
+                return None
+
+            normalized_text = normalize_text(text)
+            confidence_val = pending.get("confidence")
+            try:
+                confidence = (
+                    float(confidence_val) if confidence_val is not None else 0.85
+                )
+            except (TypeError, ValueError):  # pragma: no cover - 容错
+                confidence = 0.85
+            if confidence <= 0.0:
+                confidence = self.last_partial_confidence or 0.85
+
+            self.last_partial_confidence = confidence
+            self._last_streaming_text_sent = text
+            self._pending_streaming_result = None
+
+            processing_ms = int(
+                pending.get("processing_time_ms") or self._streaming_latency_ms or 0
+            )
+
+            self.quality_stats['recognition_attempts'] += 1
+            if text:
+                self.quality_stats['successful_recognitions'] += 1
+
+            recognition_logger.info(f"[streaming] 实时识别: '{normalized_text}'")
+
+            return {
+                'text': normalized_text,
+                'is_partial': True,
+                'confidence': confidence,
+                'processing_time_ms': processing_ms,
+                'text_state': {
+                    'confirmed_text': normalize_text("".join(self.confirmed_sentences)),
+                    'candidate_text': normalized_text,
+                }
+            }
+
+        # 离线兜底路径
         current_time = time.time()
         if current_time - self.last_update_time < self.chunk_duration:
             return None
 
         required_samples = int(self.sample_rate * self.min_audio_duration)
         if self.audio_buffer.size < required_samples:
-            recognition_logger.debug(f"音频缓冲区不足 ({self.audio_buffer.size} < {required_samples})，跳过")
+            recognition_logger.debug(
+                f"音频缓冲区不足 ({self.audio_buffer.size} < {required_samples})，跳过"
+            )
             return None
 
         recognition_start_time = time.time()
         recognized_text = ""
 
         try:
-            # 🎯【关键修改】识别整个当前音频缓冲区，而不是切片
             temp_filename = f"partial_{self.partial_save_counter + 1}.wav"
             temp_file = os.path.join(self.session_dir or self.temp_dir, temp_filename)
-            
-            # 使用16-bit PCM保存，兼容性更好
+
             sf.write(temp_file, np.clip(self.audio_buffer, -1.0, 1.0), self.sample_rate, subtype='PCM_16')
             self.partial_save_counter += 1
 
-            # 识别当前句子的完整音频缓冲区
             result = recognize(temp_file)
-            
+
             recognized_text = extract_text_from_result(result)
 
-            # 文本后处理
             if recognized_text:
-                # 语音指令检测
                 command_result = detect_voice_command(recognized_text)
                 if command_result['is_command']:
-                    # 如果检测到指令（如"删除"），这里需要实现对应的指令逻辑
-                    # 为简化起见，此处暂时忽略指令，实际应用中需要处理
                     recognition_logger.info(f"识别到指令: {recognized_text}，暂不处理")
-                    return None # 避免指令词本身上屏
-                
-            # 🎯【关键修改】直接用新的识别结果更新当前句子
+                    return None
+
             if recognized_text == self.full_sentence:
                 return None
             self.full_sentence = recognized_text
             self.last_update_time = current_time
 
-            recognition_logger.info(f"实时识别: '{self.full_sentence}'")
+            recognition_logger.info(f"[offline fallback] 实时识别: '{self.full_sentence}'")
 
-            # 规范化处理
             normalized_full_text = normalize_text(self.full_sentence)
-            
-            # 更新统计
+
             self.quality_stats['recognition_attempts'] += 1
             if recognized_text:
                 self.quality_stats['successful_recognitions'] += 1
@@ -709,12 +885,11 @@ class RealtimeSpeechSession:
             return {
                 'text': normalized_full_text,
                 'is_partial': True,
-                'confidence': 0.85,  # 简化的置信度
+                'confidence': 0.85,
                 'processing_time_ms': int((time.time() - recognition_start_time) * 1000),
-                # 🎯 返回简化的、正确的文本状态
                 'text_state': {
                     'confirmed_text': normalize_text("".join(self.confirmed_sentences)),
-                    'candidate_text': normalized_full_text, # 整个当前句都是候选
+                    'candidate_text': normalized_full_text,
                 }
             }
         except Exception as e:
@@ -886,6 +1061,20 @@ class RealtimeSpeechSession:
         """
         【已重构】确认当前句子为最终结果，并更新处理状态。
         """
+        if self._streaming_available and self.streaming_model is not None:
+            flush_result = self._streaming_infer(np.array([], dtype=np.float32), is_final=True)
+            if flush_result:
+                flush_text = flush_result.get("text") or ""
+                if flush_text:
+                    self.full_sentence = flush_text
+                    self.current_sentence = flush_text
+                confidence_val = flush_result.get("confidence")
+                if confidence_val is not None:
+                    try:
+                        self.last_partial_confidence = float(confidence_val)
+                    except (TypeError, ValueError):  # pragma: no cover - 容错
+                        pass
+
         if not self.full_sentence.strip():
             return ""
 
@@ -900,7 +1089,8 @@ class RealtimeSpeechSession:
             return ""
 
         self.confirmed_sentences.append(final_text)
-        recognition_logger.info(f"🏁 最终确认句子 #{len(self.confirmed_sentences)}: '{final_text}'")
+        mode_label = "[streaming]" if self._streaming_available and self.streaming_model is not None else "[offline fallback]"
+        recognition_logger.info(f"{mode_label} 🏁 最终确认句子 #{len(self.confirmed_sentences)}: '{final_text}'")
 
         # 🎯【至关重要】硬重置当前句子的状态并清空音频缓冲区，避免跨句子干扰
         self.full_sentence = ""
@@ -910,7 +1100,13 @@ class RealtimeSpeechSession:
         except Exception:
             # 兜底防御，确保不因异常阻断流程
             self.audio_buffer = np.array([], dtype=np.float32)
-        
+
+        if self._streaming_available and self.streaming_model is not None:
+            self.cache.clear()
+            self._pending_streaming_result = None
+            self._last_streaming_result = None
+            self._streaming_latency_ms = 0
+
         return final_text
 
     def get_final_result(self):
