@@ -1,0 +1,4 @@
+2025-09-20 02:57:00.939 | INFO     | recognition | ✅ [streaming] 成功初始化 FunASR 模型 paraformer-zh-streaming
+2025-09-20 02:57:59.585 | INFO     | recognition | ✅ [streaming] 成功初始化 FunASR 模型 paraformer-zh-streaming
+2025-09-20 02:58:34.428 | INFO     | recognition | 📚 热词管理器加载完成: 静态6个, 动态0个, 用户学习0个
+2025-09-20 02:58:37.853 | INFO     | recognition | ✅ [streaming] 成功初始化 FunASR 模型 paraformer-zh-streaming
