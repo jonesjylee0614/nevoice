@@ -71,6 +71,8 @@ class RealtimeSpeechSession:
         self.chunk_size = [0, 10, 5]  # 流式识别参数
         self.encoder_chunk_look_back = 4
         self.decoder_chunk_look_back = 1
+        # FunASR streaming 以 chunk_size[1] * 960 作为一步推理的采样点数
+        self.streaming_stride_samples = int(self.chunk_size[1] * 960)
         self.last_update_time = time.time()
         # 🌐 基于网络搜索的标准参数配置
         self.chunk_duration = 0.25  # 处理间隔250ms (网络推荐范围100-500ms)
@@ -110,6 +112,7 @@ class RealtimeSpeechSession:
         self._last_streaming_result: Optional[Dict[str, Any]] = None
         self._last_streaming_text_sent = ""
         self._streaming_latency_ms = 0
+        self._streaming_audio_cache = np.array([], dtype=np.float32)
         if AutoModel is not None:
             try:
                 self.streaming_model = AutoModel(
@@ -166,7 +169,10 @@ class RealtimeSpeechSession:
 
         if self._streaming_available and self.streaming_model is not None:
             try:
-                self._streaming_infer(np.array([], dtype=np.float32), is_final=True)
+                if self._streaming_audio_cache.size > 0:
+                    self._streaming_infer(self._streaming_audio_cache, is_final=True)
+                else:
+                    self._streaming_infer(np.array([], dtype=np.float32), is_final=True)
             except Exception:  # pragma: no cover - 防御性兜底
                 pass
 
@@ -192,6 +198,7 @@ class RealtimeSpeechSession:
         self._last_streaming_result = None
         self._last_streaming_text_sent = ""
         self._streaming_latency_ms = 0
+        self._streaming_audio_cache = np.array([], dtype=np.float32)
         self.audio_buffer = np.array([], dtype=np.float32)
         self.last_update_time = time.time()
         self.last_activity_time = time.time()
@@ -503,6 +510,7 @@ class RealtimeSpeechSession:
             self._streaming_backend = None
             self._streaming_available = False
             self._pending_streaming_result = None
+            self._streaming_audio_cache = np.array([], dtype=np.float32)
             return None
 
     def add_audio_chunk(self, audio_data, audio_format='pcm', sample_rate=16000, seq=None):
@@ -695,24 +703,52 @@ class RealtimeSpeechSession:
             })
 
             if self._streaming_available and self.streaming_model is not None:
-                streaming_payload = self._streaming_infer(audio_array, is_final=False)
-                if streaming_payload is not None:
-                    text = streaming_payload.get("text") or ""
-                    if text and text != self.full_sentence:
-                        self.full_sentence = text
-                        self.current_sentence = text
-                    elif not text and not self.full_sentence:
-                        self.full_sentence = text
-                        self.current_sentence = text
+                # FunASR 模型要求以固定帧长送入，需将前端 256ms 块聚合成 600ms 步长
+                stream_chunk = audio_array.astype(np.float32, copy=False)
+                if self._streaming_audio_cache.size == 0:
+                    self._streaming_audio_cache = stream_chunk
+                else:
+                    self._streaming_audio_cache = np.concatenate(
+                        (self._streaming_audio_cache, stream_chunk)
+                    )
 
-                    self.last_update_time = time.time()
+                processed_any = False
+                while self._streaming_audio_cache.size >= self.streaming_stride_samples:
+                    chunk_to_infer = self._streaming_audio_cache[
+                        : self.streaming_stride_samples
+                    ]
+                    self._streaming_audio_cache = self._streaming_audio_cache[
+                        self.streaming_stride_samples :
+                    ]
 
-                    confidence_val = streaming_payload.get("confidence")
-                    if confidence_val is not None:
-                        try:
-                            self.last_partial_confidence = float(confidence_val)
-                        except (TypeError, ValueError):  # pragma: no cover - 容错
-                            pass
+                    streaming_payload = self._streaming_infer(
+                        np.ascontiguousarray(chunk_to_infer), is_final=False
+                    )
+                    processed_any = True
+                    if streaming_payload is not None:
+                        text = streaming_payload.get("text") or ""
+                        if text and text != self.full_sentence:
+                            self.full_sentence = text
+                            self.current_sentence = text
+                        elif not text and not self.full_sentence:
+                            self.full_sentence = text
+                            self.current_sentence = text
+
+                        self.last_update_time = time.time()
+
+                        confidence_val = streaming_payload.get("confidence")
+                        if confidence_val is not None:
+                            try:
+                                self.last_partial_confidence = float(confidence_val)
+                            except (TypeError, ValueError):  # pragma: no cover - 容错
+                                pass
+
+                if not processed_any:
+                    audio_logger.trace(
+                        "流式缓存未达到模型步长: {}/{} samples",
+                        self._streaming_audio_cache.size,
+                        self.streaming_stride_samples,
+                    )
 
             # 🔧【2025-01-19 修复】移除缓冲区裁剪逻辑，解决"吞字回删"问题
             # 问题原因：在用户说话过程中截断音频缓冲区，导致get_partial_result()获得不完整的上下文
@@ -826,14 +862,18 @@ class RealtimeSpeechSession:
 
             recognition_logger.info(f"[streaming] 实时识别: '{normalized_text}'")
 
+            confirmed_text = normalize_text("".join(self.confirmed_sentences))
+            full_text = confirmed_text + (normalized_text if normalized_text else "")
+
             return {
                 'text': normalized_text,
                 'is_partial': True,
                 'confidence': confidence,
                 'processing_time_ms': processing_ms,
                 'text_state': {
-                    'confirmed_text': normalize_text("".join(self.confirmed_sentences)),
+                    'confirmed_text': confirmed_text,
                     'candidate_text': normalized_text,
+                    'full_text': full_text,
                 }
             }
 
@@ -882,14 +922,18 @@ class RealtimeSpeechSession:
             if recognized_text:
                 self.quality_stats['successful_recognitions'] += 1
 
+            confirmed_text = normalize_text("".join(self.confirmed_sentences))
+            full_text = confirmed_text + (normalized_full_text if normalized_full_text else "")
+
             return {
                 'text': normalized_full_text,
                 'is_partial': True,
                 'confidence': 0.85,
                 'processing_time_ms': int((time.time() - recognition_start_time) * 1000),
                 'text_state': {
-                    'confirmed_text': normalize_text("".join(self.confirmed_sentences)),
+                    'confirmed_text': confirmed_text,
                     'candidate_text': normalized_full_text,
+                    'full_text': full_text,
                 }
             }
         except Exception as e:
@@ -1062,7 +1106,13 @@ class RealtimeSpeechSession:
         【已重构】确认当前句子为最终结果，并更新处理状态。
         """
         if self._streaming_available and self.streaming_model is not None:
-            flush_result = self._streaming_infer(np.array([], dtype=np.float32), is_final=True)
+            flush_audio = (
+                np.ascontiguousarray(self._streaming_audio_cache)
+                if self._streaming_audio_cache.size > 0
+                else np.array([], dtype=np.float32)
+            )
+            flush_result = self._streaming_infer(flush_audio, is_final=True)
+            self._streaming_audio_cache = np.array([], dtype=np.float32)
             if flush_result:
                 flush_text = flush_result.get("text") or ""
                 if flush_text:
