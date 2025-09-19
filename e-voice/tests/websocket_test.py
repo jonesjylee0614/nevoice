@@ -5,10 +5,14 @@ WebSocket连接测试脚本
 """
 
 import asyncio
-import websockets
 import json
-import base64
 import time
+
+import pytest
+
+pytest.skip("WebSocket连接脚本仅用于手工验证，自动测试默认跳过", allow_module_level=True)
+
+import websockets
 
 async def test_websocket():
     """测试WebSocket连接和消息处理"""

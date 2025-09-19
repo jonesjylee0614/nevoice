@@ -18,6 +18,10 @@ import threading
 import time
 from datetime import datetime
 
+import pytest
+
+pytest.skip("仅用于手动调试的脚本，默认跳过自动化测试", allow_module_level=True)
+
 from config.config import conf
 
 voice_conf = conf['voice']
