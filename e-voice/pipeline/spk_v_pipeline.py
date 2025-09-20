@@ -1,11 +1,16 @@
-from modelscope.pipelines import pipeline
+from modelscope import pipeline
 
+from config.config import conf
+
+# 设置环境变
+
+model_conf = conf['model']
 # 说话人确认模型
 sv_pipeline = pipeline(
     task='speaker-verification',
-    model='iic/speech_campplus_sv_zh-cn_16k-common',
-    model_revision='v2.0.2',
-    disable_update=True
+    model=model_conf['speech_campplus'],
+    disable_update=True,
+    local_files_only=True
 )
 
 
@@ -17,8 +22,3 @@ def embedding(wav_path):
 def embeddings(wav_paths):
     result = sv_pipeline(wav_paths, output_emb=True)
     return result['embs']
-
-
-if __name__ == '__main__':
-    eb = embedding("../resource/audio_data/0/014.wav", )
-    print(eb)
