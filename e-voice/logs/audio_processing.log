@@ -2386,3 +2386,1007 @@ TypeError: Object of type float32 is not JSON serializable
     raise TypeError(f'Object of type {o.__class__.__name__} '
 TypeError: Object of type float32 is not JSON serializable
 
+2025-09-20 03:34:02.184 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.188 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.188 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003992, 增益=7.52
+2025-09-20 03:34:02.189 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0943, rms_amp=0.0300, mean_amp=0.0219, non_zero_ratio=0.840, zero_ratio=0.160
+2025-09-20 03:34:02.189 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4096/9600 samples
+2025-09-20 03:34:02.189 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.094269 > 0.003
+2025-09-20 03:34:02.189 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0943, rms_amp=0.0300, buffer_before=0, buffer_after=4096, trimmed=False, processing_time=4.5ms
+2025-09-20 03:34:02.195 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:02.195 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.198 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.199 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0125, rms_amp=0.0052, mean_amp=0.0043, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:02.199 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8192/9600 samples
+2025-09-20 03:34:02.199 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.012512 > 0.003
+2025-09-20 03:34:02.199 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0125, rms_amp=0.0052, buffer_before=4096, buffer_after=8192, trimmed=False, processing_time=3.6ms
+2025-09-20 03:34:02.204 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005181, 时长=0.26s
+2025-09-20 03:34:02.205 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.208 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.208 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0154, rms_amp=0.0054, mean_amp=0.0045, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:02.302 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015411 > 0.003
+2025-09-20 03:34:02.302 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0154, rms_amp=0.0054, buffer_before=8192, buffer_after=12288, trimmed=False, processing_time=97.1ms
+2025-09-20 03:34:02.307 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005436, 时长=0.26s
+2025-09-20 03:34:02.307 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.312 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.312 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0190, rms_amp=0.0078, mean_amp=0.0062, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:02.312 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6784/9600 samples
+2025-09-20 03:34:02.312 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.018982 > 0.003
+2025-09-20 03:34:02.312 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0190, rms_amp=0.0078, buffer_before=12288, buffer_after=16384, trimmed=False, processing_time=5.2ms
+2025-09-20 03:34:02.318 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007817, 时长=0.26s
+2025-09-20 03:34:02.319 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.322 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.322 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0311, rms_amp=0.0061, mean_amp=0.0048, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:02.441 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.031067 > 0.003
+2025-09-20 03:34:02.441 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0311, rms_amp=0.0061, buffer_before=16384, buffer_after=20480, trimmed=False, processing_time=122.5ms
+2025-09-20 03:34:02.448 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006082, 时长=0.26s
+2025-09-20 03:34:02.448 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.452 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.452 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1704, rms_amp=0.0377, mean_amp=0.0260, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:02.452 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5376/9600 samples
+2025-09-20 03:34:02.453 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.170380 > 0.003
+2025-09-20 03:34:02.453 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1704, rms_amp=0.0377, buffer_before=20480, buffer_after=24576, trimmed=False, processing_time=4.5ms
+2025-09-20 03:34:02.459 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.037747, 时长=0.26s
+2025-09-20 03:34:02.459 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.462 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.462 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0208, rms_amp=0.0061, mean_amp=0.0046, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:02.462 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 9472/9600 samples
+2025-09-20 03:34:02.462 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.020813 > 0.003
+2025-09-20 03:34:02.462 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0208, rms_amp=0.0061, buffer_before=24576, buffer_after=28672, trimmed=False, processing_time=3.5ms
+2025-09-20 03:34:02.475 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006132, 时长=0.26s
+2025-09-20 03:34:02.481 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.484 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.484 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0159, rms_amp=0.0052, mean_amp=0.0043, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:02.557 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015930 > 0.003
+2025-09-20 03:34:02.558 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0159, rms_amp=0.0052, buffer_before=28672, buffer_after=32768, trimmed=False, processing_time=77.2ms
+2025-09-20 03:34:02.564 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005188, 时长=0.26s
+2025-09-20 03:34:02.748 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:02.751 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:02.752 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0700, rms_amp=0.0167, mean_amp=0.0111, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:02.752 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8064/9600 samples
+2025-09-20 03:34:02.752 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.070038 > 0.003
+2025-09-20 03:34:02.752 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0700, rms_amp=0.0167, buffer_before=32768, buffer_after=36864, trimmed=False, processing_time=4.2ms
+2025-09-20 03:34:02.759 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.016745, 时长=0.26s
+2025-09-20 03:34:03.000 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:03.004 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:03.004 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0489, rms_amp=0.0123, mean_amp=0.0091, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:03.096 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.048920 > 0.003
+2025-09-20 03:34:03.097 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0489, rms_amp=0.0123, buffer_before=36864, buffer_after=40960, trimmed=False, processing_time=96.3ms
+2025-09-20 03:34:03.118 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.012307, 时长=0.26s
+2025-09-20 03:34:03.251 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:03.254 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:03.254 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0306, rms_amp=0.0087, mean_amp=0.0065, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:03.254 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6656/9600 samples
+2025-09-20 03:34:03.255 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.030609 > 0.003
+2025-09-20 03:34:03.255 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0306, rms_amp=0.0087, buffer_before=40960, buffer_after=45056, trimmed=False, processing_time=3.9ms
+2025-09-20 03:34:03.263 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.008701, 时长=0.26s
+2025-09-20 03:34:03.511 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:03.518 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:03.518 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0372, rms_amp=0.0085, mean_amp=0.0065, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:03.630 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.037231 > 0.003
+2025-09-20 03:34:03.630 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0372, rms_amp=0.0085, buffer_before=45056, buffer_after=49152, trimmed=False, processing_time=119.0ms
+2025-09-20 03:34:03.637 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.008542, 时长=0.26s
+2025-09-20 03:34:03.761 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:03.764 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:03.764 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0258, rms_amp=0.0064, mean_amp=0.0051, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:03.764 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5248/9600 samples
+2025-09-20 03:34:03.764 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.025757 > 0.003
+2025-09-20 03:34:03.764 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0258, rms_amp=0.0064, buffer_before=49152, buffer_after=53248, trimmed=False, processing_time=3.7ms
+2025-09-20 03:34:03.775 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006385, 时长=0.26s
+2025-09-20 03:34:04.025 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:04.028 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:04.028 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003859, 增益=7.77
+2025-09-20 03:34:04.029 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0714, rms_amp=0.0300, mean_amp=0.0254, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:04.029 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 9344/9600 samples
+2025-09-20 03:34:04.030 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.071417 > 0.003
+2025-09-20 03:34:04.030 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0714, rms_amp=0.0300, buffer_before=53248, buffer_after=57344, trimmed=False, processing_time=5.1ms
+2025-09-20 03:34:04.040 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:04.281 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:04.285 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:04.285 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003284, 增益=9.14
+2025-09-20 03:34:04.286 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0859, rms_amp=0.0300, mean_amp=0.0236, non_zero_ratio=0.994, zero_ratio=0.006
+2025-09-20 03:34:04.477 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.085878 > 0.003
+2025-09-20 03:34:04.478 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0859, rms_amp=0.0300, buffer_before=57344, buffer_after=61440, trimmed=False, processing_time=196.7ms
+2025-09-20 03:34:04.485 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:04.531 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:04.534 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:04.535 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003663, 增益=8.19
+2025-09-20 03:34:04.535 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0790, rms_amp=0.0300, mean_amp=0.0244, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:04.535 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7936/9600 samples
+2025-09-20 03:34:04.535 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.078986 > 0.003
+2025-09-20 03:34:04.535 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0790, rms_amp=0.0300, buffer_before=61440, buffer_after=65536, trimmed=False, processing_time=4.6ms
+2025-09-20 03:34:04.542 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:04.791 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:04.794 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:04.794 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004090, 增益=7.34
+2025-09-20 03:34:04.795 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0904, rms_amp=0.0300, mean_amp=0.0241, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:04.857 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.090439 > 0.003
+2025-09-20 03:34:04.857 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0904, rms_amp=0.0300, buffer_before=65536, buffer_after=69632, trimmed=False, processing_time=66.2ms
+2025-09-20 03:34:04.865 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:05.041 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:05.045 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:05.045 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0128, rms_amp=0.0051, mean_amp=0.0042, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:05.045 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6528/9600 samples
+2025-09-20 03:34:05.046 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.012848 > 0.003
+2025-09-20 03:34:05.046 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0128, rms_amp=0.0051, buffer_before=69632, buffer_after=73728, trimmed=False, processing_time=4.6ms
+2025-09-20 03:34:05.052 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005100, 时长=0.26s
+2025-09-20 03:34:05.301 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:05.308 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:05.309 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0159, rms_amp=0.0053, mean_amp=0.0040, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:05.387 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015900 > 0.003
+2025-09-20 03:34:05.387 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0159, rms_amp=0.0053, buffer_before=73728, buffer_after=77824, trimmed=False, processing_time=85.9ms
+2025-09-20 03:34:05.394 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005307, 时长=0.26s
+2025-09-20 03:34:05.562 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:05.566 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:05.566 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003746, 增益=8.01
+2025-09-20 03:34:05.566 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0711, rms_amp=0.0300, mean_amp=0.0254, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:05.567 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5120/9600 samples
+2025-09-20 03:34:05.567 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.071117 > 0.003
+2025-09-20 03:34:05.567 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0711, rms_amp=0.0300, buffer_before=77824, buffer_after=81920, trimmed=False, processing_time=5.4ms
+2025-09-20 03:34:05.572 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:05.811 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:05.814 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:05.815 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003289, 增益=9.12
+2025-09-20 03:34:05.815 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0718, rms_amp=0.0300, mean_amp=0.0255, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:05.815 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 9216/9600 samples
+2025-09-20 03:34:05.815 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.071815 > 0.003
+2025-09-20 03:34:05.815 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0718, rms_amp=0.0300, buffer_before=81920, buffer_after=86016, trimmed=False, processing_time=4.1ms
+2025-09-20 03:34:05.823 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:06.071 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:06.074 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:06.074 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004674, 增益=6.42
+2025-09-20 03:34:06.074 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0883, rms_amp=0.0300, mean_amp=0.0242, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:06.170 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.088340 > 0.003
+2025-09-20 03:34:06.170 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0883, rms_amp=0.0300, buffer_before=86016, buffer_after=90112, trimmed=False, processing_time=99.4ms
+2025-09-20 03:34:06.177 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:06.322 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:06.325 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:06.325 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003904, 增益=7.68
+2025-09-20 03:34:06.326 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0844, rms_amp=0.0300, mean_amp=0.0242, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:06.326 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7808/9600 samples
+2025-09-20 03:34:06.326 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.084415 > 0.003
+2025-09-20 03:34:06.326 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0844, rms_amp=0.0300, buffer_before=90112, buffer_after=94208, trimmed=False, processing_time=3.8ms
+2025-09-20 03:34:06.332 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:06.581 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:06.584 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:06.584 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003611, 增益=8.31
+2025-09-20 03:34:06.585 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1057, rms_amp=0.0300, mean_amp=0.0239, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:06.805 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.105714 > 0.003
+2025-09-20 03:34:06.805 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1057, rms_amp=0.0300, buffer_before=94208, buffer_after=98304, trimmed=False, processing_time=224.5ms
+2025-09-20 03:34:06.813 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:06.841 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:06.846 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:06.847 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003598, 增益=8.34
+2025-09-20 03:34:06.847 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1117, rms_amp=0.0300, mean_amp=0.0211, non_zero_ratio=0.959, zero_ratio=0.041
+2025-09-20 03:34:06.847 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6400/9600 samples
+2025-09-20 03:34:06.847 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.111691 > 0.003
+2025-09-20 03:34:06.847 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1117, rms_amp=0.0300, buffer_before=98304, buffer_after=102400, trimmed=False, processing_time=6.2ms
+2025-09-20 03:34:06.854 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:07.092 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:07.097 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:07.097 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004039, 增益=7.43
+2025-09-20 03:34:07.098 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0950, rms_amp=0.0300, mean_amp=0.0231, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:07.189 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.094984 > 0.003
+2025-09-20 03:34:07.189 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0950, rms_amp=0.0300, buffer_before=102400, buffer_after=106496, trimmed=False, processing_time=97.5ms
+2025-09-20 03:34:07.197 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:07.351 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:07.355 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:07.355 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002764, 增益=10.00
+2025-09-20 03:34:07.355 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0800, rms_amp=0.0276, mean_amp=0.0223, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:07.355 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4992/9600 samples
+2025-09-20 03:34:07.355 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.079956 > 0.003
+2025-09-20 03:34:07.356 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0800, rms_amp=0.0276, buffer_before=106496, buffer_after=110592, trimmed=False, processing_time=4.5ms
+2025-09-20 03:34:07.363 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.027644, 时长=0.26s
+2025-09-20 03:34:07.601 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:07.604 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:07.605 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003950, 增益=7.59
+2025-09-20 03:34:07.605 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0862, rms_amp=0.0300, mean_amp=0.0242, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:07.605 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 9088/9600 samples
+2025-09-20 03:34:07.605 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.086212 > 0.003
+2025-09-20 03:34:07.605 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0862, rms_amp=0.0300, buffer_before=110592, buffer_after=114688, trimmed=False, processing_time=4.5ms
+2025-09-20 03:34:07.612 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:07.861 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:07.865 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:07.865 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0125, rms_amp=0.0051, mean_amp=0.0041, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:07.973 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.012482 > 0.003
+2025-09-20 03:34:07.974 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0125, rms_amp=0.0051, buffer_before=114688, buffer_after=118784, trimmed=False, processing_time=112.5ms
+2025-09-20 03:34:07.980 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005069, 时长=0.26s
+2025-09-20 03:34:08.121 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:08.124 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:08.125 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003788, 增益=7.92
+2025-09-20 03:34:08.125 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1213, rms_amp=0.0300, mean_amp=0.0231, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:08.125 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7680/9600 samples
+2025-09-20 03:34:08.125 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.121321 > 0.003
+2025-09-20 03:34:08.125 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1213, rms_amp=0.0300, buffer_before=118784, buffer_after=122880, trimmed=False, processing_time=4.4ms
+2025-09-20 03:34:08.131 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:08.371 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:08.375 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:08.376 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004014, 增益=7.47
+2025-09-20 03:34:08.377 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0928, rms_amp=0.0300, mean_amp=0.0237, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:08.555 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.092830 > 0.003
+2025-09-20 03:34:08.556 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0928, rms_amp=0.0300, buffer_before=122880, buffer_after=126976, trimmed=False, processing_time=185.0ms
+2025-09-20 03:34:08.566 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:08.631 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:08.639 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:08.639 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003648, 增益=8.22
+2025-09-20 03:34:08.639 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1107, rms_amp=0.0300, mean_amp=0.0236, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:08.640 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6272/9600 samples
+2025-09-20 03:34:08.640 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.110664 > 0.003
+2025-09-20 03:34:08.640 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1107, rms_amp=0.0300, buffer_before=126976, buffer_after=131072, trimmed=False, processing_time=8.9ms
+2025-09-20 03:34:08.650 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:08.881 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:08.884 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:08.885 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003367, 增益=8.91
+2025-09-20 03:34:08.885 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0930, rms_amp=0.0300, mean_amp=0.0233, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:08.961 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.093007 > 0.003
+2025-09-20 03:34:08.961 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0930, rms_amp=0.0300, buffer_before=131072, buffer_after=135168, trimmed=False, processing_time=79.9ms
+2025-09-20 03:34:08.966 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:09.141 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:09.153 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:09.153 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003436, 增益=8.73
+2025-09-20 03:34:09.155 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0813, rms_amp=0.0300, mean_amp=0.0243, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:09.155 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4864/9600 samples
+2025-09-20 03:34:09.156 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.081261 > 0.003
+2025-09-20 03:34:09.157 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0813, rms_amp=0.0300, buffer_before=135168, buffer_after=139264, trimmed=False, processing_time=15.4ms
+2025-09-20 03:34:09.170 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:09.401 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:09.404 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:09.405 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003681, 增益=8.15
+2025-09-20 03:34:09.405 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0876, rms_amp=0.0300, mean_amp=0.0248, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:09.405 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8960/9600 samples
+2025-09-20 03:34:09.405 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.087557 > 0.003
+2025-09-20 03:34:09.405 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0876, rms_amp=0.0300, buffer_before=139264, buffer_after=143360, trimmed=False, processing_time=4.6ms
+2025-09-20 03:34:09.416 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:09.651 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:09.655 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:09.655 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002999, 增益=10.00
+2025-09-20 03:34:09.656 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0885, rms_amp=0.0300, mean_amp=0.0234, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:09.842 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.088501 > 0.003
+2025-09-20 03:34:09.842 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0885, rms_amp=0.0300, buffer_before=143360, buffer_after=147456, trimmed=False, processing_time=191.3ms
+2025-09-20 03:34:09.850 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.029988, 时长=0.26s
+2025-09-20 03:34:09.911 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:09.914 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:09.914 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002563, 增益=10.00
+2025-09-20 03:34:09.914 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0662, rms_amp=0.0256, mean_amp=0.0217, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:09.914 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7552/9600 samples
+2025-09-20 03:34:09.915 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.066223 > 0.003
+2025-09-20 03:34:09.915 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0662, rms_amp=0.0256, buffer_before=147456, buffer_after=151552, trimmed=False, processing_time=4.1ms
+2025-09-20 03:34:09.920 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.025635, 时长=0.26s
+2025-09-20 03:34:10.170 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:10.179 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:10.180 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004457, 增益=6.73
+2025-09-20 03:34:10.180 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0809, rms_amp=0.0300, mean_amp=0.0240, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:10.262 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.080928 > 0.003
+2025-09-20 03:34:10.262 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0809, rms_amp=0.0300, buffer_before=151552, buffer_after=155648, trimmed=False, processing_time=92.3ms
+2025-09-20 03:34:10.268 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:10.421 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:10.424 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:10.425 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0457, rms_amp=0.0086, mean_amp=0.0056, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:10.425 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6144/9600 samples
+2025-09-20 03:34:10.425 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.045746 > 0.003
+2025-09-20 03:34:10.425 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0457, rms_amp=0.0086, buffer_before=155648, buffer_after=159744, trimmed=False, processing_time=4.0ms
+2025-09-20 03:34:10.431 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.008630, 时长=0.26s
+2025-09-20 03:34:10.681 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:10.684 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:10.684 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0388, rms_amp=0.0135, mean_amp=0.0108, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:10.865 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.038757 > 0.003
+2025-09-20 03:34:10.865 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0388, rms_amp=0.0135, buffer_before=159744, buffer_after=163840, trimmed=False, processing_time=184.2ms
+2025-09-20 03:34:10.872 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.013541, 时长=0.26s
+2025-09-20 03:34:10.931 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:10.934 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:10.934 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0328, rms_amp=0.0068, mean_amp=0.0050, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:10.935 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4736/9600 samples
+2025-09-20 03:34:10.935 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.032776 > 0.003
+2025-09-20 03:34:10.935 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0328, rms_amp=0.0068, buffer_before=163840, buffer_after=167936, trimmed=False, processing_time=3.6ms
+2025-09-20 03:34:10.940 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006787, 时长=0.26s
+2025-09-20 03:34:11.191 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:11.194 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:11.194 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003457, 增益=8.68
+2025-09-20 03:34:11.195 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0747, rms_amp=0.0300, mean_amp=0.0254, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:11.195 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8832/9600 samples
+2025-09-20 03:34:11.195 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.074690 > 0.003
+2025-09-20 03:34:11.195 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0747, rms_amp=0.0300, buffer_before=167936, buffer_after=172032, trimmed=False, processing_time=4.2ms
+2025-09-20 03:34:11.200 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:11.441 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:11.444 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:11.444 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003705, 增益=8.10
+2025-09-20 03:34:11.445 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1144, rms_amp=0.0300, mean_amp=0.0239, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:11.540 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.114424 > 0.003
+2025-09-20 03:34:11.540 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1144, rms_amp=0.0300, buffer_before=172032, buffer_after=176128, trimmed=False, processing_time=98.9ms
+2025-09-20 03:34:11.545 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:11.701 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:11.705 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:11.706 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0243, rms_amp=0.0067, mean_amp=0.0053, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:11.706 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7424/9600 samples
+2025-09-20 03:34:11.706 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.024261 > 0.003
+2025-09-20 03:34:11.706 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0243, rms_amp=0.0067, buffer_before=176128, buffer_after=180224, trimmed=False, processing_time=5.0ms
+2025-09-20 03:34:11.712 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006719, 时长=0.26s
+2025-09-20 03:34:11.968 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:11.972 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:11.972 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0283, rms_amp=0.0076, mean_amp=0.0052, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:12.049 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.028290 > 0.003
+2025-09-20 03:34:12.049 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0283, rms_amp=0.0076, buffer_before=180224, buffer_after=184320, trimmed=False, processing_time=80.7ms
+2025-09-20 03:34:12.054 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007563, 时长=0.26s
+2025-09-20 03:34:12.212 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:12.215 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:12.216 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0315, rms_amp=0.0103, mean_amp=0.0081, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:12.216 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6016/9600 samples
+2025-09-20 03:34:12.216 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.031494 > 0.003
+2025-09-20 03:34:12.216 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0315, rms_amp=0.0103, buffer_before=184320, buffer_after=188416, trimmed=False, processing_time=4.1ms
+2025-09-20 03:34:12.221 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.010260, 时长=0.26s
+2025-09-20 03:34:12.470 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:12.475 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:12.475 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0252, rms_amp=0.0067, mean_amp=0.0050, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:12.583 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.025177 > 0.003
+2025-09-20 03:34:12.583 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0252, rms_amp=0.0067, buffer_before=188416, buffer_after=192512, trimmed=False, processing_time=113.1ms
+2025-09-20 03:34:12.588 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006720, 时长=0.26s
+2025-09-20 03:34:12.722 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:12.729 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:12.729 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0228, rms_amp=0.0077, mean_amp=0.0062, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:12.729 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4608/9600 samples
+2025-09-20 03:34:12.729 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.022766 > 0.003
+2025-09-20 03:34:12.730 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0228, rms_amp=0.0077, buffer_before=192512, buffer_after=196608, trimmed=False, processing_time=7.3ms
+2025-09-20 03:34:12.734 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007722, 时长=0.26s
+2025-09-20 03:34:12.985 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:12.988 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:12.989 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0318, rms_amp=0.0130, mean_amp=0.0113, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:12.989 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8704/9600 samples
+2025-09-20 03:34:12.989 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.031830 > 0.003
+2025-09-20 03:34:12.989 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0318, rms_amp=0.0130, buffer_before=196608, buffer_after=200704, trimmed=False, processing_time=3.9ms
+2025-09-20 03:34:12.993 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.013017, 时长=0.26s
+2025-09-20 03:34:13.243 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:13.246 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:13.246 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0225, rms_amp=0.0076, mean_amp=0.0063, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:13.376 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.022461 > 0.003
+2025-09-20 03:34:13.376 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0225, rms_amp=0.0076, buffer_before=200704, buffer_after=204800, trimmed=False, processing_time=133.9ms
+2025-09-20 03:34:13.382 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007626, 时长=0.26s
+2025-09-20 03:34:13.492 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:13.497 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:13.498 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003952, 增益=7.59
+2025-09-20 03:34:13.498 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0998, rms_amp=0.0300, mean_amp=0.0233, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:13.498 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7296/9600 samples
+2025-09-20 03:34:13.498 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.099840 > 0.003
+2025-09-20 03:34:13.498 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0998, rms_amp=0.0300, buffer_before=204800, buffer_after=208896, trimmed=False, processing_time=6.8ms
+2025-09-20 03:34:13.505 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:13.751 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:13.760 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:13.760 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003916, 增益=7.66
+2025-09-20 03:34:13.763 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1064, rms_amp=0.0300, mean_amp=0.0215, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:13.970 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.106377 > 0.003
+2025-09-20 03:34:13.971 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1064, rms_amp=0.0300, buffer_before=208896, buffer_after=212992, trimmed=False, processing_time=219.7ms
+2025-09-20 03:34:13.976 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:14.001 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:14.004 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:14.004 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003553, 增益=8.44
+2025-09-20 03:34:14.005 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0799, rms_amp=0.0300, mean_amp=0.0238, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:14.005 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5888/9600 samples
+2025-09-20 03:34:14.005 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.079873 > 0.003
+2025-09-20 03:34:14.005 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0799, rms_amp=0.0300, buffer_before=212992, buffer_after=217088, trimmed=False, processing_time=4.3ms
+2025-09-20 03:34:14.011 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:14.266 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:14.278 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:14.279 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004416, 增益=6.79
+2025-09-20 03:34:14.279 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0678, rms_amp=0.0300, mean_amp=0.0262, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:14.467 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.067797 > 0.003
+2025-09-20 03:34:14.467 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0678, rms_amp=0.0300, buffer_before=217088, buffer_after=221184, trimmed=False, processing_time=201.0ms
+2025-09-20 03:34:14.473 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:14.522 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:14.526 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:14.527 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003074, 增益=9.76
+2025-09-20 03:34:14.527 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0760, rms_amp=0.0300, mean_amp=0.0245, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:14.527 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4480/9600 samples
+2025-09-20 03:34:14.527 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.075955 > 0.003
+2025-09-20 03:34:14.527 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0760, rms_amp=0.0300, buffer_before=221184, buffer_after=225280, trimmed=False, processing_time=5.8ms
+2025-09-20 03:34:14.536 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:14.771 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:14.775 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:14.775 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003929, 增益=7.64
+2025-09-20 03:34:14.776 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0834, rms_amp=0.0300, mean_amp=0.0252, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:14.776 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8576/9600 samples
+2025-09-20 03:34:14.776 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.083419 > 0.003
+2025-09-20 03:34:14.776 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0834, rms_amp=0.0300, buffer_before=225280, buffer_after=229376, trimmed=False, processing_time=4.8ms
+2025-09-20 03:34:14.782 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:15.031 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:15.035 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:15.035 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003068, 增益=9.78
+2025-09-20 03:34:15.035 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0913, rms_amp=0.0300, mean_amp=0.0232, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:15.109 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.091325 > 0.003
+2025-09-20 03:34:15.109 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0913, rms_amp=0.0300, buffer_before=229376, buffer_after=233472, trimmed=False, processing_time=77.8ms
+2025-09-20 03:34:15.115 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:15.281 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:15.287 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:15.287 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003275, 增益=9.16
+2025-09-20 03:34:15.287 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0749, rms_amp=0.0300, mean_amp=0.0238, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:15.287 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7168/9600 samples
+2025-09-20 03:34:15.288 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.074909 > 0.003
+2025-09-20 03:34:15.288 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0749, rms_amp=0.0300, buffer_before=233472, buffer_after=237568, trimmed=False, processing_time=6.4ms
+2025-09-20 03:34:15.295 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:15.542 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:15.545 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:15.546 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003262, 增益=9.20
+2025-09-20 03:34:15.546 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0778, rms_amp=0.0300, mean_amp=0.0237, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:15.697 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.077756 > 0.003
+2025-09-20 03:34:15.697 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0778, rms_amp=0.0300, buffer_before=237568, buffer_after=241664, trimmed=False, processing_time=155.4ms
+2025-09-20 03:34:15.702 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:15.806 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:15.810 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:15.811 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0141, rms_amp=0.0058, mean_amp=0.0047, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:15.811 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5760/9600 samples
+2025-09-20 03:34:15.811 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.014069 > 0.003
+2025-09-20 03:34:15.811 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0141, rms_amp=0.0058, buffer_before=241664, buffer_after=245760, trimmed=False, processing_time=5.5ms
+2025-09-20 03:34:15.816 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005773, 时长=0.26s
+2025-09-20 03:34:16.075 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:16.129 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:16.130 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004118, 增益=7.29
+2025-09-20 03:34:16.130 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0923, rms_amp=0.0300, mean_amp=0.0245, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:16.204 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.092275 > 0.003
+2025-09-20 03:34:16.205 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0923, rms_amp=0.0300, buffer_before=245760, buffer_after=249856, trimmed=False, processing_time=129.2ms
+2025-09-20 03:34:16.210 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:16.311 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:16.315 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:16.315 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0266, rms_amp=0.0061, mean_amp=0.0046, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:16.315 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4352/9600 samples
+2025-09-20 03:34:16.315 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.026550 > 0.003
+2025-09-20 03:34:16.316 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0266, rms_amp=0.0061, buffer_before=249856, buffer_after=253952, trimmed=False, processing_time=4.3ms
+2025-09-20 03:34:16.322 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006102, 时长=0.26s
+2025-09-20 03:34:16.572 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:16.580 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:16.581 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0324, rms_amp=0.0108, mean_amp=0.0082, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:16.581 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8448/9600 samples
+2025-09-20 03:34:16.581 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.032440 > 0.003
+2025-09-20 03:34:16.582 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0324, rms_amp=0.0108, buffer_before=253952, buffer_after=258048, trimmed=False, processing_time=9.8ms
+2025-09-20 03:34:16.587 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.010849, 时长=0.26s
+2025-09-20 03:34:16.822 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:16.825 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:16.825 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0280, rms_amp=0.0073, mean_amp=0.0058, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:17.075 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.028046 > 0.003
+2025-09-20 03:34:17.075 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0280, rms_amp=0.0073, buffer_before=258048, buffer_after=262144, trimmed=False, processing_time=253.3ms
+2025-09-20 03:34:17.080 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007285, 时长=0.26s
+2025-09-20 03:34:17.082 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:17.085 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:17.085 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0270, rms_amp=0.0092, mean_amp=0.0073, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:17.085 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7040/9600 samples
+2025-09-20 03:34:17.085 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.027039 > 0.003
+2025-09-20 03:34:17.085 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0270, rms_amp=0.0092, buffer_before=262144, buffer_after=266240, trimmed=False, processing_time=3.8ms
+2025-09-20 03:34:17.090 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.009185, 时长=0.26s
+2025-09-20 03:34:17.331 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:17.335 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:17.335 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0179, rms_amp=0.0059, mean_amp=0.0048, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:17.429 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.017944 > 0.003
+2025-09-20 03:34:17.429 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0179, rms_amp=0.0059, buffer_before=266240, buffer_after=270336, trimmed=False, processing_time=97.7ms
+2025-09-20 03:34:17.434 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005901, 时长=0.26s
+2025-09-20 03:34:17.591 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:17.595 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:17.595 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0143, rms_amp=0.0055, mean_amp=0.0044, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:17.596 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5632/9600 samples
+2025-09-20 03:34:17.596 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.014343 > 0.003
+2025-09-20 03:34:17.596 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0143, rms_amp=0.0055, buffer_before=270336, buffer_after=274432, trimmed=False, processing_time=4.4ms
+2025-09-20 03:34:17.601 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005538, 时长=0.26s
+2025-09-20 03:34:17.842 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:17.846 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:17.846 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0196, rms_amp=0.0082, mean_amp=0.0071, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:18.020 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.019592 > 0.003
+2025-09-20 03:34:18.020 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0196, rms_amp=0.0082, buffer_before=274432, buffer_after=278528, trimmed=False, processing_time=178.9ms
+2025-09-20 03:34:18.025 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.008231, 时长=0.26s
+2025-09-20 03:34:18.111 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:18.158 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:18.158 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0213, rms_amp=0.0099, mean_amp=0.0085, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:18.158 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4224/9600 samples
+2025-09-20 03:34:18.159 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.021301 > 0.003
+2025-09-20 03:34:18.159 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0213, rms_amp=0.0099, buffer_before=278528, buffer_after=282624, trimmed=False, processing_time=48.1ms
+2025-09-20 03:34:18.165 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.009868, 时长=0.26s
+2025-09-20 03:34:18.362 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:18.365 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:18.366 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0262, rms_amp=0.0121, mean_amp=0.0103, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:18.366 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8320/9600 samples
+2025-09-20 03:34:18.366 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.026245 > 0.003
+2025-09-20 03:34:18.366 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0262, rms_amp=0.0121, buffer_before=282624, buffer_after=286720, trimmed=False, processing_time=4.5ms
+2025-09-20 03:34:18.371 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.012052, 时长=0.26s
+2025-09-20 03:34:18.622 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:18.626 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:18.626 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0226, rms_amp=0.0105, mean_amp=0.0090, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:18.901 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.022583 > 0.003
+2025-09-20 03:34:18.901 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0226, rms_amp=0.0105, buffer_before=286720, buffer_after=290816, trimmed=False, processing_time=279.1ms
+2025-09-20 03:34:18.906 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.010452, 时长=0.26s
+2025-09-20 03:34:18.907 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:18.911 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:18.911 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0143, rms_amp=0.0067, mean_amp=0.0057, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:18.911 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6912/9600 samples
+2025-09-20 03:34:18.912 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.014252 > 0.003
+2025-09-20 03:34:18.912 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0143, rms_amp=0.0067, buffer_before=290816, buffer_after=294912, trimmed=False, processing_time=4.7ms
+2025-09-20 03:34:18.930 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006715, 时长=0.26s
+2025-09-20 03:34:19.141 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:19.146 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:19.146 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0241, rms_amp=0.0070, mean_amp=0.0060, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:19.320 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.024078 > 0.003
+2025-09-20 03:34:19.320 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0241, rms_amp=0.0070, buffer_before=294912, buffer_after=299008, trimmed=False, processing_time=178.6ms
+2025-09-20 03:34:19.325 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007048, 时长=0.26s
+2025-09-20 03:34:19.401 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:19.404 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:19.405 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0159, rms_amp=0.0064, mean_amp=0.0056, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:19.405 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5504/9600 samples
+2025-09-20 03:34:19.405 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015900 > 0.003
+2025-09-20 03:34:19.405 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0159, rms_amp=0.0064, buffer_before=299008, buffer_after=303104, trimmed=False, processing_time=3.9ms
+2025-09-20 03:34:19.412 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006375, 时长=0.26s
+2025-09-20 03:34:19.652 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:19.655 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:19.656 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0268, rms_amp=0.0084, mean_amp=0.0070, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:19.795 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.026794 > 0.003
+2025-09-20 03:34:19.795 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0268, rms_amp=0.0084, buffer_before=303104, buffer_after=307200, trimmed=False, processing_time=143.4ms
+2025-09-20 03:34:19.801 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.008420, 时长=0.26s
+2025-09-20 03:34:19.911 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:19.916 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:19.916 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0269, rms_amp=0.0067, mean_amp=0.0055, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:19.916 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4096/9600 samples
+2025-09-20 03:34:19.916 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.026947 > 0.003
+2025-09-20 03:34:19.917 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0269, rms_amp=0.0067, buffer_before=307200, buffer_after=311296, trimmed=False, processing_time=5.1ms
+2025-09-20 03:34:19.923 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006746, 时长=0.26s
+2025-09-20 03:34:20.167 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:20.175 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:20.176 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0290, rms_amp=0.0082, mean_amp=0.0061, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:20.176 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8192/9600 samples
+2025-09-20 03:34:20.176 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.028961 > 0.003
+2025-09-20 03:34:20.176 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0290, rms_amp=0.0082, buffer_before=311296, buffer_after=315392, trimmed=False, processing_time=9.4ms
+2025-09-20 03:34:20.187 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.008217, 时长=0.26s
+2025-09-20 03:34:20.419 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:20.423 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:20.423 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0151, rms_amp=0.0053, mean_amp=0.0041, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:20.529 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015106 > 0.003
+2025-09-20 03:34:20.530 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0151, rms_amp=0.0053, buffer_before=315392, buffer_after=319488, trimmed=False, processing_time=110.4ms
+2025-09-20 03:34:20.536 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005280, 时长=0.26s
+2025-09-20 03:34:20.680 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:20.684 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:20.684 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0258, rms_amp=0.0072, mean_amp=0.0058, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:20.684 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6784/9600 samples
+2025-09-20 03:34:20.685 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.025818 > 0.003
+2025-09-20 03:34:20.685 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0258, rms_amp=0.0072, buffer_before=319488, buffer_after=323584, trimmed=False, processing_time=5.1ms
+2025-09-20 03:34:20.691 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007232, 时长=0.26s
+2025-09-20 03:34:20.929 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:20.933 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:20.933 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0163, rms_amp=0.0061, mean_amp=0.0051, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:21.185 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.016296 > 0.003
+2025-09-20 03:34:21.185 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0163, rms_amp=0.0061, buffer_before=323584, buffer_after=327680, trimmed=False, processing_time=256.1ms
+2025-09-20 03:34:21.193 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006093, 时长=0.26s
+2025-09-20 03:34:21.195 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:21.199 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:21.200 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0242, rms_amp=0.0087, mean_amp=0.0074, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:21.200 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5376/9600 samples
+2025-09-20 03:34:21.200 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.024200 > 0.003
+2025-09-20 03:34:21.200 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0242, rms_amp=0.0087, buffer_before=327680, buffer_after=331776, trimmed=False, processing_time=4.9ms
+2025-09-20 03:34:21.208 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.008720, 时长=0.26s
+2025-09-20 03:34:21.440 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:21.444 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:21.444 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0251, rms_amp=0.0121, mean_amp=0.0104, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:21.444 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 9472/9600 samples
+2025-09-20 03:34:21.444 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.025055 > 0.003
+2025-09-20 03:34:21.444 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0251, rms_amp=0.0121, buffer_before=331776, buffer_after=335872, trimmed=False, processing_time=4.4ms
+2025-09-20 03:34:21.451 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.012059, 时长=0.26s
+2025-09-20 03:34:21.700 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:21.703 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:21.703 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0228, rms_amp=0.0107, mean_amp=0.0094, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:21.903 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.022797 > 0.003
+2025-09-20 03:34:21.903 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0228, rms_amp=0.0107, buffer_before=335872, buffer_after=339968, trimmed=False, processing_time=203.2ms
+2025-09-20 03:34:21.909 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.010655, 时长=0.26s
+2025-09-20 03:34:21.960 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:21.964 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:21.965 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0169, rms_amp=0.0068, mean_amp=0.0055, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:21.965 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8064/9600 samples
+2025-09-20 03:34:21.965 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.016876 > 0.003
+2025-09-20 03:34:21.965 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0169, rms_amp=0.0068, buffer_before=339968, buffer_after=344064, trimmed=False, processing_time=5.1ms
+2025-09-20 03:34:21.971 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006797, 时长=0.26s
+2025-09-20 03:34:22.210 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:22.213 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:22.213 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0137, rms_amp=0.0052, mean_amp=0.0044, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:22.320 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.013733 > 0.003
+2025-09-20 03:34:22.321 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0137, rms_amp=0.0052, buffer_before=344064, buffer_after=348160, trimmed=False, processing_time=111.0ms
+2025-09-20 03:34:22.327 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005228, 时长=0.26s
+2025-09-20 03:34:22.469 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:22.483 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:22.484 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004633, 增益=6.47
+2025-09-20 03:34:22.484 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0840, rms_amp=0.0300, mean_amp=0.0248, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:22.484 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6656/9600 samples
+2025-09-20 03:34:22.484 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.083978 > 0.003
+2025-09-20 03:34:22.484 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0840, rms_amp=0.0300, buffer_before=348160, buffer_after=352256, trimmed=False, processing_time=15.1ms
+2025-09-20 03:34:22.490 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:22.720 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:22.723 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:22.724 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004865, 增益=6.17
+2025-09-20 03:34:22.724 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0753, rms_amp=0.0300, mean_amp=0.0235, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:22.835 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.075278 > 0.003
+2025-09-20 03:34:22.836 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0753, rms_amp=0.0300, buffer_before=352256, buffer_after=356352, trimmed=False, processing_time=116.0ms
+2025-09-20 03:34:22.842 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:22.979 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:22.983 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:22.983 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0186, rms_amp=0.0088, mean_amp=0.0078, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:22.983 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5248/9600 samples
+2025-09-20 03:34:22.983 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.018616 > 0.003
+2025-09-20 03:34:22.983 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0186, rms_amp=0.0088, buffer_before=356352, buffer_after=360448, trimmed=False, processing_time=4.1ms
+2025-09-20 03:34:22.990 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.008845, 时长=0.26s
+2025-09-20 03:34:23.240 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:23.243 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:23.243 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0189, rms_amp=0.0090, mean_amp=0.0080, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:23.243 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 9344/9600 samples
+2025-09-20 03:34:23.244 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.018890 > 0.003
+2025-09-20 03:34:23.244 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0189, rms_amp=0.0090, buffer_before=360448, buffer_after=364544, trimmed=False, processing_time=4.2ms
+2025-09-20 03:34:23.249 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.009030, 时长=0.26s
+2025-09-20 03:34:23.490 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:23.493 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:23.493 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0145, rms_amp=0.0057, mean_amp=0.0048, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:23.592 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.014496 > 0.003
+2025-09-20 03:34:23.592 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0145, rms_amp=0.0057, buffer_before=364544, buffer_after=368640, trimmed=False, processing_time=102.3ms
+2025-09-20 03:34:23.600 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005704, 时长=0.26s
+2025-09-20 03:34:23.750 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:23.753 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:23.753 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0340, rms_amp=0.0079, mean_amp=0.0060, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:23.753 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7936/9600 samples
+2025-09-20 03:34:23.754 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.033966 > 0.003
+2025-09-20 03:34:23.754 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0340, rms_amp=0.0079, buffer_before=368640, buffer_after=372736, trimmed=False, processing_time=3.8ms
+2025-09-20 03:34:23.760 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007915, 时长=0.26s
+2025-09-20 03:34:24.000 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:24.003 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:24.003 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0328, rms_amp=0.0096, mean_amp=0.0076, non_zero_ratio=0.962, zero_ratio=0.038
+2025-09-20 03:34:24.119 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.032776 > 0.003
+2025-09-20 03:34:24.119 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0328, rms_amp=0.0096, buffer_before=372736, buffer_after=376832, trimmed=False, processing_time=119.4ms
+2025-09-20 03:34:24.126 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.009649, 时长=0.26s
+2025-09-20 03:34:24.260 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:24.264 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:24.264 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0304, rms_amp=0.0090, mean_amp=0.0074, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:24.264 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6528/9600 samples
+2025-09-20 03:34:24.264 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.030396 > 0.003
+2025-09-20 03:34:24.264 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0304, rms_amp=0.0090, buffer_before=376832, buffer_after=380928, trimmed=False, processing_time=4.5ms
+2025-09-20 03:34:24.270 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.009026, 时长=0.26s
+2025-09-20 03:34:24.521 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:24.524 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:24.525 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0302, rms_amp=0.0098, mean_amp=0.0080, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:24.651 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.030212 > 0.003
+2025-09-20 03:34:24.652 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0302, rms_amp=0.0098, buffer_before=380928, buffer_after=385024, trimmed=False, processing_time=130.7ms
+2025-09-20 03:34:24.657 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.009759, 时长=0.26s
+2025-09-20 03:34:24.770 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:24.773 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:24.773 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0188, rms_amp=0.0078, mean_amp=0.0066, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:24.773 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5120/9600 samples
+2025-09-20 03:34:24.774 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.018799 > 0.003
+2025-09-20 03:34:24.774 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0188, rms_amp=0.0078, buffer_before=385024, buffer_after=389120, trimmed=False, processing_time=4.1ms
+2025-09-20 03:34:24.780 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007846, 时长=0.26s
+2025-09-20 03:34:25.039 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:25.047 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:25.047 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0150, rms_amp=0.0077, mean_amp=0.0067, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:25.047 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 9216/9600 samples
+2025-09-20 03:34:25.048 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015015 > 0.003
+2025-09-20 03:34:25.048 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0150, rms_amp=0.0077, buffer_before=389120, buffer_after=393216, trimmed=False, processing_time=8.4ms
+2025-09-20 03:34:25.055 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007657, 时长=0.26s
+2025-09-20 03:34:25.280 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:25.285 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:25.286 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0186, rms_amp=0.0098, mean_amp=0.0087, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:25.414 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.018616 > 0.003
+2025-09-20 03:34:25.414 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0186, rms_amp=0.0098, buffer_before=393216, buffer_after=397312, trimmed=False, processing_time=133.9ms
+2025-09-20 03:34:25.421 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.009824, 时长=0.26s
+2025-09-20 03:34:25.540 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:25.543 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:25.543 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0156, rms_amp=0.0080, mean_amp=0.0071, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:25.544 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7808/9600 samples
+2025-09-20 03:34:25.544 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015564 > 0.003
+2025-09-20 03:34:25.544 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0156, rms_amp=0.0080, buffer_before=397312, buffer_after=401408, trimmed=False, processing_time=4.2ms
+2025-09-20 03:34:25.550 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007992, 时长=0.26s
+2025-09-20 03:34:25.807 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:25.844 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:25.844 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0153, rms_amp=0.0066, mean_amp=0.0058, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:26.003 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015320 > 0.003
+2025-09-20 03:34:26.003 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0153, rms_amp=0.0066, buffer_before=401408, buffer_after=405504, trimmed=False, processing_time=196.4ms
+2025-09-20 03:34:26.016 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006630, 时长=0.26s
+2025-09-20 03:34:26.050 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:26.052 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:26.053 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003143, 增益=9.54
+2025-09-20 03:34:26.053 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0856, rms_amp=0.0300, mean_amp=0.0235, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:26.053 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6400/9600 samples
+2025-09-20 03:34:26.053 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.085639 > 0.003
+2025-09-20 03:34:26.053 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0856, rms_amp=0.0300, buffer_before=405504, buffer_after=409600, trimmed=False, processing_time=3.8ms
+2025-09-20 03:34:26.059 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:26.310 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:26.314 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:26.314 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0119, rms_amp=0.0051, mean_amp=0.0044, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:26.464 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.011902 > 0.003
+2025-09-20 03:34:26.477 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0119, rms_amp=0.0051, buffer_before=409600, buffer_after=413696, trimmed=False, processing_time=166.5ms
+2025-09-20 03:34:26.623 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005133, 时长=0.26s
+2025-09-20 03:34:26.627 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:26.637 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:26.638 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0130, rms_amp=0.0061, mean_amp=0.0053, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:26.638 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4992/9600 samples
+2025-09-20 03:34:26.639 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.012970 > 0.003
+2025-09-20 03:34:26.639 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0130, rms_amp=0.0061, buffer_before=413696, buffer_after=417792, trimmed=False, processing_time=12.1ms
+2025-09-20 03:34:26.694 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006085, 时长=0.26s
+2025-09-20 03:34:26.821 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:26.826 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:26.826 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0135, rms_amp=0.0061, mean_amp=0.0053, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:26.827 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 9088/9600 samples
+2025-09-20 03:34:26.827 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.013458 > 0.003
+2025-09-20 03:34:26.827 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0135, rms_amp=0.0061, buffer_before=417792, buffer_after=421888, trimmed=False, processing_time=6.3ms
+2025-09-20 03:34:26.832 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006112, 时长=0.26s
+2025-09-20 03:34:27.080 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:27.083 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:27.083 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0140, rms_amp=0.0071, mean_amp=0.0062, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:27.256 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.014038 > 0.003
+2025-09-20 03:34:27.256 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0140, rms_amp=0.0071, buffer_before=421888, buffer_after=425984, trimmed=False, processing_time=176.7ms
+2025-09-20 03:34:27.263 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007122, 时长=0.26s
+2025-09-20 03:34:27.330 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:27.333 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:27.333 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004465, 增益=6.72
+2025-09-20 03:34:27.333 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0962, rms_amp=0.0300, mean_amp=0.0234, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:27.334 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7680/9600 samples
+2025-09-20 03:34:27.334 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.096159 > 0.003
+2025-09-20 03:34:27.334 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0962, rms_amp=0.0300, buffer_before=425984, buffer_after=430080, trimmed=False, processing_time=4.0ms
+2025-09-20 03:34:27.339 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:27.590 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:27.595 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:27.595 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003137, 增益=9.56
+2025-09-20 03:34:27.596 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0794, rms_amp=0.0300, mean_amp=0.0232, non_zero_ratio=0.994, zero_ratio=0.006
+2025-09-20 03:34:27.823 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.079392 > 0.003
+2025-09-20 03:34:27.824 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0794, rms_amp=0.0300, buffer_before=430080, buffer_after=434176, trimmed=False, processing_time=233.4ms
+2025-09-20 03:34:27.831 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:27.840 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:27.843 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:27.843 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0165, rms_amp=0.0071, mean_amp=0.0059, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:27.843 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6272/9600 samples
+2025-09-20 03:34:27.844 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.016541 > 0.003
+2025-09-20 03:34:27.844 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0165, rms_amp=0.0071, buffer_before=434176, buffer_after=438272, trimmed=False, processing_time=4.0ms
+2025-09-20 03:34:27.850 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007085, 时长=0.26s
+2025-09-20 03:34:28.099 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:28.103 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:28.103 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0150, rms_amp=0.0071, mean_amp=0.0061, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:28.200 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015015 > 0.003
+2025-09-20 03:34:28.200 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0150, rms_amp=0.0071, buffer_before=438272, buffer_after=442368, trimmed=False, processing_time=101.0ms
+2025-09-20 03:34:28.208 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007086, 时长=0.26s
+2025-09-20 03:34:28.361 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:28.366 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:28.366 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0156, rms_amp=0.0058, mean_amp=0.0049, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:28.367 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4864/9600 samples
+2025-09-20 03:34:28.367 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.015564 > 0.003
+2025-09-20 03:34:28.367 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0156, rms_amp=0.0058, buffer_before=442368, buffer_after=446464, trimmed=False, processing_time=5.4ms
+2025-09-20 03:34:28.374 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005810, 时长=0.26s
+2025-09-20 03:34:28.610 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:28.615 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:28.616 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004906, 增益=6.12
+2025-09-20 03:34:28.616 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0959, rms_amp=0.0300, mean_amp=0.0240, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:28.617 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8960/9600 samples
+2025-09-20 03:34:28.617 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.095923 > 0.003
+2025-09-20 03:34:28.617 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0959, rms_amp=0.0300, buffer_before=446464, buffer_after=450560, trimmed=False, processing_time=6.7ms
+2025-09-20 03:34:28.627 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:28.870 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:28.873 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:28.874 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0402, rms_amp=0.0065, mean_amp=0.0049, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:28.969 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.040161 > 0.003
+2025-09-20 03:34:28.970 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0402, rms_amp=0.0065, buffer_before=450560, buffer_after=454656, trimmed=False, processing_time=100.5ms
+2025-09-20 03:34:28.977 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006456, 时长=0.26s
+2025-09-20 03:34:29.120 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:29.124 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:29.124 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0147, rms_amp=0.0053, mean_amp=0.0044, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:29.124 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7552/9600 samples
+2025-09-20 03:34:29.124 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.014740 > 0.003
+2025-09-20 03:34:29.124 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0147, rms_amp=0.0053, buffer_before=454656, buffer_after=458752, trimmed=False, processing_time=4.7ms
+2025-09-20 03:34:29.131 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005337, 时长=0.26s
+2025-09-20 03:34:29.380 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:29.390 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:29.391 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003060, 增益=9.80
+2025-09-20 03:34:29.391 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0916, rms_amp=0.0300, mean_amp=0.0241, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:29.604 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.091555 > 0.003
+2025-09-20 03:34:29.617 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0916, rms_amp=0.0300, buffer_before=458752, buffer_after=462848, trimmed=False, processing_time=236.4ms
+2025-09-20 03:34:29.623 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:29.640 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:29.643 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:29.644 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003990, 增益=7.52
+2025-09-20 03:34:29.644 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.3424, rms_amp=0.0300, mean_amp=0.0197, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:29.644 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6144/9600 samples
+2025-09-20 03:34:29.644 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.342376 > 0.003
+2025-09-20 03:34:29.644 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.3424, rms_amp=0.0300, buffer_before=462848, buffer_after=466944, trimmed=False, processing_time=4.5ms
+2025-09-20 03:34:29.651 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:29.890 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:29.896 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:29.897 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002440, 增益=10.00
+2025-09-20 03:34:29.897 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0793, rms_amp=0.0244, mean_amp=0.0207, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:30.052 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.079346 > 0.003
+2025-09-20 03:34:30.052 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0793, rms_amp=0.0244, buffer_before=466944, buffer_after=471040, trimmed=False, processing_time=161.8ms
+2025-09-20 03:34:30.057 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.024399, 时长=0.26s
+2025-09-20 03:34:30.157 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:30.168 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:30.169 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003315, 增益=9.05
+2025-09-20 03:34:30.169 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0796, rms_amp=0.0300, mean_amp=0.0240, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:30.169 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4736/9600 samples
+2025-09-20 03:34:30.170 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.079550 > 0.003
+2025-09-20 03:34:30.170 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0796, rms_amp=0.0300, buffer_before=471040, buffer_after=475136, trimmed=False, processing_time=12.8ms
+2025-09-20 03:34:30.181 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:30.404 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:30.407 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:30.408 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004907, 增益=6.11
+2025-09-20 03:34:30.414 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0843, rms_amp=0.0300, mean_amp=0.0242, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:30.414 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8832/9600 samples
+2025-09-20 03:34:30.414 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.084334 > 0.003
+2025-09-20 03:34:30.414 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0843, rms_amp=0.0300, buffer_before=475136, buffer_after=479232, trimmed=False, processing_time=10.7ms
+2025-09-20 03:34:30.426 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:30.788 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:30.863 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:30.866 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004792, 增益=6.26
+2025-09-20 03:34:30.871 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0627, rms_amp=0.0300, mean_amp=0.0260, non_zero_ratio=1.000, zero_ratio=0.000
+2025-09-20 03:34:31.012 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.062669 > 0.003
+2025-09-20 03:34:31.012 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0627, rms_amp=0.0300, buffer_before=479232, buffer_after=483328, trimmed=False, processing_time=224.7ms
+2025-09-20 03:34:31.018 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:31.144 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:31.149 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:31.150 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003699, 增益=8.11
+2025-09-20 03:34:31.153 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0876, rms_amp=0.0300, mean_amp=0.0239, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:31.154 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7424/9600 samples
+2025-09-20 03:34:31.154 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.087619 > 0.003
+2025-09-20 03:34:31.154 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0876, rms_amp=0.0300, buffer_before=483328, buffer_after=487424, trimmed=False, processing_time=9.6ms
+2025-09-20 03:34:31.160 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:31.557 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:31.562 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:31.563 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0258, rms_amp=0.0096, mean_amp=0.0077, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:31.674 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.025787 > 0.003
+2025-09-20 03:34:31.674 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0258, rms_amp=0.0096, buffer_before=487424, buffer_after=491520, trimmed=False, processing_time=117.7ms
+2025-09-20 03:34:31.680 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.009643, 时长=0.26s
+2025-09-20 03:34:31.963 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:31.969 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:31.969 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0202, rms_amp=0.0052, mean_amp=0.0040, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:31.969 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 6016/9600 samples
+2025-09-20 03:34:31.969 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.020233 > 0.003
+2025-09-20 03:34:31.970 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0202, rms_amp=0.0052, buffer_before=491520, buffer_after=495616, trimmed=False, processing_time=6.1ms
+2025-09-20 03:34:31.975 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.005156, 时长=0.26s
+2025-09-20 03:34:32.339 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:32.343 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:32.343 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0182, rms_amp=0.0061, mean_amp=0.0049, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:32.477 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.018188 > 0.003
+2025-09-20 03:34:32.477 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0182, rms_amp=0.0061, buffer_before=495616, buffer_after=499712, trimmed=False, processing_time=138.7ms
+2025-09-20 03:34:32.486 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006071, 时长=0.26s
+2025-09-20 03:34:32.486 | INFO     | audio | _report_quality_stats:1252 | 📊 音频质量报告: 有效率=100.0%, 高质量率=0.0%, 平均RMS=0.016654, 识别成功率=100.0% (总块数:122, 识别尝试:16)
+2025-09-20 03:34:32.742 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:32.760 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:32.760 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0215, rms_amp=0.0079, mean_amp=0.0064, non_zero_ratio=0.999, zero_ratio=0.001
+2025-09-20 03:34:32.761 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4608/9600 samples
+2025-09-20 03:34:32.765 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.021484 > 0.003
+2025-09-20 03:34:32.771 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0215, rms_amp=0.0079, buffer_before=499712, buffer_after=503808, trimmed=False, processing_time=29.2ms
+2025-09-20 03:34:32.794 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.007855, 时长=0.26s
+2025-09-20 03:34:33.126 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:33.130 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:33.130 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0225, rms_amp=0.0065, mean_amp=0.0051, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:33.130 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8704/9600 samples
+2025-09-20 03:34:33.131 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[低]: max_amp=0.022461 > 0.003
+2025-09-20 03:34:33.131 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0225, rms_amp=0.0065, buffer_before=503808, buffer_after=507904, trimmed=False, processing_time=4.4ms
+2025-09-20 03:34:33.136 | DEBUG    | audio | add_audio_chunk:813 | 🔉 轻声音频输入: RMS=0.006488, 时长=0.26s
+2025-09-20 03:34:33.513 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:33.517 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:33.517 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.004750, 增益=6.32
+2025-09-20 03:34:33.517 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1139, rms_amp=0.0300, mean_amp=0.0240, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:33.654 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.113907 > 0.003
+2025-09-20 03:34:33.654 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1139, rms_amp=0.0300, buffer_before=507904, buffer_after=512000, trimmed=False, processing_time=141.5ms
+2025-09-20 03:34:33.660 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:33.917 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:33.922 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:33.922 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003605, 增益=8.32
+2025-09-20 03:34:33.922 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0968, rms_amp=0.0300, mean_amp=0.0245, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:33.923 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7296/9600 samples
+2025-09-20 03:34:33.923 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.096756 > 0.003
+2025-09-20 03:34:33.923 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0968, rms_amp=0.0300, buffer_before=512000, buffer_after=516096, trimmed=False, processing_time=5.9ms
+2025-09-20 03:34:33.928 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:34.305 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:34.314 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:34.315 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002804, 增益=10.00
+2025-09-20 03:34:34.315 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0958, rms_amp=0.0280, mean_amp=0.0211, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:34.568 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.095825 > 0.003
+2025-09-20 03:34:34.568 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0958, rms_amp=0.0280, buffer_before=516096, buffer_after=520192, trimmed=False, processing_time=263.1ms
+2025-09-20 03:34:34.575 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.028042, 时长=0.26s
+2025-09-20 03:34:34.661 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:34.664 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:34.664 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003364, 增益=8.92
+2025-09-20 03:34:34.664 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.1434, rms_amp=0.0300, mean_amp=0.0238, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:34.665 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5888/9600 samples
+2025-09-20 03:34:34.665 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[高]: max_amp=0.143412 > 0.003
+2025-09-20 03:34:34.665 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.1434, rms_amp=0.0300, buffer_before=520192, buffer_after=524288, trimmed=False, processing_time=4.3ms
+2025-09-20 03:34:34.670 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:34.911 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:34.915 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:34.915 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003167, 增益=9.47
+2025-09-20 03:34:34.916 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0731, rms_amp=0.0300, mean_amp=0.0244, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:35.057 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.073137 > 0.003
+2025-09-20 03:34:35.057 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0731, rms_amp=0.0300, buffer_before=524288, buffer_after=528384, trimmed=False, processing_time=145.8ms
+2025-09-20 03:34:35.116 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:35.171 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:35.176 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:35.176 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002414, 增益=10.00
+2025-09-20 03:34:35.176 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0763, rms_amp=0.0241, mean_amp=0.0199, non_zero_ratio=0.998, zero_ratio=0.002
+2025-09-20 03:34:35.176 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4480/9600 samples
+2025-09-20 03:34:35.177 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.076294 > 0.003
+2025-09-20 03:34:35.177 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0763, rms_amp=0.0241, buffer_before=528384, buffer_after=532480, trimmed=False, processing_time=5.3ms
+2025-09-20 03:34:35.183 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.024144, 时长=0.26s
+2025-09-20 03:34:35.431 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:35.435 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:35.435 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002334, 增益=10.00
+2025-09-20 03:34:35.440 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0989, rms_amp=0.0233, mean_amp=0.0177, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:35.440 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 8576/9600 samples
+2025-09-20 03:34:35.440 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.098877 > 0.003
+2025-09-20 03:34:35.440 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0989, rms_amp=0.0233, buffer_before=532480, buffer_after=536576, trimmed=False, processing_time=9.1ms
+2025-09-20 03:34:35.448 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.023342, 时长=0.26s
+2025-09-20 03:34:35.691 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:35.696 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:35.696 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002724, 增益=10.00
+2025-09-20 03:34:35.696 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0806, rms_amp=0.0272, mean_amp=0.0218, non_zero_ratio=0.996, zero_ratio=0.004
+2025-09-20 03:34:35.867 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.080566 > 0.003
+2025-09-20 03:34:35.868 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0806, rms_amp=0.0272, buffer_before=536576, buffer_after=540672, trimmed=False, processing_time=176.5ms
+2025-09-20 03:34:35.874 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.027244, 时长=0.26s
+2025-09-20 03:34:35.951 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:35.955 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:35.955 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002308, 增益=10.00
+2025-09-20 03:34:35.955 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0616, rms_amp=0.0231, mean_amp=0.0186, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:35.956 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 7168/9600 samples
+2025-09-20 03:34:35.956 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.061646 > 0.003
+2025-09-20 03:34:35.956 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0616, rms_amp=0.0231, buffer_before=540672, buffer_after=544768, trimmed=False, processing_time=5.1ms
+2025-09-20 03:34:35.962 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.023078, 时长=0.26s
+2025-09-20 03:34:36.204 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:36.209 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:36.209 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002583, 增益=10.00
+2025-09-20 03:34:36.210 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0656, rms_amp=0.0258, mean_amp=0.0213, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:36.400 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.065613 > 0.003
+2025-09-20 03:34:36.400 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0656, rms_amp=0.0258, buffer_before=544768, buffer_after=548864, trimmed=False, processing_time=195.5ms
+2025-09-20 03:34:36.420 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.025826, 时长=0.26s
+2025-09-20 03:34:36.463 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:36.471 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:36.471 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.002819, 增益=10.00
+2025-09-20 03:34:36.472 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0793, rms_amp=0.0282, mean_amp=0.0226, non_zero_ratio=0.995, zero_ratio=0.005
+2025-09-20 03:34:36.472 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 5760/9600 samples
+2025-09-20 03:34:36.472 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.079346 > 0.003
+2025-09-20 03:34:36.472 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0793, rms_amp=0.0282, buffer_before=548864, buffer_after=552960, trimmed=False, processing_time=9.7ms
+2025-09-20 03:34:36.479 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.028188, 时长=0.26s
+2025-09-20 03:34:36.713 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:36.718 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:36.719 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003167, 增益=9.47
+2025-09-20 03:34:36.720 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0914, rms_amp=0.0300, mean_amp=0.0232, non_zero_ratio=0.997, zero_ratio=0.003
+2025-09-20 03:34:36.861 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.091350 > 0.003
+2025-09-20 03:34:36.868 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0914, rms_amp=0.0300, buffer_before=552960, buffer_after=557056, trimmed=False, processing_time=155.3ms
+2025-09-20 03:34:36.961 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:36.977 | TRACE    | audio | add_audio_chunk:533 | 收到音频块: format=pcm, raw_size=8192 bytes, sample_rate=16000
+2025-09-20 03:34:37.007 | TRACE    | audio | add_audio_chunk:585 | PCM解码完成: samples=4096
+2025-09-20 03:34:37.008 | INFO     | audio | add_audio_chunk:665 | AGC已应用: 原始RMS=0.003495, 增益=8.58
+2025-09-20 03:34:37.008 | DEBUG    | audio | add_audio_chunk:676 | 音频质量分析: samples=4096, max_amp=0.0995, rms_amp=0.0300, mean_amp=0.0234, non_zero_ratio=0.994, zero_ratio=0.006
+2025-09-20 03:34:37.009 | TRACE    | audio | add_audio_chunk:747 | 流式缓存未达到模型步长: 4352/9600 samples
+2025-09-20 03:34:37.009 | DEBUG    | audio | add_audio_chunk:775 | 🎵 音频活动[中]: max_amp=0.099546 > 0.003
+2025-09-20 03:34:37.009 | DEBUG    | audio | add_audio_chunk:779 | 音频块处理完成: format=pcm, samples=4096, max_amp=0.0995, rms_amp=0.0300, buffer_before=557056, buffer_after=561152, trimmed=False, processing_time=32.8ms
+2025-09-20 03:34:37.026 | INFO     | audio | add_audio_chunk:811 | ✅ 标准音频输入: RMS=0.030000, 时长=0.26s
+2025-09-20 03:34:37.197 | INFO     | audio | save_original_audio_files:1276 | 🎤 原始音频统计: 1122304 bytes, 561152 样本, 35.07秒, 采样率16000Hz
+2025-09-20 03:34:37.202 | INFO     | audio | save_original_audio_files:1282 | 💾 原始PCM已保存: /mnt/d/WorkSpace/code/2025/smartvoice/data/temp/session_4eba508d/original_raw.pcm
+2025-09-20 03:34:37.222 | ERROR    | audio | save_original_audio_files:1319 | 原始WAV生成失败: Object of type float32 is not JSON serializable
+2025-09-20 03:34:37.226 | ERROR    | audio | save_original_audio_files:1321 | Traceback (most recent call last):
+  File "/mnt/d/WorkSpace/code/evoice-versions/base/e-voice/server/session.py", line 1304, in save_original_audio_files
+    json.dump(audio_stats, f, ensure_ascii=False, indent=2)
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/__init__.py", line 179, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 432, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 439, in _iterencode
+    o = _default(o)
+        ^^^^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type float32 is not JSON serializable
+
+2025-09-20 03:34:37.226 | INFO     | audio | save_original_audio_files:1276 | 🎤 原始音频统计: 1122304 bytes, 561152 样本, 35.07秒, 采样率16000Hz
+2025-09-20 03:34:37.231 | INFO     | audio | save_original_audio_files:1282 | 💾 原始PCM已保存: /mnt/d/WorkSpace/code/2025/smartvoice/data/temp/session_4eba508d/original_raw.pcm
+2025-09-20 03:34:37.251 | ERROR    | audio | save_original_audio_files:1319 | 原始WAV生成失败: Object of type float32 is not JSON serializable
+2025-09-20 03:34:37.252 | ERROR    | audio | save_original_audio_files:1321 | Traceback (most recent call last):
+  File "/mnt/d/WorkSpace/code/evoice-versions/base/e-voice/server/session.py", line 1304, in save_original_audio_files
+    json.dump(audio_stats, f, ensure_ascii=False, indent=2)
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/__init__.py", line 179, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 432, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 439, in _iterencode
+    o = _default(o)
+        ^^^^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type float32 is not JSON serializable
+
+2025-09-20 03:35:03.900 | WARNING  | audio | save_original_audio_files:1268 | 无原始音频数据，跳过保存
