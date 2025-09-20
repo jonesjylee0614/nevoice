@@ -172,6 +172,7 @@ print(res)
 
 1、找到/home/leozy/miniconda3/envs/e-voice/lib/python3.12/site-packages/modelscope/hub/snapshot_download.py
 2、在 `if local_files_only:`前添加以下代码
+
 ```
 # ==================== 强制使用本地缓存补丁 ====================
     # 优先检查本地缓存中是否已存在模型文件（通常数量大于1）
@@ -184,4 +185,25 @@ print(res)
         # 在这里强制将其设为 False，确保能够继续执行下载流程。
         local_files_only = False
     # ===============================================================
+```
+
+## 手动训练脚本
+
+```sh
+
+cd /home/zrway/evoice/pkgs/FunASR/examples/industrial_data_pretraining/paraformer
+
+
+nohup sh finetune.sh \
+	--conda_path /home/leozy/miniconda3/bin \
+	--conda_env funasr \
+    --cuda_devices 0,1,2,3 \
+	--train_data /home/zrway/evoice/pkgs/voices/tts-voice/output/train.jsonl \
+	--val_data /home/zrway/evoice/pkgs/voices/tts-voice/output/val.jsonl \
+	--output_dir /mnt/ramdisk/evoice/finetune-out \
+> /mnt/ramdisk/evoice/finetune-out/finetune.log 2>&1 &
+
+tail -f /mnt/ramdisk/evoice/finetune-out/finetune.log
+
+
 ```
