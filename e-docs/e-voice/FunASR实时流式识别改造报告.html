@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>FunASR 实时流式识别改造报告</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 32px 48px;
+      background: #f7f9fc;
+      color: #1f2933;
+      line-height: 1.6;
+    }
+    header {
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 4px solid #2563eb;
+    }
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      color: #1d4ed8;
+    }
+    h2 {
+      margin-top: 40px;
+      color: #1f2937;
+      border-left: 6px solid #2563eb;
+      padding-left: 12px;
+    }
+    h3 {
+      margin-top: 24px;
+      color: #2563eb;
+    }
+    p, li {
+      font-size: 15px;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
+      border-left: 5px solid #2563eb;
+    }
+    .card h3 {
+      margin-top: 0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 12px;
+      margin-left: 6px;
+    }
+    .flow-container {
+      margin-top: 20px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+    }
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .node {
+      min-width: 160px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 14px;
+      text-align: center;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
+    }
+    .node.alt {
+      background: linear-gradient(135deg, #0891b2, #0ea5e9);
+    }
+    .node.warn {
+      background: linear-gradient(135deg, #f97316, #f59e0b);
+    }
+    .arrow {
+      font-size: 26px;
+      color: #1f2937;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .table th, .table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .table th {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    footer {
+      margin-top: 48px;
+      font-size: 13px;
+      color: #6b7280;
+      text-align: center;
+    }
+    code {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #1e40af;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FunASR 实时流式识别改造报告</h1>
+    <p>针对“实时识别结果只剩最后一个词、无法累计显示且缺少自动纠错”的问题，完成 FunASR 流式管线、文本缓冲与前端呈现的系统级重构。</p>
+  </header>
+
+  <section>
+    <h2>1. 问题复盘</h2>
+    <ul>
+      <li><strong>单缓冲覆盖：</strong>流式回调每次以 <code>text</code> 覆盖 <code>full_sentence</code>，导致 UI 与日志只保留最后一个片段。</li>
+      <li><strong>Final 仅返回末尾 token：</strong>句尾刷新时直接使用 FunASR 缓存的最后一次回包，最终句只剩“上线”。</li>
+      <li><strong>缺少语义纠错：</strong>未集成领域热词与中文自动纠错，行业词“字节跳动、推荐引擎”等易被错识。</li>
+      <li><strong>日志乱序与状态不明：</strong>缺乏段落编号/版本号，无法定位“谁覆盖了谁”。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>2. 核心改造</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>双缓冲文本状态<span class="badge">session.py</span></h3>
+        <ul>
+          <li>新增 <code>committedText</code>/<code>liveText</code>（确认区 + 候选区）状态机。</li>
+          <li>引入 <code>segment_id</code> + <code>revision</code>，前后端共享段落版本。</li>
+          <li>日志打印合并文本：<code>[streaming] seg=xxx rev=yyy</code>。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>流式 + 离线混合裁决<span class="badge">FunASR</span></h3>
+        <ul>
+          <li>每个句尾执行 FunASR <em>flush</em> + Paraformer 离线全量识别。</li>
+          <li>根据文本长度与相似度优先选择更完整的一侧，解决“只剩最后一个词”。</li>
+          <li>保留处理延迟信息，便于监控性能。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>自动纠错链路<span class="badge">zh_correct</span></h3>
+        <ul>
+          <li>将 PyCorrector 封装成幂等工具，自动加载词频词典。</li>
+          <li>句尾仅对最终文本纠错，避免部分识别闪烁。</li>
+          <li>响应中返回 <code>auto_correction</code> &amp; <code>raw_text</code> 便于 UI 呈现差异。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>前端双层展示<span class="badge">RealtimeForm.vue</span></h3>
+        <ul>
+          <li>改用 <code>committedText</code> + <code>liveText</code> 组合渲染。</li>
+          <li>实时展示段落编号 rev，最终句保留在历史区域。</li>
+          <li>自动纠错时提示“raw → corrected”。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. 改造后运行流程</h2>
+    <div class="flow-container">
+      <div class="flow">
+        <div class="node">音频帧<br />16k PCM</div>
+        <div class="arrow">➜</div>
+        <div class="node">FunASR Streaming<br />chunk 推理</div>
+        <div class="arrow">➜</div>
+        <div class="node alt">双缓冲合并<br />seg/rev 更新</div>
+        <div class="arrow">➜</div>
+        <div class="node">WebSocket partial<br />{segment_id, revision}</div>
+        <div class="arrow">➜</div>
+        <div class="node alt">判定句尾<br />语义 + 静音</div>
+        <div class="arrow">➜</div>
+        <div class="node">离线 Paraformer<br />全量复核</div>
+        <div class="arrow">➜</div>
+        <div class="node warn">自动纠错<br />热词替换</div>
+        <div class="arrow">➜</div>
+        <div class="node">前端展示<br />Committed + Live</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. 响应结构对照</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>字段</th>
+          <th>说明</th>
+          <th>用途</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>segment_id</code>, <code>revision</code></td>
+          <td>段落号 + 增量版本，用于乱序保护与日志排查。</td>
+          <td>防止旧 partial 覆盖最新文本。</td>
+        </tr>
+        <tr>
+          <td><code>text_state.full_text</code></td>
+          <td>确认 + 候选合并后的完整文本。</td>
+          <td>前端直接展示给用户，仿输入法体验。</td>
+        </tr>
+        <tr>
+          <td><code>auto_correction</code></td>
+          <td>纠错明细（被改词、位置等）。</td>
+          <td>供 UI 或日志高亮提示。</td>
+        </tr>
+        <tr>
+          <td><code>raw_text</code></td>
+          <td>纠错前的文本快照。</td>
+          <td>对比验证纠错效果。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>5. 验收要点</h2>
+    <ol>
+      <li>朗读长句时，partial 按 seg/rev 连续输出，历史文本不被覆盖。</li>
+      <li>Final 输出完整句子：<em>“今日头条是北京字节跳动科技有限公司…”</em>，而非“上线”。</li>
+      <li>日志同步打印：<code>[streaming] seg=abcd rev=5: '今日头条…'</code>。</li>
+      <li>UI 顶部显示确认文本，底部滚动候选文本，句尾清空候选。</li>
+      <li>纠错命中时响应含 <code>auto_correction_applied=true</code> 且日志记录“raw → corrected”。</li>
+    </ol>
+  </section>
+
+  <footer>
+    <p>© 2025 NEVoice · FunASR Streaming Rebuild</p>
+  </footer>
+</body>
+</html>

@@ -6,6 +6,7 @@ import json
 import time
 import traceback
 import uuid
+from typing import Any, Dict
 
 from flask_sock import Sock
 
@@ -132,18 +133,27 @@ def register_ws_routes(sock: Sock) -> None:
                     key_logger.info(f"session={session_id} end requested")
 
                     final_sentence = None
+                    final_meta: Dict[str, Any] = {}
                     if session.full_sentence:
-                        final_sentence = session.finalize_current_sentence()
-                        if final_sentence:
-                            final_sentence = normalize_text(final_sentence)
+                        payload = session.finalize_current_sentence()
+                        if isinstance(payload, str):
+                            final_sentence = normalize_text(payload)
+                            final_meta = {"text": final_sentence}
+                        elif isinstance(payload, dict):
+                            final_meta = payload
+                            final_sentence = normalize_text(payload.get("text", ""))
                     elif session.audio_buffer.size > 0:
                         try:
                             last_text = session.get_final_result()
                             if last_text and last_text.strip():
                                 session.full_sentence = last_text.strip()
-                                final_sentence = session.finalize_current_sentence()
-                                if final_sentence:
-                                    final_sentence = normalize_text(final_sentence)
+                                payload = session.finalize_current_sentence()
+                                if isinstance(payload, str):
+                                    final_sentence = normalize_text(payload)
+                                    final_meta = {"text": final_sentence}
+                                elif isinstance(payload, dict):
+                                    final_meta = payload
+                                    final_sentence = normalize_text(payload.get("text", ""))
                         except Exception:
                             pass
 
@@ -152,7 +162,8 @@ def register_ws_routes(sock: Sock) -> None:
                         if not fallback and len(session.confirmed_sentences) > 0:
                             fallback = session.confirmed_sentences[-1].strip()
                         if fallback:
-                            final_sentence = fallback
+                            final_sentence = normalize_text(fallback)
+                            final_meta = {"text": final_sentence}
 
                     if final_sentence:
                         if session._is_duplicate_final(final_sentence):
@@ -163,6 +174,7 @@ def register_ws_routes(sock: Sock) -> None:
                             segment_id = session._allocate_segment_id()
                             session._register_final(final_sentence)
                             final_results_sent += 1
+                            confirmed_join = normalize_text("".join(session.confirmed_sentences))
                             response = {
                                 "type": "final",
                                 "text": final_sentence,
@@ -172,7 +184,26 @@ def register_ws_routes(sock: Sock) -> None:
                                 "segment_id": segment_id,
                                 "session_id": session_id,
                                 "offsets": {"start_ms": None, "end_ms": None},
+                                "text_state": {
+                                    "confirmed_text": confirmed_join,
+                                    "candidate_text": "",
+                                    "full_text": confirmed_join,
+                                    "segment_id": segment_id,
+                                    "revision": 0,
+                                },
                             }
+                            for key in [
+                                "raw_text",
+                                "selected_source",
+                                "streaming_text",
+                                "offline_text",
+                                "segment_seq",
+                                "segment_id_hint",
+                                "auto_correction",
+                                "auto_correction_applied",
+                            ]:
+                                if key in final_meta and final_meta[key] is not None:
+                                    response[key] = final_meta[key]
                             ws.send(json.dumps(response))
                             ws_logger.info(
                                 f"会话{session_id}: 发送最终句子#{final_results_sent}: '{final_sentence}', segment_id={segment_id}"
@@ -241,37 +272,67 @@ def register_ws_routes(sock: Sock) -> None:
 
                         sentence_completed = session.check_sentence_complete()
                         if sentence_completed:
-                            completed_sentence = session.finalize_current_sentence()
-                            if completed_sentence and len(completed_sentence.strip()) >= 2:
-                                completed_sentence = normalize_text(completed_sentence)
-                                if session._is_duplicate_final(completed_sentence):
+                            final_payload = session.finalize_current_sentence()
+                            if isinstance(final_payload, str):
+                                final_text = normalize_text(final_payload)
+                                final_meta: Dict[str, Any] = {"text": final_text}
+                            elif isinstance(final_payload, dict):
+                                final_meta = final_payload
+                                final_text = normalize_text(final_payload.get("text", ""))
+                            else:
+                                final_text = ""
+                                final_meta = {}
+
+                            if final_text and len(final_text.strip()) >= 2:
+                                if session._is_duplicate_final(final_text):
                                     ws_logger.info(
-                                        f"会话{session_id}: 跳过重复final: '{completed_sentence}'"
+                                        f"会话{session_id}: 跳过重复final: '{final_text}'"
                                     )
                                 else:
                                     segment_id = session._allocate_segment_id()
-                                    session._register_final(completed_sentence)
+                                    session._register_final(final_text)
                                     final_results_sent += 1
+                                    confirmed_join = normalize_text("".join(session.confirmed_sentences))
                                     response = {
                                         "type": "final",
-                                        "text": completed_sentence,
+                                        "text": final_text,
                                         "index": len(session.confirmed_sentences) - 1,
                                         "timestamp": int(time.time() * 1000),
                                         "is_final": True,
                                         "segment_id": segment_id,
                                         "session_id": session_id,
                                         "offsets": {"start_ms": None, "end_ms": None},
+                                        "text_state": {
+                                            "confirmed_text": confirmed_join,
+                                            "candidate_text": "",
+                                            "full_text": confirmed_join,
+                                            "segment_id": segment_id,
+                                            "revision": 0,
+                                        },
                                     }
+                                    if isinstance(final_meta, dict):
+                                        for key in [
+                                            "raw_text",
+                                            "selected_source",
+                                            "streaming_text",
+                                            "offline_text",
+                                            "segment_seq",
+                                            "segment_id_hint",
+                                            "auto_correction",
+                                            "auto_correction_applied",
+                                        ]:
+                                            if key in final_meta and final_meta[key] is not None:
+                                                response[key] = final_meta[key]
                                     ws.send(json.dumps(response))
                                     ws_logger.info(
-                                        f"会话{session_id}: 句子完成#{final_results_sent}: '{completed_sentence}', segment_id={segment_id}"
+                                        f"会话{session_id}: 句子完成#{final_results_sent}: '{final_text}', segment_id={segment_id}"
                                     )
                                     try:
                                         global_counters["total_finals"] += 1
                                         active_sessions[session_id]["finals"] += 1
-                                        active_sessions[session_id]["last_final"] = completed_sentence
+                                        active_sessions[session_id]["last_final"] = final_text
                                         key_logger.info(
-                                            f"session={session_id} final id={segment_id}: '{completed_sentence}'"
+                                            f"session={session_id} final id={segment_id}: '{final_text}'"
                                         )
                                     except Exception:
                                         pass
@@ -292,6 +353,14 @@ def register_ws_routes(sock: Sock) -> None:
                                 "session_id": session_id,
                                 "text_state": partial_result.get("text_state"),
                             }
+                            if "segment_id" in partial_result:
+                                response["segment_id"] = partial_result["segment_id"]
+                            if "revision" in partial_result:
+                                response["revision"] = partial_result["revision"]
+                            if "combined_text" in partial_result:
+                                response["combined_text"] = partial_result["combined_text"]
+                            if "raw_text" in partial_result:
+                                response["raw_text"] = partial_result["raw_text"]
                             ws.send(json.dumps(response))
                             ws_logger.debug(
                                 f"会话{session_id}: 发送实时结果#{partial_results_sent}: '{partial_result['text']}' (置信度: {partial_result.get('confidence', 0):.3f})"
@@ -299,7 +368,10 @@ def register_ws_routes(sock: Sock) -> None:
                             try:
                                 global_counters["total_partials"] += 1
                                 active_sessions[session_id]["partials"] += 1
-                                active_sessions[session_id]["last_partial"] = partial_result["text"]
+                                active_sessions[session_id]["last_partial"] = (
+                                    partial_result.get("combined_text")
+                                    or partial_result["text"]
+                                )
                             except Exception:
                                 pass
                     else:
