@@ -43,7 +43,8 @@ except Exception as e:
     # 降级到最基本的配置
     speech_paraformer_large_pipeline = pipeline(
         task=Tasks.auto_speech_recognition,
-        model='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch'
+        model='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
+        disable_update=True,
     )
     recognition_logger.warning("⚠️ 使用基础ModelScope配置")
 

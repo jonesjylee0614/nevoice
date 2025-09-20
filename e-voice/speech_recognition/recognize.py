@@ -12,7 +12,8 @@ recognition_logger = logger.bind(component="speech_recognition")
 try:
     speech_paraformer_large_pipeline = pipeline(
         task=Tasks.auto_speech_recognition,
-        model='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch'
+        model='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
+        disable_update=True,
     )
     recognition_logger.success("✅ 使用最简单的ModelScope配置")
 except Exception as e:
