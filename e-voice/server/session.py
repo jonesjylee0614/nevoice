@@ -8,7 +8,7 @@ import json
 import os
 import time
 import traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import soundfile as sf
@@ -28,6 +28,11 @@ from .text_processing import (
     normalize_for_dedup,
     normalize_text,
 )
+
+try:  # 中文自动纠错
+    from zh_correct.correct import correct as zh_correct  # type: ignore
+except Exception:  # pragma: no cover - 纠错模型不可用时自动降级
+    zh_correct = None
 
 # NOTE: The implementation below is copied from the historic rest.py module
 # with only dependency imports updated. Keeping the logic untouched preserves
@@ -51,6 +56,11 @@ class RealtimeSpeechSession:
         # 🎯 【修改】简化文本状态管理
         self.full_sentence = ""
         self.confirmed_sentences = [] # 已确认的完整句子列表
+
+        # ✍️ 当前段落的流式文本缓冲（未确认部分）
+        self._live_text = ""
+        self._segment_revision = 0
+        self._last_final_info: Optional[Dict[str, Any]] = None
         
         # 🗑️ 【废弃】以下复杂的文本状态管理将被新的、更简单的逻辑替代
         # self.confirmed_text = ""  # 已确认的文本（固定显示，不再修改）
@@ -188,11 +198,15 @@ class RealtimeSpeechSession:
         
         self.confirmed_audio_length = 0
         self.candidate_audio_start = 0
-        
+
         # 重置原有状态
         self.current_sentence = ""
         self.full_sentence = ""  # 🔧【2025-01-19 修复】同时重置主状态字段
         self.confirmed_sentences = []
+        self._live_text = ""
+        self._segment_revision = 0
+        self._last_final_info = None
+        self.final_seq = 0
         self.cache.clear()
         self._pending_streaming_result = None
         self._last_streaming_result = None
@@ -266,6 +280,151 @@ class RealtimeSpeechSession:
         if self.session_id:
             return f"{self.session_id}-{base}"
         return base
+
+    def _current_segment_seq(self) -> int:
+        """返回当前实时段落的序号（final_seq + 1）。"""
+        return self.final_seq + 1
+
+    def _format_segment_id(self, seq: Optional[int] = None) -> str:
+        """构造指定序号的 segment_id（不自增）。"""
+        seg = self.final_seq + 1 if seq is None else seq
+        if self.session_id:
+            return f"{self.session_id}-{seg}"
+        return str(seg)
+
+    def _combine_confirmed_and_live(self, confirmed: str, live: str) -> str:
+        confirmed = confirmed or ""
+        live = live or ""
+        if confirmed and live:
+            if confirmed.endswith(tuple("，。！？,.!?：；、 ")):
+                return confirmed + live
+            return f"{confirmed} {live}"
+        return confirmed or live
+
+    def _merge_streaming_text(self, new_text: str) -> str:
+        """将新的流式文本合并到当前未确认缓冲。"""
+
+        normalized = (new_text or "").strip()
+        if not normalized:
+            return self._live_text
+
+        base = (self._live_text or "").strip()
+        if not base:
+            merged = normalized
+        elif normalized == base:
+            merged = base
+        elif base in normalized and len(normalized) >= len(base):
+            merged = normalized
+        elif normalized in base and len(normalized) <= len(base):
+            merged = base
+        else:
+            overlap = 0
+            max_len = min(len(base), len(normalized))
+            for size in range(max_len, 0, -1):
+                if base.endswith(normalized[:size]):
+                    overlap = size
+                    break
+            if overlap > 0:
+                merged = base + normalized[overlap:]
+            else:
+                similarity = calc_similarity(base[-max_len:] if max_len else base, normalized)
+                if similarity >= 0.6 and len(normalized) >= len(base):
+                    merged = normalized
+                else:
+                    merged = base + normalized
+
+        self._live_text = merged
+        self.full_sentence = merged
+        self.current_sentence = merged
+        return merged
+
+    def _select_best_final_text(self, streaming_text: str, offline_text: str) -> Tuple[str, str]:
+        """在流式结果与离线结果之间选择更完整的文本。"""
+
+        streaming_clean = (streaming_text or "").strip()
+        offline_clean = (offline_text or "").strip()
+
+        if offline_clean and not streaming_clean:
+            return offline_clean, "offline"
+        if streaming_clean and not offline_clean:
+            return streaming_clean, "streaming"
+        if not streaming_clean and not offline_clean:
+            return "", "none"
+
+        offline_len = len(normalize_for_dedup(offline_clean))
+        streaming_len = len(normalize_for_dedup(streaming_clean))
+
+        if offline_clean:
+            if offline_len >= streaming_len:
+                return offline_clean, "offline"
+            similarity = calc_similarity(streaming_clean, offline_clean)
+            if similarity < 0.6 and offline_len >= max(3, streaming_len - 2):
+                return offline_clean, "offline"
+
+        return streaming_clean, "streaming"
+
+    def _run_offline_final_recognition(self) -> Tuple[str, Optional[Any]]:
+        """对当前音频缓冲执行一次离线识别用于矫正。"""
+
+        if self.audio_buffer.size == 0:
+            return "", None
+
+        temp_path = os.path.join(
+            self.session_dir or self.temp_dir,
+            f"offline_final_{int(time.time() * 1000)}.wav",
+        )
+
+        try:
+            sf.write(
+                temp_path,
+                np.clip(self.audio_buffer, -1.0, 1.0),
+                self.sample_rate,
+                subtype="PCM_16",
+            )
+            result = recognize(temp_path)
+            offline_text = extract_text_from_result(result)
+            offline_text = normalize_text(offline_text)
+            return offline_text, result
+        except Exception as exc:  # pragma: no cover - 离线识别失败时记录日志
+            recognition_logger.warning(
+                f"⚠️ [offline] 最终矫正识别失败: {exc}"
+            )
+            return "", None
+        finally:
+            try:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+            except Exception:  # pragma: no cover - 防御性
+                pass
+
+    def _auto_correct_text(self, text: str) -> Tuple[str, Dict[str, Any]]:
+        """对文本执行自动纠错，返回纠错后的文本及元数据。"""
+
+        if not text or not zh_correct:
+            return text, {"applied": False, "details": [], "raw_result": None}
+
+        try:
+            correction = zh_correct(text)
+        except Exception as exc:  # pragma: no cover - 纠错失败降级
+            recognition_logger.warning(f"⚠️ 自动纠错失败: {exc}")
+            return text, {"applied": False, "details": [], "raw_result": None}
+
+        corrected = text
+        details: List[Any] = []
+
+        if isinstance(correction, dict):
+            corrected = correction.get("target") or correction.get("corrected_text") or text
+            details = correction.get("details") or correction.get("detail") or []
+        elif isinstance(correction, (list, tuple)):
+            if correction and isinstance(correction[0], str):
+                corrected = correction[0]
+            if len(correction) > 1:
+                details = correction[1]
+
+        corrected = corrected or text
+        applied = corrected.strip() != text.strip()
+
+        return corrected, {"applied": applied, "details": details, "raw_result": correction}
         
     def _update_text_stability(self, new_text):
         """🗑️【已废弃】文本稳定性跟踪方法，保留仅为兼容性"""
@@ -727,12 +886,15 @@ class RealtimeSpeechSession:
                     processed_any = True
                     if streaming_payload is not None:
                         text = streaming_payload.get("text") or ""
-                        if text and text != self.full_sentence:
-                            self.full_sentence = text
-                            self.current_sentence = text
-                        elif not text and not self.full_sentence:
-                            self.full_sentence = text
-                            self.current_sentence = text
+                        if text:
+                            merged = self._merge_streaming_text(normalize_text(text))
+                            self.last_update_time = time.time()
+                            if merged:
+                                self.current_sentence = merged
+                        elif not self._live_text:
+                            self._live_text = ""
+                            self.full_sentence = ""
+                            self.current_sentence = ""
 
                         self.last_update_time = time.time()
 
@@ -837,7 +999,8 @@ class RealtimeSpeechSession:
                 self._pending_streaming_result = None
                 return None
 
-            normalized_text = normalize_text(text)
+            normalized_raw = normalize_text(text)
+            live_text = self._merge_streaming_text(normalized_raw)
             confidence_val = pending.get("confidence")
             try:
                 confidence = (
@@ -860,20 +1023,31 @@ class RealtimeSpeechSession:
             if text:
                 self.quality_stats['successful_recognitions'] += 1
 
-            recognition_logger.info(f"[streaming] 实时识别: '{normalized_text}'")
-
             confirmed_text = normalize_text("".join(self.confirmed_sentences))
-            full_text = confirmed_text + (normalized_text if normalized_text else "")
+            combined_text = self._combine_confirmed_and_live(confirmed_text, live_text)
+
+            self._segment_revision += 1
+            segment_id = self._format_segment_id()
+
+            recognition_logger.info(
+                f"[streaming] 实时识别 seg={segment_id} rev={self._segment_revision}: '{combined_text}'"
+            )
 
             return {
-                'text': normalized_text,
+                'text': live_text,
+                'raw_text': normalized_raw,
                 'is_partial': True,
                 'confidence': confidence,
                 'processing_time_ms': processing_ms,
+                'segment_id': segment_id,
+                'revision': self._segment_revision,
+                'combined_text': combined_text,
                 'text_state': {
                     'confirmed_text': confirmed_text,
-                    'candidate_text': normalized_text,
-                    'full_text': full_text,
+                    'candidate_text': live_text,
+                    'full_text': combined_text,
+                    'segment_id': segment_id,
+                    'revision': self._segment_revision,
                 }
             }
 
@@ -917,23 +1091,32 @@ class RealtimeSpeechSession:
             recognition_logger.info(f"[offline fallback] 实时识别: '{self.full_sentence}'")
 
             normalized_full_text = normalize_text(self.full_sentence)
+            self._live_text = normalized_full_text
 
             self.quality_stats['recognition_attempts'] += 1
             if recognized_text:
                 self.quality_stats['successful_recognitions'] += 1
 
             confirmed_text = normalize_text("".join(self.confirmed_sentences))
-            full_text = confirmed_text + (normalized_full_text if normalized_full_text else "")
+            combined_text = self._combine_confirmed_and_live(confirmed_text, normalized_full_text)
+
+            self._segment_revision += 1
+            segment_id = self._format_segment_id()
 
             return {
                 'text': normalized_full_text,
                 'is_partial': True,
                 'confidence': 0.85,
                 'processing_time_ms': int((time.time() - recognition_start_time) * 1000),
+                'segment_id': segment_id,
+                'revision': self._segment_revision,
+                'combined_text': combined_text,
                 'text_state': {
                     'confirmed_text': confirmed_text,
                     'candidate_text': normalized_full_text,
-                    'full_text': full_text,
+                    'full_text': combined_text,
+                    'segment_id': segment_id,
+                    'revision': self._segment_revision,
                 }
             }
         except Exception as e:
@@ -1102,9 +1285,13 @@ class RealtimeSpeechSession:
         return False
 
     def finalize_current_sentence(self):
-        """
-        【已重构】确认当前句子为最终结果，并更新处理状态。
-        """
+        """确认当前句子为最终结果，并完成离线矫正与自动纠错。"""
+
+        segment_seq = self._current_segment_seq()
+        segment_id_hint = self._format_segment_id(segment_seq)
+
+        streaming_text = (self._live_text or self.full_sentence or "").strip()
+
         if self._streaming_available and self.streaming_model is not None:
             flush_audio = (
                 np.ascontiguousarray(self._streaming_audio_cache)
@@ -1114,10 +1301,9 @@ class RealtimeSpeechSession:
             flush_result = self._streaming_infer(flush_audio, is_final=True)
             self._streaming_audio_cache = np.array([], dtype=np.float32)
             if flush_result:
-                flush_text = flush_result.get("text") or ""
+                flush_text = normalize_text(flush_result.get("text") or "")
                 if flush_text:
-                    self.full_sentence = flush_text
-                    self.current_sentence = flush_text
+                    streaming_text = self._merge_streaming_text(flush_text)
                 confidence_val = flush_result.get("confidence")
                 if confidence_val is not None:
                     try:
@@ -1125,30 +1311,43 @@ class RealtimeSpeechSession:
                     except (TypeError, ValueError):  # pragma: no cover - 容错
                         pass
 
-        if not self.full_sentence.strip():
+        streaming_text = (streaming_text or self._live_text or self.full_sentence or "").strip()
+
+        offline_text, _ = self._run_offline_final_recognition()
+        selected_text, source = self._select_best_final_text(streaming_text, offline_text)
+
+        if not selected_text.strip():
             return ""
 
-        # 智能标点预测
         silence_duration = time.time() - self.last_activity_time
-        final_text = self.predict_punctuation(self.full_sentence, silence_duration)
-        
-        # 文本规范化
-        final_text = normalize_text(final_text)
+        punctuated_text = self.predict_punctuation(selected_text, silence_duration)
+        punctuated_text = normalize_text(punctuated_text)
+
+        corrected_text, correction_meta = self._auto_correct_text(punctuated_text)
+        corrected_text = normalize_text(corrected_text)
+        final_text = (corrected_text or punctuated_text).strip()
 
         if not final_text:
             return ""
 
         self.confirmed_sentences.append(final_text)
         mode_label = "[streaming]" if self._streaming_available and self.streaming_model is not None else "[offline fallback]"
-        recognition_logger.info(f"{mode_label} 🏁 最终确认句子 #{len(self.confirmed_sentences)}: '{final_text}'")
+        recognition_logger.info(
+            f"{mode_label} 🏁 最终确认句子 #{len(self.confirmed_sentences)}(seg={segment_id_hint}, source={source}): '{final_text}'"
+        )
+        if correction_meta.get("applied"):
+            recognition_logger.info(
+                f"🩹 自动纠错: '{punctuated_text}' -> '{final_text}', details={correction_meta.get('details')}"
+            )
 
-        # 🎯【至关重要】硬重置当前句子的状态并清空音频缓冲区，避免跨句子干扰
         self.full_sentence = ""
-        self.current_sentence = ""  # 🔧【2025-01-19 修复】同时重置兼容字段，确保状态一致
+        self.current_sentence = ""
+        self._live_text = ""
+        self._segment_revision = 0
+        self._last_streaming_text_sent = ""
         try:
             self.audio_buffer = np.array([], dtype=np.float32)
-        except Exception:
-            # 兜底防御，确保不因异常阻断流程
+        except Exception:  # pragma: no cover - 防御
             self.audio_buffer = np.array([], dtype=np.float32)
 
         if self._streaming_available and self.streaming_model is not None:
@@ -1157,7 +1356,20 @@ class RealtimeSpeechSession:
             self._last_streaming_result = None
             self._streaming_latency_ms = 0
 
-        return final_text
+        final_payload = {
+            "text": final_text,
+            "raw_text": punctuated_text,
+            "selected_source": source,
+            "streaming_text": streaming_text,
+            "offline_text": offline_text,
+            "segment_seq": segment_seq,
+            "segment_id_hint": segment_id_hint,
+            "auto_correction": correction_meta.get("details") or [],
+            "auto_correction_applied": bool(correction_meta.get("applied")),
+        }
+
+        self._last_final_info = final_payload
+        return final_payload
 
     def get_final_result(self):
         """
