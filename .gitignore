@@ -23,6 +23,7 @@ pnpm-lock.yaml
 vite.config.ts.timestamp-*.mjs
 install.lock
 .DS_Store
+*.log
 
 # 目录忽略
 data
