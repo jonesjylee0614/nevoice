@@ -2294,3 +2294,186 @@ simple_websocket.errors.ConnectionClosed: Connection closed: 1001
 2025-09-20 03:06:36.292 | DEBUG    | ws | ws_recognize:108 | 会话58bff817: 收到消息#48, type=ping, format=pcm
 2025-09-20 03:06:46.294 | DEBUG    | ws | ws_recognize:108 | 会话58bff817: 收到消息#49, type=ping, format=pcm
 2025-09-20 03:06:56.295 | DEBUG    | ws | ws_recognize:108 | 会话58bff817: 收到消息#50, type=ping, format=pcm
+2025-09-20 03:33:59.155 | INFO     | ws | ws_recognize:22 | 会话开始: 4eba508d
+2025-09-20 03:34:02.043 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#1, type=start, format=pcm
+2025-09-20 03:34:02.043 | INFO     | ws | ws_recognize:113 | 会话4eba508d: 开始实时识别
+2025-09-20 03:34:02.184 | DEBUG    | ws | ws_recognize:127 | 会话4eba508d: 发送started消息
+2025-09-20 03:34:02.184 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#2, type=chunk, format=pcm
+2025-09-20 03:34:02.195 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#3, type=chunk, format=pcm
+2025-09-20 03:34:02.205 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#4, type=chunk, format=pcm
+2025-09-20 03:34:02.307 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#5, type=chunk, format=pcm
+2025-09-20 03:34:02.318 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#6, type=chunk, format=pcm
+2025-09-20 03:34:02.448 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#7, type=chunk, format=pcm
+2025-09-20 03:34:02.459 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#8, type=chunk, format=pcm
+2025-09-20 03:34:02.480 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#9, type=chunk, format=pcm
+2025-09-20 03:34:02.748 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#10, type=chunk, format=pcm
+2025-09-20 03:34:03.000 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#11, type=chunk, format=pcm
+2025-09-20 03:34:03.250 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#12, type=chunk, format=pcm
+2025-09-20 03:34:03.511 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#13, type=chunk, format=pcm
+2025-09-20 03:34:03.649 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#1: '暂姆是' (置信度: 0.850)
+2025-09-20 03:34:03.760 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#14, type=chunk, format=pcm
+2025-09-20 03:34:04.024 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#15, type=chunk, format=pcm
+2025-09-20 03:34:04.281 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#16, type=chunk, format=pcm
+2025-09-20 03:34:04.486 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#2: '比结果' (置信度: 0.850)
+2025-09-20 03:34:04.530 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#17, type=chunk, format=pcm
+2025-09-20 03:34:04.791 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#18, type=chunk, format=pcm
+2025-09-20 03:34:05.041 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#19, type=chunk, format=pcm
+2025-09-20 03:34:05.301 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#20, type=chunk, format=pcm
+2025-09-20 03:34:05.561 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#21, type=chunk, format=pcm
+2025-09-20 03:34:05.811 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#22, type=chunk, format=pcm
+2025-09-20 03:34:06.071 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#23, type=chunk, format=pcm
+2025-09-20 03:34:06.322 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#24, type=chunk, format=pcm
+2025-09-20 03:34:06.581 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#25, type=chunk, format=pcm
+2025-09-20 03:34:06.841 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#26, type=chunk, format=pcm
+2025-09-20 03:34:07.092 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#27, type=chunk, format=pcm
+2025-09-20 03:34:07.351 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#28, type=chunk, format=pcm
+2025-09-20 03:34:07.601 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#29, type=chunk, format=pcm
+2025-09-20 03:34:07.861 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#30, type=chunk, format=pcm
+2025-09-20 03:34:08.121 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#31, type=chunk, format=pcm
+2025-09-20 03:34:08.371 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#32, type=chunk, format=pcm
+2025-09-20 03:34:08.631 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#33, type=chunk, format=pcm
+2025-09-20 03:34:08.881 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#34, type=chunk, format=pcm
+2025-09-20 03:34:09.141 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#35, type=chunk, format=pcm
+2025-09-20 03:34:09.186 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#36, type=ping, format=pcm
+2025-09-20 03:34:09.401 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#37, type=chunk, format=pcm
+2025-09-20 03:34:09.651 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#38, type=chunk, format=pcm
+2025-09-20 03:34:09.910 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#39, type=chunk, format=pcm
+2025-09-20 03:34:10.169 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#40, type=chunk, format=pcm
+2025-09-20 03:34:10.421 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#41, type=chunk, format=pcm
+2025-09-20 03:34:10.680 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#42, type=chunk, format=pcm
+2025-09-20 03:34:10.931 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#43, type=chunk, format=pcm
+2025-09-20 03:34:11.191 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#44, type=chunk, format=pcm
+2025-09-20 03:34:11.441 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#45, type=chunk, format=pcm
+2025-09-20 03:34:11.546 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#3: '现在' (置信度: 0.850)
+2025-09-20 03:34:11.701 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#46, type=chunk, format=pcm
+2025-09-20 03:34:11.961 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#47, type=chunk, format=pcm
+2025-09-20 03:34:12.212 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#48, type=chunk, format=pcm
+2025-09-20 03:34:12.470 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#49, type=chunk, format=pcm
+2025-09-20 03:34:12.589 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#4: '识' (置信度: 0.850)
+2025-09-20 03:34:12.721 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#50, type=chunk, format=pcm
+2025-09-20 03:34:12.985 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#51, type=chunk, format=pcm
+2025-09-20 03:34:13.242 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#52, type=chunk, format=pcm
+2025-09-20 03:34:13.382 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#5: '别怎么' (置信度: 0.850)
+2025-09-20 03:34:13.491 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#53, type=chunk, format=pcm
+2025-09-20 03:34:13.751 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#54, type=chunk, format=pcm
+2025-09-20 03:34:13.976 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#6: '样呢' (置信度: 0.850)
+2025-09-20 03:34:14.001 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#55, type=chunk, format=pcm
+2025-09-20 03:34:14.266 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#56, type=chunk, format=pcm
+2025-09-20 03:34:14.521 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#57, type=chunk, format=pcm
+2025-09-20 03:34:14.771 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#58, type=chunk, format=pcm
+2025-09-20 03:34:15.031 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#59, type=chunk, format=pcm
+2025-09-20 03:34:15.281 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#60, type=chunk, format=pcm
+2025-09-20 03:34:15.541 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#61, type=chunk, format=pcm
+2025-09-20 03:34:15.805 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#62, type=chunk, format=pcm
+2025-09-20 03:34:16.075 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#63, type=chunk, format=pcm
+2025-09-20 03:34:16.311 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#64, type=chunk, format=pcm
+2025-09-20 03:34:16.569 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#65, type=chunk, format=pcm
+2025-09-20 03:34:16.821 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#66, type=chunk, format=pcm
+2025-09-20 03:34:17.081 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#7: '好' (置信度: 0.850)
+2025-09-20 03:34:17.081 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#67, type=chunk, format=pcm
+2025-09-20 03:34:17.331 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#68, type=chunk, format=pcm
+2025-09-20 03:34:17.435 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#8: '像' (置信度: 0.850)
+2025-09-20 03:34:17.591 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#69, type=chunk, format=pcm
+2025-09-20 03:34:17.841 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#70, type=chunk, format=pcm
+2025-09-20 03:34:18.026 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#9: '是' (置信度: 0.850)
+2025-09-20 03:34:18.110 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#71, type=chunk, format=pcm
+2025-09-20 03:34:18.361 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#72, type=chunk, format=pcm
+2025-09-20 03:34:18.622 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#73, type=chunk, format=pcm
+2025-09-20 03:34:18.907 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#74, type=chunk, format=pcm
+2025-09-20 03:34:19.141 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#75, type=chunk, format=pcm
+2025-09-20 03:34:19.326 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#76, type=ping, format=pcm
+2025-09-20 03:34:19.401 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#77, type=chunk, format=pcm
+2025-09-20 03:34:19.651 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#78, type=chunk, format=pcm
+2025-09-20 03:34:19.911 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#79, type=chunk, format=pcm
+2025-09-20 03:34:20.166 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#80, type=chunk, format=pcm
+2025-09-20 03:34:20.419 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#81, type=chunk, format=pcm
+2025-09-20 03:34:20.536 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#10: '哎' (置信度: 0.850)
+2025-09-20 03:34:20.679 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#82, type=chunk, format=pcm
+2025-09-20 03:34:20.929 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#83, type=chunk, format=pcm
+2025-09-20 03:34:21.194 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#11: '现在是用' (置信度: 0.850)
+2025-09-20 03:34:21.194 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#84, type=chunk, format=pcm
+2025-09-20 03:34:21.440 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#85, type=chunk, format=pcm
+2025-09-20 03:34:21.699 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#86, type=chunk, format=pcm
+2025-09-20 03:34:21.910 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#12: '什么来识' (置信度: 0.850)
+2025-09-20 03:34:21.960 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#87, type=chunk, format=pcm
+2025-09-20 03:34:22.209 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#88, type=chunk, format=pcm
+2025-09-20 03:34:22.327 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#13: '别的' (置信度: 0.850)
+2025-09-20 03:34:22.469 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#89, type=chunk, format=pcm
+2025-09-20 03:34:22.719 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#90, type=chunk, format=pcm
+2025-09-20 03:34:22.979 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#91, type=chunk, format=pcm
+2025-09-20 03:34:23.239 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#92, type=chunk, format=pcm
+2025-09-20 03:34:23.489 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#93, type=chunk, format=pcm
+2025-09-20 03:34:23.750 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#94, type=chunk, format=pcm
+2025-09-20 03:34:23.999 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#95, type=chunk, format=pcm
+2025-09-20 03:34:24.127 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#14: '现在' (置信度: 0.850)
+2025-09-20 03:34:24.259 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#96, type=chunk, format=pcm
+2025-09-20 03:34:24.520 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#97, type=chunk, format=pcm
+2025-09-20 03:34:24.658 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#15: '是流速' (置信度: 0.850)
+2025-09-20 03:34:24.769 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#98, type=chunk, format=pcm
+2025-09-20 03:34:25.039 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#99, type=chunk, format=pcm
+2025-09-20 03:34:25.280 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#100, type=chunk, format=pcm
+2025-09-20 03:34:25.421 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#16: '识别吗' (置信度: 0.850)
+2025-09-20 03:34:25.539 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#101, type=chunk, format=pcm
+2025-09-20 03:34:25.801 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#102, type=chunk, format=pcm
+2025-09-20 03:34:26.049 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#103, type=chunk, format=pcm
+2025-09-20 03:34:26.309 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#104, type=chunk, format=pcm
+2025-09-20 03:34:26.624 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#105, type=chunk, format=pcm
+2025-09-20 03:34:26.820 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#106, type=chunk, format=pcm
+2025-09-20 03:34:27.079 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#107, type=chunk, format=pcm
+2025-09-20 03:34:27.330 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#108, type=chunk, format=pcm
+2025-09-20 03:34:27.590 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#109, type=chunk, format=pcm
+2025-09-20 03:34:27.839 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#110, type=chunk, format=pcm
+2025-09-20 03:34:28.099 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#111, type=chunk, format=pcm
+2025-09-20 03:34:28.361 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#112, type=chunk, format=pcm
+2025-09-20 03:34:28.610 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#113, type=chunk, format=pcm
+2025-09-20 03:34:28.869 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#114, type=chunk, format=pcm
+2025-09-20 03:34:29.119 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#115, type=chunk, format=pcm
+2025-09-20 03:34:29.289 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#116, type=ping, format=pcm
+2025-09-20 03:34:29.380 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#117, type=chunk, format=pcm
+2025-09-20 03:34:29.640 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#118, type=chunk, format=pcm
+2025-09-20 03:34:29.890 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#119, type=chunk, format=pcm
+2025-09-20 03:34:30.152 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#120, type=chunk, format=pcm
+2025-09-20 03:34:30.403 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#121, type=chunk, format=pcm
+2025-09-20 03:34:30.767 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#122, type=chunk, format=pcm
+2025-09-20 03:34:31.144 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#123, type=chunk, format=pcm
+2025-09-20 03:34:31.556 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#124, type=chunk, format=pcm
+2025-09-20 03:34:31.963 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#125, type=chunk, format=pcm
+2025-09-20 03:34:32.338 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#126, type=chunk, format=pcm
+2025-09-20 03:34:32.487 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#17: '' (置信度: 0.850)
+2025-09-20 03:34:32.741 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#127, type=chunk, format=pcm
+2025-09-20 03:34:33.126 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#128, type=chunk, format=pcm
+2025-09-20 03:34:33.512 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#129, type=chunk, format=pcm
+2025-09-20 03:34:33.661 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#18: '好像是' (置信度: 0.850)
+2025-09-20 03:34:33.917 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#130, type=chunk, format=pcm
+2025-09-20 03:34:34.305 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#131, type=chunk, format=pcm
+2025-09-20 03:34:34.575 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#19: '有这十' (置信度: 0.850)
+2025-09-20 03:34:34.660 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#132, type=chunk, format=pcm
+2025-09-20 03:34:34.910 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#133, type=chunk, format=pcm
+2025-09-20 03:34:35.171 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#134, type=chunk, format=pcm
+2025-09-20 03:34:35.431 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#135, type=chunk, format=pcm
+2025-09-20 03:34:35.691 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#136, type=chunk, format=pcm
+2025-09-20 03:34:35.875 | DEBUG    | ws | ws_recognize:296 | 会话4eba508d: 发送实时结果#20: '边' (置信度: 0.850)
+2025-09-20 03:34:35.951 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#137, type=chunk, format=pcm
+2025-09-20 03:34:36.204 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#138, type=chunk, format=pcm
+2025-09-20 03:34:36.462 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#139, type=chunk, format=pcm
+2025-09-20 03:34:36.713 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#140, type=chunk, format=pcm
+2025-09-20 03:34:36.976 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#141, type=chunk, format=pcm
+2025-09-20 03:34:37.046 | DEBUG    | ws | ws_recognize:108 | 会话4eba508d: 收到消息#142, type=end, format=pcm
+2025-09-20 03:34:37.046 | INFO     | ws | ws_recognize:131 | 会话4eba508d: 结束实时识别，处理最终结果
+2025-09-20 03:34:37.197 | INFO     | ws | ws_recognize:177 | 会话4eba508d: 发送最终句子#1: '边', segment_id=4eba508d-1
+2025-09-20 03:34:37.226 | INFO     | ws | ws_recognize:200 | 会话4eba508d: 结束统计 - 消息:142, 音频块:137, 实时:20, 最终:1
+2025-09-20 03:34:37.253 | INFO     | ws | ws_recognize:336 | 会话4eba508d: WebSocket连接关闭
+2025-09-20 03:34:38.386 | INFO     | ws | ws_recognize:22 | 会话开始: 286a3ce9
+2025-09-20 03:34:49.297 | DEBUG    | ws | ws_recognize:108 | 会话286a3ce9: 收到消息#1, type=ping, format=pcm
+2025-09-20 03:34:59.287 | DEBUG    | ws | ws_recognize:108 | 会话286a3ce9: 收到消息#2, type=ping, format=pcm
+2025-09-20 03:35:03.899 | ERROR    | ws | ws_recognize:319 | 会话286a3ce9: WebSocket错误详情:
+Traceback (most recent call last):
+  File "/mnt/d/WorkSpace/code/evoice-versions/base/e-voice/server/routes/ws.py", line 51, in ws_recognize
+    message = ws.receive()
+              ^^^^^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/site-packages/simple_websocket/ws.py", line 104, in receive
+    raise ConnectionClosed(self.close_reason, self.close_message)
+simple_websocket.errors.ConnectionClosed: Connection closed: 1005 
+
+2025-09-20 03:35:03.899 | ERROR    | ws | ws_recognize:328 | 会话286a3ce9: 无法发送错误消息，连接可能已断开
+2025-09-20 03:35:03.900 | INFO     | ws | ws_recognize:336 | 会话286a3ce9: WebSocket连接关闭

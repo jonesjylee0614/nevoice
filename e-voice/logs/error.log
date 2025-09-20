@@ -123,3 +123,55 @@ TypeError: Object of type float32 is not JSON serializable
 TypeError: Object of type float32 is not JSON serializable
 
 
+2025-09-20 03:34:37.222 | ERROR    | save_original_audio_files:1319 | 原始WAV生成失败: Object of type float32 is not JSON serializable
+
+2025-09-20 03:34:37.226 | ERROR    | save_original_audio_files:1321 | Traceback (most recent call last):
+  File "/mnt/d/WorkSpace/code/evoice-versions/base/e-voice/server/session.py", line 1304, in save_original_audio_files
+    json.dump(audio_stats, f, ensure_ascii=False, indent=2)
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/__init__.py", line 179, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 432, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 439, in _iterencode
+    o = _default(o)
+        ^^^^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type float32 is not JSON serializable
+
+
+2025-09-20 03:34:37.251 | ERROR    | save_original_audio_files:1319 | 原始WAV生成失败: Object of type float32 is not JSON serializable
+
+2025-09-20 03:34:37.252 | ERROR    | save_original_audio_files:1321 | Traceback (most recent call last):
+  File "/mnt/d/WorkSpace/code/evoice-versions/base/e-voice/server/session.py", line 1304, in save_original_audio_files
+    json.dump(audio_stats, f, ensure_ascii=False, indent=2)
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/__init__.py", line 179, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 432, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 439, in _iterencode
+    o = _default(o)
+        ^^^^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type float32 is not JSON serializable
+
+
+2025-09-20 03:35:03.899 | ERROR    | ws_recognize:319 | 会话286a3ce9: WebSocket错误详情:
+Traceback (most recent call last):
+  File "/mnt/d/WorkSpace/code/evoice-versions/base/e-voice/server/routes/ws.py", line 51, in ws_recognize
+    message = ws.receive()
+              ^^^^^^^^^^^^
+  File "/home/nlwu/miniconda3/envs/py312/lib/python3.12/site-packages/simple_websocket/ws.py", line 104, in receive
+    raise ConnectionClosed(self.close_reason, self.close_message)
+simple_websocket.errors.ConnectionClosed: Connection closed: 1005 
+
+
+2025-09-20 03:35:03.899 | ERROR    | ws_recognize:328 | 会话286a3ce9: 无法发送错误消息，连接可能已断开
+
