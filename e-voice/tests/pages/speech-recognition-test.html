@@ -664,43 +664,60 @@
                     // 清空之前的内容
                     partialTextElement.textContent = '正在监听...';
                     partialTextElement.style.color = '#007bff';
+                    finalTextDiv.textContent = '暂无';
                     break;
-                    
+
                 case 'partial':
                     // 实时识别结果 - 只显示当前正在说的话
-                    if (data.text && data.text.trim()) {
-                        partialTextElement.textContent = data.text;
+                    const state = data.text_state || {};
+                    const confirmed = (state.confirmed_text || '').trim();
+                    const candidate = (state.candidate_text || data.text || '').trim();
+                    const combined = (state.full_text || data.combined_text || '').trim();
+                    if (confirmed) {
+                        finalTextDiv.textContent = confirmed;
+                    }
+
+                    if (candidate) {
+                        partialTextElement.textContent = candidate;
                         partialTextElement.style.color = '#007bff';
                         partialTextElement.style.fontStyle = 'italic';
-                        
-                        addLog('partial', `实时: ${data.text} (置信度: ${(data.confidence * 100).toFixed(1)}%)`);
+                        const seg = state.segment_id || data.segment_id || 'N/A';
+                        const rev = state.revision || data.revision || 0;
+                        addLog('partial', `实时[seg=${seg}, rev=${rev}]: ${candidate} (置信度: ${(data.confidence * 100).toFixed(1)}%)`);
                     } else {
                         partialTextElement.textContent = '正在监听...';
                         partialTextElement.style.color = '#6c757d';
                     }
+
                     break;
-                    
+
                 case 'final':
                     // 最终确认的句子 - 添加到最终文本区域
                     if (data.text && data.text.trim()) {
-                        // 获取当前最终文本内容
-                        let currentFinalText = finalTextDiv.textContent;
-                        
-                        // 如果是第一次添加文本，清除"暂无"
-                        if (currentFinalText === '暂无' || currentFinalText === '') {
-                            finalTextDiv.textContent = data.text;
+                        const state = data.text_state || {};
+                        const confirmed = (state.confirmed_text || '').trim();
+                        if (confirmed) {
+                            finalTextDiv.textContent = confirmed;
                         } else {
-                            // 添加新句子，用空格分隔
-                            finalTextDiv.textContent = currentFinalText + ' ' + data.text;
+                            const currentFinalText = finalTextDiv.textContent;
+                            if (currentFinalText === '暂无' || currentFinalText === '') {
+                                finalTextDiv.textContent = data.text;
+                            } else {
+                                finalTextDiv.textContent = currentFinalText + ' ' + data.text;
+                            }
                         }
-                        
+
                         // 清空实时显示区域，准备下一句
                         partialTextElement.textContent = '正在监听...';
                         partialTextElement.style.color = '#007bff';
                         partialTextElement.style.fontStyle = 'normal';
-                        
-                        addLog('final', `确认: ${data.text}`);
-                        
+
+                        if (data.auto_correction_applied) {
+                            addLog('final', `确认(自动纠错): ${data.raw_text || data.text} -> ${data.text}`);
+                        } else {
+                            addLog('final', `确认: ${data.text}`);
+                        }
+
                         // 自动滚动到最新内容
                         finalTextDiv.scrollTop = finalTextDiv.scrollHeight;
                     }

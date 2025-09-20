@@ -54,13 +54,14 @@ const wsHost = import.meta.env.VITE_API_PY_WS_HOST || 'ws://localhost:8210';
 
 console.log( 'wsHost', wsHost);
 
-// IME 聚合：确认句子列表 + 当前partial
-const finalSentences: string[] = [];
-const partialText = ref('');
+// IME 聚合：确认文本 + 当前候选
+const committedText = ref('');
+const liveText = ref('');
 const runningText = computed(() => {
-  const confirmed = finalSentences.filter(Boolean).join(' ');
-  if (confirmed && partialText.value) return confirmed + ' ' + partialText.value;
-  return confirmed || partialText.value;
+  if (committedText.value && liveText.value) {
+    return `${committedText.value} ${liveText.value}`.trim();
+  }
+  return (committedText.value || liveText.value || '').trim();
 });
 
 const baseData = {
@@ -153,17 +154,36 @@ function conn() {
       errorMsg.value = data.message;
       return;
     }
+    if (data.type === 'started') {
+      committedText.value = '';
+      liveText.value = '';
+      resData.value.txt = '';
+      return;
+    }
     if (data.type === 'partial') {
       if (!recording.value) return;
-      if (data.text && data.text.trim()) partialText.value = data.text;
-      resData.value.txt = runningText.value;
+      const state = data.text_state || {};
+      const confirmed = (state.confirmed_text || '').trim();
+      const candidate = (state.candidate_text || data.text || '').trim();
+      if (confirmed) {
+        committedText.value = confirmed;
+      }
+      liveText.value = candidate;
+      resData.value.txt = (state.full_text || data.combined_text || runningText.value).trim();
     } else if (data.type === 'final') {
-      const idx = typeof data.index === 'number' && data.index >= 0 ? data.index : finalSentences.length;
-      if (data.text && data.text.trim()) finalSentences[idx] = data.text;
-      partialText.value = '';
+      const state = data.text_state || {};
+      const confirmed = (state.confirmed_text || data.text || '').trim();
+      if (confirmed) {
+        committedText.value = confirmed;
+      }
+      liveText.value = '';
       resData.value.txt = runningText.value;
+      if (data.auto_correction_applied) {
+        console.info('[auto-correction]', data.raw_text, '=>', data.text);
+      }
     } else if (data.type === 'session_end') {
       // 保持最终文本
+      liveText.value = '';
       resData.value.txt = runningText.value;
     }
   };
