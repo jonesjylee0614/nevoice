@@ -14,6 +14,7 @@ import numpy as np
 import soundfile as sf
 
 from speech_recognition.recognize import recognize
+from config.config import conf
 
 try:  # FunASR 流式识别
     from funasr import AutoModel  # type: ignore
@@ -123,26 +124,42 @@ class RealtimeSpeechSession:
         self._last_streaming_text_sent = ""
         self._streaming_latency_ms = 0
         self._streaming_audio_cache = np.array([], dtype=np.float32)
-        if AutoModel is not None:
+        model_conf = conf["model"] if conf and conf.has_section("model") else None
+        streaming_local_path = None
+        if model_conf:
             try:
-                self.streaming_model = AutoModel(
-                    model="paraformer-zh-streaming",
-                    disable_update=True,
-                )
-                self._streaming_backend = "funasr"
-                self._streaming_available = True
-                recognition_logger.info(
-                    "✅ [streaming] 成功初始化 FunASR 模型 paraformer-zh-streaming"
-                )
+                streaming_local_path = model_conf.get("streaming_model")
+            except Exception:
+                streaming_local_path = None
+
+        # 仅在配置了本地流式模型路径时才初始化，避免联网下载
+        if AutoModel is not None and streaming_local_path:
+            try:
+                if streaming_local_path and os.path.exists(streaming_local_path):
+                    self.streaming_model = AutoModel(
+                        model=streaming_local_path,
+                        disable_update=True,
+                    )
+                    self._streaming_backend = "funasr"
+                    self._streaming_available = True
+                    recognition_logger.info(
+                        f"✅ [streaming] 使用本地模型初始化成功: {streaming_local_path}"
+                    )
+                else:
+                    recognition_logger.warning(
+                        f"⚠️ [streaming] 未找到本地流式模型路径: {streaming_local_path}，跳过初始化"
+                    )
+                    self.streaming_model = None
             except Exception as exc:  # pragma: no cover - 依赖缺失/权重下载失败
                 recognition_logger.warning(
-                    f"⚠️ [streaming] FunASR 流式模型初始化失败，使用离线回退: {exc}"
+                    f"⚠️ [streaming] 流式模型初始化失败（本地路径），使用离线回退: {exc}"
                 )
                 self.streaming_model = None
-        else:  # pragma: no cover - FunASR 未安装
-            recognition_logger.warning(
-                "⚠️ [streaming] 未检测到 FunASR，使用离线回退"
-            )
+        else:  # 未配置或未安装 FunASR
+            if AutoModel is None:
+                recognition_logger.warning("⚠️ [streaming] 未检测到 FunASR，使用离线回退")
+            else:
+                recognition_logger.info("ℹ️ [streaming] 未配置本地流式模型路径，跳过流式初始化")
 
         # 🌐 基于网络标准的质量监控系统
         self.quality_stats = {

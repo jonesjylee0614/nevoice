@@ -1,4 +1,6 @@
 from funasr import AutoModel
+from config.config import conf
+import os
 
 # 分角色语音识别
 
@@ -13,11 +15,21 @@ from funasr import AutoModel
 #     # output_dir=output_dir,
 # )
 
+model_conf = conf['model']
+
+# 仅使用本地模型路径，避免任何联网下载
+asr_model_path = model_conf.get('speech_paraformer')
+spk_model_path = model_conf.get('speech_campplus')
+
+if not asr_model_path or not os.path.exists(asr_model_path):
+    raise RuntimeError(f"ASR 本地模型未配置或不存在: {asr_model_path}")
+if not spk_model_path or not os.path.exists(spk_model_path):
+    raise RuntimeError(f"说话人本地模型未配置或不存在: {spk_model_path}")
+
 spk_pipeline = AutoModel(
-    model="iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
-    vad_model="iic/speech_fsmn_vad_zh-cn-16k-common-pytorch",
-    punc_model="iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch",
-    spk_model="iic/speech_campplus_sv_zh-cn_16k-common",
+    model=asr_model_path,
+    # 不传独立的 VAD 与 PUNC 模型，使用 paraformer-vad-punc 集成模型能力
+    spk_model=spk_model_path,
     disable_update=True,
 )
 
