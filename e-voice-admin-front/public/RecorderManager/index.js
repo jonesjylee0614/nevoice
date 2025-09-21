@@ -3,7 +3,7 @@
 
   const btnControl = document.getElementById('btn_control');
 
-  const recorder = new RecorderManager('../../dist');
+  const recorder = new RecorderManager('../../src');
   recorder.onStart = () => {
     changeBtnStatus('OPEN');
   };
