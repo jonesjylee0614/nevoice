@@ -91,8 +91,16 @@ class RealtimeSpeechSession:
         self.audio_buffer = np.array([], dtype=np.float32)
         self.last_activity_time = time.time()  # 最后一次有语音活动的时间
         self.last_chunk_time = time.time()  # 最近一次处理音频块的时间
-        self.sentence_complete_threshold = 1.5  # 句子完成阈值1.5秒
+        self.sentence_complete_threshold = 1.2  # 句子完成阈值（自动断句速度）
         self.min_audio_duration = 0.1  # 最小音频长度：100ms (网络标准最小值)
+        self.activity_peak_threshold = 0.02  # 峰值触发语音活动阈值
+        self.activity_rms_threshold = 0.004  # RMS触发语音活动阈值
+        self.interim_punctuation_min_silence = 0.6  # 触发临时标点的最短静音
+        self._silence_accumulated = 0.0
+        self._pending_synthetic_partial: Optional[Dict[str, Any]] = None
+        self._pending_finalize_after_silence = False
+        self._last_punctuation_text = ""
+        self._last_punctuation_time = 0.0
 
         # 临时文件配置
         self.temp_file_counter = 0
@@ -193,6 +201,12 @@ class RealtimeSpeechSession:
     def reset(self):
         """重置会话状态"""
         self.audio_chunks.clear()
+
+        self._silence_accumulated = 0.0
+        self._pending_synthetic_partial = None
+        self._pending_finalize_after_silence = False
+        self._last_punctuation_text = ""
+        self._last_punctuation_time = 0.0
 
         if self._streaming_available and self.streaming_model is not None:
             try:
@@ -318,6 +332,15 @@ class RealtimeSpeechSession:
             return f"{confirmed} {live}"
         return confirmed or live
 
+    def _set_live_text(self, text: str) -> str:
+        """统一更新当前未确认文本状态。"""
+
+        normalized = (text or "").strip()
+        self._live_text = normalized
+        self.full_sentence = normalized
+        self.current_sentence = normalized
+        return normalized
+
     def _merge_streaming_text(self, new_text: str) -> str:
         """将新的流式文本合并到当前未确认缓冲。"""
 
@@ -350,10 +373,63 @@ class RealtimeSpeechSession:
                 else:
                     merged = base + normalized
 
-        self._live_text = merged
-        self.full_sentence = merged
-        self.current_sentence = merged
-        return merged
+        return self._set_live_text(merged)
+
+    def _maybe_apply_interim_punctuation(self, silence_duration: float) -> None:
+        """在长时间静音时，为当前候选文本添加临时标点并触发一次增量更新。"""
+
+        if silence_duration < self.interim_punctuation_min_silence:
+            return
+
+        if self._pending_synthetic_partial is not None:
+            return
+
+        candidate = (self.full_sentence or "").strip()
+        if not candidate:
+            return
+
+        if candidate.endswith(tuple("。！？!?……")):
+            return
+
+        normalized_current = (self._live_text or "").strip()
+        try:
+            punctuated = self.predict_punctuation(candidate, silence_duration)
+        except Exception:  # pragma: no cover - 预测异常时保持原状
+            return
+
+        punctuated_norm = normalize_text(punctuated)
+        if not punctuated_norm or punctuated_norm == normalized_current:
+            return
+
+        now = time.time()
+        if (
+            self._last_punctuation_text == punctuated_norm
+            and now - self._last_punctuation_time < 0.5
+        ):
+            return
+
+        self._set_live_text(punctuated_norm)
+        self.last_update_time = now
+        self._last_punctuation_text = punctuated_norm
+        self._last_punctuation_time = now
+
+        confidence = self.last_partial_confidence or 0.9
+        self._pending_synthetic_partial = {
+            "text": punctuated_norm,
+            "raw_text": punctuated,
+            "confidence": confidence,
+            "processing_time_ms": 0,
+            "source": "auto_punctuation",
+        }
+
+        if punctuated_norm.endswith(tuple("。！？!?")):
+            self._pending_finalize_after_silence = True
+
+        recognition_logger.debug(
+            "📝 自动标点预览: silence=%.2fs text='%s'",
+            silence_duration,
+            punctuated_norm,
+        )
 
     def _select_best_final_text(self, streaming_text: str, offline_text: str) -> Tuple[str, str]:
         """在流式结果与离线结果之间选择更完整的文本。"""
@@ -859,6 +935,33 @@ class RealtimeSpeechSession:
                 audio_array = np.clip(audio_array, -1.0, 1.0)
                 max_amplitude = np.max(np.abs(audio_array))
 
+            chunk_duration_seconds = (
+                len(audio_array) / float(self.sample_rate)
+                if self.sample_rate and len(audio_array) > 0
+                else 0.0
+            )
+
+            dynamic_rms_threshold = self.activity_rms_threshold
+            if self.quality_stats.get('valid_chunks'):
+                dynamic_rms_threshold = max(
+                    dynamic_rms_threshold,
+                    self.quality_stats.get('avg_rms', 0.0) * 0.5,
+                )
+
+            if (
+                max_amplitude >= self.activity_peak_threshold
+                or rms_amplitude >= dynamic_rms_threshold
+            ):
+                self.last_activity_time = time.time()
+                self._silence_accumulated = 0.0
+                self._pending_synthetic_partial = None
+                self._pending_finalize_after_silence = False
+                self._last_punctuation_text = ""
+            else:
+                if chunk_duration_seconds > 0:
+                    self._silence_accumulated += chunk_duration_seconds
+                self._maybe_apply_interim_punctuation(self._silence_accumulated)
+
             # 添加到缓冲区
             buffer_size_before = self.audio_buffer.size
             if len(self.audio_buffer) > 0:
@@ -947,11 +1050,21 @@ class RealtimeSpeechSession:
             # 2. 句间：在finalize_current_sentence()中彻底清空缓冲区，避免跨句子干扰
 
             # 🌐 基于网络标准的活动检测（轻声语音阈值）
-            audio_activity_threshold = 0.003  # 网络标准：轻声语音检测阈值
-            if max_amplitude > audio_activity_threshold:  # 音频阈值
-                self.last_activity_time = time.time()
-                activity_level = "高" if max_amplitude > 0.1 else "中" if max_amplitude > 0.03 else "低"
-                audio_logger.debug(f"🎵 音频活动[{activity_level}]: max_amp={max_amplitude:.6f} > {audio_activity_threshold}")
+            audio_activity_threshold = self.activity_peak_threshold
+            if (
+                max_amplitude > audio_activity_threshold
+                or rms_amplitude > dynamic_rms_threshold
+            ):
+                activity_level = (
+                    "高"
+                    if max_amplitude > 0.1
+                    else "中"
+                    if max_amplitude > 0.03
+                    else "低"
+                )
+                audio_logger.debug(
+                    f"🎵 音频活动[{activity_level}]: max_amp={max_amplitude:.6f}, rms={rms_amplitude:.6f}"
+                )
 
             # 详细的音频处理日志
             processing_time = (time.time() - chunk_start_time) * 1000
@@ -1005,6 +1118,58 @@ class RealtimeSpeechSession:
 
     def get_partial_result(self):
         """获取当前句子的实时识别结果，优先返回流式推理输出。"""
+
+        if self._pending_synthetic_partial:
+            payload = self._pending_synthetic_partial
+            self._pending_synthetic_partial = None
+
+            text = (payload.get("text") or "").strip()
+            if not text:
+                return None
+
+            text = self._set_live_text(text)
+            raw_text = payload.get("raw_text") or text
+            try:
+                confidence = float(payload.get("confidence", 0.9))
+            except (TypeError, ValueError):  # pragma: no cover - 容错
+                confidence = self.last_partial_confidence or 0.9
+
+            if confidence <= 0.0:
+                confidence = self.last_partial_confidence or 0.9
+
+            self.last_partial_confidence = confidence
+            self._last_streaming_text_sent = text
+            self.last_update_time = time.time()
+            self._pending_streaming_result = None
+
+            confirmed_text = normalize_text("".join(self.confirmed_sentences))
+            combined_text = self._combine_confirmed_and_live(confirmed_text, text)
+
+            self._segment_revision += 1
+            segment_id = self._format_segment_id()
+
+            recognition_logger.info(
+                f"[streaming] 自动标点 seg={segment_id} rev={self._segment_revision}: '{combined_text}'"
+            )
+
+            return {
+                'text': text,
+                'raw_text': raw_text,
+                'is_partial': True,
+                'confidence': confidence,
+                'processing_time_ms': int(payload.get("processing_time_ms") or 0),
+                'segment_id': segment_id,
+                'revision': self._segment_revision,
+                'combined_text': combined_text,
+                'text_state': {
+                    'confirmed_text': confirmed_text,
+                    'candidate_text': text,
+                    'full_text': combined_text,
+                    'segment_id': segment_id,
+                    'revision': self._segment_revision,
+                },
+                'source': payload.get("source", "auto_punctuation"),
+            }
 
         if self._streaming_available and self.streaming_model is not None:
             pending = self._pending_streaming_result
@@ -1283,22 +1448,34 @@ class RealtimeSpeechSession:
         智能端点检测 - 判断句子完整性
         🎯【修改】判断对象从 confirmed+candidate 改为 self.full_sentence
         """
-        if not self.full_sentence:
+        if not self.full_sentence or not self.full_sentence.strip():
             return False
 
         current_time = time.time()
-        silence_duration = current_time - self.last_activity_time
-        
+        silence_duration = max(
+            current_time - self.last_activity_time,
+            self._silence_accumulated,
+        )
+
         # 语义完整性分析
         # 注意: _analyze_semantic_completeness 方法内部应使用 self.full_sentence
         semantic_analysis = self._analyze_semantic_completeness(self.full_sentence)
 
         # 智能端点判断逻辑
-        if semantic_analysis['is_complete'] and silence_duration > 1.0:
+        if (
+            self._pending_finalize_after_silence
+            and silence_duration >= self.interim_punctuation_min_silence
+        ):
             return True
-        if silence_duration > self.sentence_complete_threshold:
+
+        if (
+            semantic_analysis['is_complete']
+            and silence_duration >= max(0.8, self.interim_punctuation_min_silence)
+        ):
             return True
-            
+        if silence_duration >= self.sentence_complete_threshold:
+            return True
+
         return False
 
     def finalize_current_sentence(self):
@@ -1334,9 +1511,13 @@ class RealtimeSpeechSession:
         selected_text, source = self._select_best_final_text(streaming_text, offline_text)
 
         if not selected_text.strip():
+            self._pending_finalize_after_silence = False
             return ""
 
-        silence_duration = time.time() - self.last_activity_time
+        silence_duration = max(
+            time.time() - self.last_activity_time,
+            self._silence_accumulated,
+        )
         punctuated_text = self.predict_punctuation(selected_text, silence_duration)
         punctuated_text = normalize_text(punctuated_text)
 
@@ -1345,6 +1526,7 @@ class RealtimeSpeechSession:
         final_text = (corrected_text or punctuated_text).strip()
 
         if not final_text:
+            self._pending_finalize_after_silence = False
             return ""
 
         self.confirmed_sentences.append(final_text)
@@ -1362,6 +1544,12 @@ class RealtimeSpeechSession:
         self._live_text = ""
         self._segment_revision = 0
         self._last_streaming_text_sent = ""
+        self.last_activity_time = time.time()
+        self._silence_accumulated = 0.0
+        self._pending_synthetic_partial = None
+        self._pending_finalize_after_silence = False
+        self._last_punctuation_text = ""
+        self._last_punctuation_time = time.time()
         try:
             self.audio_buffer = np.array([], dtype=np.float32)
         except Exception:  # pragma: no cover - 防御
