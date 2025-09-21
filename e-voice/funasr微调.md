@@ -187,7 +187,7 @@ print(res)
     # ===============================================================
 ```
 
-## 手动训练脚本
+## 手动训练脚本(离线模型)
 
 ```sh
 
@@ -195,7 +195,7 @@ cd /home/zrway/evoice/pkgs/FunASR/examples/industrial_data_pretraining/paraforme
 
 
 nohup sh finetune.sh \
-	--conda_path /home/leozy/miniconda3/bin \
+	--conda_path /home/zrway/miniconda3/bin \
 	--conda_env funasr \
     --cuda_devices 0,1,2,3 \
 	--train_data /home/zrway/evoice/pkgs/voices/tts-voice/output/train.jsonl \
@@ -208,3 +208,25 @@ tail -f /home/zrway/evoice/audio/outputs/leo/finetune.log
 
 
 ```
+
+## 手动训练脚本(流式模型)
+
+```sh
+
+cd /home/zrway/evoice/pkgs/FunASR/examples/industrial_data_pretraining/paraformer_streaming
+
+nohup sh finetune.sh \
+	--model /home/zrway/.cache/model/speech_stream \
+	--conda_path /home/zrway/miniconda3/bin \
+	--conda_env funasr \
+    --cuda_devices 0,1,2,3 \
+	--train_data /home/zrway/evoice/pkgs/voices/tts-voice/output/train.jsonl \
+	--val_data /home/zrway/evoice/pkgs/voices/tts-voice/output/val.jsonl \
+	--output_dir /home/zrway/evoice/audio/outputs/leo-stream \
+> /home/zrway/evoice/audio/outputs/leo-stream/finetune.log 2>&1 &
+
+tail -f /home/zrway/evoice/audio/outputs/leo-stream/finetune.log
+
+```
+
+
