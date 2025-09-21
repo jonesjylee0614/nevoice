@@ -21,7 +21,7 @@
             </AButton>
             <AButton @click="reset">重置</AButton>
             <icon-exclamation-circle size="20" style="color: red" />
-            <span>语料长度最好不要超过20个字，否则会训练出错</span>
+            <span style="width: 300px">语料长度最好不要超过20个字，否则会训练出错</span>
           </ASpace>
         </ACol>
         <ACol :span="8" style="text-align: right">
