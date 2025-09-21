@@ -100,19 +100,41 @@
                 实时内容
               </div>
               <div class="partial-text">
-                {{ runningText || (isRealtimeRecording ? '正在监听语音...' : '等待开始识别') }}
+                <template v-if="hasPartialText">
+                  <span v-if="partialConfirmedText" class="partial-confirmed">{{ partialConfirmedText }}</span>
+                  <span v-if="partialCandidateText" class="partial-candidate">{{ partialCandidateText }}</span>
+                </template>
+                <template v-else>
+                  {{ isRealtimeRecording ? '正在监听语音...' : '等待开始识别' }}
+                </template>
+              </div>
+              <div class="partial-meta" v-if="hasPartialText || partialConfidence !== null">
+                <span v-if="partialSegmentId">段落 {{ partialSegmentId }}</span>
+                <span v-if="partialRevision !== null">修订 #{{ partialRevision }}</span>
+                <span v-if="partialConfidence !== null">置信度 {{ Math.round(partialConfidence * 100) }}%</span>
               </div>
             </div>
-            
+
             <ADivider />
-            
+
             <div class="final-result">
               <div class="result-label">
                 <icon-check-circle />
                 确认文本
               </div>
               <div class="final-text">
-                {{ finalText || '暂无识别结果' }}
+                <template v-if="finalDisplaySentences.length">
+                  <p
+                    v-for="(sentence, index) in finalDisplaySentences"
+                    :key="`${sentence}-${index}`"
+                    class="final-sentence"
+                  >
+                    {{ sentence }}
+                  </p>
+                </template>
+                <template v-else>
+                  暂无识别结果
+                </template>
               </div>
             </div>
           </div>
@@ -230,28 +252,15 @@ let lastPongTs = 0;
 const wsConnected = ref(false);
 const wsConnecting = ref(false);
 const isRealtimeRecording = ref(false);
-const partialText = ref('');
-const finalText = ref('');
-const finalSentences: string[] = [];
-// 预确认锁定片段（提升稳定性）
-const lockedSegments: string[] = [];
-// 稳定性锁定参数
-const ENABLE_STABILITY_LOCK = true;
-const LOCK_MIN_LEN = 4; // 最小锁定长度（字符）
-const LOCK_STABLE_MS = 1500; // 稳定时长（毫秒）
-let lastPartialRaw = '';
-let candidatePrefix = '';
-let candidateSince = 0;
-// 运行中文本：确认句子 + 当前partial
-const runningText = computed(() => {
-  const confirmedParts: string[] = [];
-  if (lockedSegments.length > 0) confirmedParts.push(...lockedSegments);
-  const finals = finalSentences.filter(Boolean);
-  if (finals.length > 0) confirmedParts.push(...finals);
-  const confirmed = confirmedParts.join(' ');
-  if (confirmed && partialText.value) return confirmed + ' ' + partialText.value;
-  return confirmed || partialText.value;
-});
+const finalSentences = ref<string[]>([]);
+const finalDisplaySentences = computed(() => finalSentences.value.filter(Boolean));
+const partialConfirmedText = ref('');
+const partialCandidateText = ref('');
+const partialCombinedText = computed(() => `${partialConfirmedText.value}${partialCandidateText.value}`);
+const hasPartialText = computed(() => Boolean(partialConfirmedText.value || partialCandidateText.value));
+const partialConfidence = ref<number | null>(null);
+const partialRevision = ref<number | null>(null);
+const partialSegmentId = ref('');
 const showLogs = ref(true);
 const logs = ref('');
 const displayTime = ref('00:00');
@@ -321,17 +330,23 @@ function postProcessText(input: string): string {
   t = t.replace(/\bipo\b/gi, 'IPO');
   // 兼容带标点的 IPO.
   t = t.replace(/\bipo(?=[\u4e00-\u9fa5\w]?\.|\s|$)/gi, 'IPO');
-  // 可按需扩展：同音词纠正、专有名词
-  // 例：将“语数科技”“宇数科技”更正为“宇树科技”（仅示例，如不需要可移除）
-  t = t.replace(/(语数科技|宇数科技)/g, '宇树科技');
   return t;
 }
 
-function longestCommonPrefix(a: string, b: string): string {
-  const len = Math.min(a.length, b.length);
-  let i = 0;
-  while (i < len && a.charCodeAt(i) === b.charCodeAt(i)) i++;
-  return a.slice(0, i);
+function syncConfirmedSentencesFromState(confirmed: string) {
+  const normalized = confirmed.replace(/\s+/g, ' ').trim();
+  if (!normalized) return;
+
+  const segments = normalized
+    .split(/(?<=[。！？!?…])/u)
+    .map(seg => seg.trim())
+    .filter(Boolean);
+
+  if (segments.length > 0) {
+    finalSentences.value = segments;
+  } else {
+    finalSentences.value = [normalized];
+  }
 }
 
 async function refreshServerLogs() {
@@ -433,54 +448,97 @@ function handleWSMessage(data: any) {
       break;
     case 'partial':
       if (!isRealtimeRecording.value) break;
-      if (data.text && data.text.trim()) {
-        let newText = postProcessText(data.text.trim());
+      {
+        const textState = data?.text_state ?? {};
+        const rawConfirmed = typeof textState.confirmed_text === 'string' ? textState.confirmed_text : '';
+        const rawCandidate = typeof textState.candidate_text === 'string'
+          ? textState.candidate_text
+          : (typeof data.text === 'string' ? data.text : '');
+        const rawCombined = typeof data.combined_text === 'string'
+          ? data.combined_text
+          : typeof textState.full_text === 'string'
+            ? textState.full_text
+            : '';
 
-        if (ENABLE_STABILITY_LOCK) {
-          // 基于前后两次partial计算稳定前缀，并在稳定一段时间后锁定
-          const prefix = longestCommonPrefix(lastPartialRaw, newText);
-          if (prefix && prefix.length >= LOCK_MIN_LEN) {
-            if (prefix === candidatePrefix) {
-              if (Date.now() - candidateSince >= LOCK_STABLE_MS) {
-                // 锁定该前缀
-                lockedSegments.push(prefix);
-                // 从当前partial中移除已锁定部分
-                newText = newText.slice(prefix.length);
-                // 重置候选
-                candidatePrefix = '';
-                candidateSince = 0;
-                lastPartialRaw = newText;
-              }
-            } else {
-              candidatePrefix = prefix;
-              candidateSince = Date.now();
-            }
-          } else {
-            // 前缀不稳定，重置候选
-            candidatePrefix = '';
-            candidateSince = 0;
-          }
+        const confirmedProcessed = rawConfirmed ? postProcessText(rawConfirmed) : '';
+        if (confirmedProcessed) {
+          syncConfirmedSentencesFromState(confirmedProcessed);
+        }
+        partialConfirmedText.value = confirmedProcessed;
+
+        let candidateProcessed = rawCandidate ? postProcessText(rawCandidate) : '';
+        partialCandidateText.value = candidateProcessed;
+
+        let combinedProcessed = rawCombined ? postProcessText(rawCombined) : '';
+        if (!combinedProcessed) {
+          combinedProcessed = `${partialConfirmedText.value}${partialCandidateText.value}`;
+        } else if (!candidateProcessed && partialConfirmedText.value && combinedProcessed.startsWith(partialConfirmedText.value)) {
+          partialCandidateText.value = combinedProcessed.slice(partialConfirmedText.value.length);
+        } else if (!candidateProcessed && !partialConfirmedText.value && combinedProcessed) {
+          partialCandidateText.value = combinedProcessed;
         }
 
-        partialText.value = newText;
-        lastPartialRaw = newText;
-        addLog('partial', `实时: ${runningText.value}`);
+        let confValue: number | null = null;
+        if (typeof data.confidence === 'number') {
+          confValue = data.confidence;
+        } else if (typeof data.confidence === 'string') {
+          const parsed = Number.parseFloat(data.confidence);
+          confValue = Number.isNaN(parsed) ? null : parsed;
+        } else if (typeof textState.confidence === 'number') {
+          confValue = textState.confidence;
+        }
+        if (confValue !== null) {
+          confValue = Math.min(Math.max(confValue, 0), 1);
+        }
+        partialConfidence.value = confValue;
+
+        if (typeof data.revision === 'number') {
+          partialRevision.value = data.revision;
+        } else if (typeof textState.revision === 'number') {
+          partialRevision.value = textState.revision;
+        } else {
+          partialRevision.value = null;
+        }
+
+        if (typeof data.segment_id === 'string') {
+          partialSegmentId.value = data.segment_id;
+        } else if (typeof textState.segment_id === 'string') {
+          partialSegmentId.value = textState.segment_id;
+        } else {
+          partialSegmentId.value = '';
+        }
+
+        const metaParts: string[] = [];
+        if (partialSegmentId.value) metaParts.push(`seg ${partialSegmentId.value}`);
+        if (partialRevision.value !== null) metaParts.push(`rev ${partialRevision.value}`);
+        if (partialConfidence.value !== null) {
+          metaParts.push(`conf ${Math.round(partialConfidence.value * 100)}%`);
+        }
+
+        const logCombined = combinedProcessed || partialCombinedText.value || '[空]';
+        const metaLabel = metaParts.length ? ` (${metaParts.join(', ')})` : '';
+        addLog('partial', `实时${metaLabel}: ${logCombined}`);
       }
       break;
     case 'final':
       if (data.text && data.text.trim()) {
         const finalProcessed = postProcessText(data.text.trim());
-        const idx = typeof data.index === 'number' && data.index >= 0 ? data.index : finalSentences.length;
-        finalSentences[idx] = finalProcessed;
-        finalText.value = finalSentences.filter(Boolean).join(' ');
-        // 清空当前partial，等待下一句
-        partialText.value = '';
-        // 最终确认后，清空预锁定片段，准备下一句
-        lockedSegments.length = 0;
-        lastPartialRaw = '';
-        candidatePrefix = '';
-        candidateSince = 0;
-        addLog('final', `确认(#${idx}): ${finalProcessed}`);
+        const idx = typeof data.index === 'number' && data.index >= 0 ? data.index : finalSentences.value.length;
+        if (finalSentences.value.length <= idx) {
+          finalSentences.value.length = idx + 1;
+        }
+        finalSentences.value[idx] = finalProcessed;
+        partialConfirmedText.value = '';
+        partialCandidateText.value = '';
+        partialConfidence.value = null;
+        partialRevision.value = null;
+        partialSegmentId.value = '';
+
+        const metaParts: string[] = [];
+        if (typeof data.segment_id === 'string' && data.segment_id) metaParts.push(`seg ${data.segment_id}`);
+        if (typeof data.selected_source === 'string' && data.selected_source) metaParts.push(data.selected_source);
+        const metaLabel = metaParts.length ? ` (${metaParts.join(' | ')})` : '';
+        addLog('final', `确认(#${idx})${metaLabel}: ${finalProcessed}`);
       }
       break;
     case 'session_end':
@@ -624,7 +682,11 @@ async function startRealtime() {
       const ss = String(sec % 60).padStart(2, '0');
       displayTime.value = `${mm}:${ss}`;
     }, 1000) as unknown as number;
-    partialText.value = '正在监听...';
+    partialConfirmedText.value = '';
+    partialCandidateText.value = '';
+    partialConfidence.value = null;
+    partialRevision.value = null;
+    partialSegmentId.value = '';
     addLog('success', '开始实时识别');
   } catch (e: any) {
     addLog('error', `启动失败: ${e?.message || e}`);
@@ -666,9 +728,12 @@ function cleanupAudio() {
 }
 
 function clearResults() {
-  partialText.value = '';
-  finalText.value = '';
-  finalSentences.length = 0;
+  partialConfirmedText.value = '';
+  partialCandidateText.value = '';
+  partialConfidence.value = null;
+  partialRevision.value = null;
+  partialSegmentId.value = '';
+  finalSentences.value = [];
   addLog('info', '已清空结果');
 }
 
@@ -910,14 +975,36 @@ onBeforeUnmount(() => {
 
 .partial-text {
   font-size: 16px;
-  color: rgb(var(--blue-6));
-  font-style: italic;
   min-height: 24px;
   line-height: 1.6;
   background: var(--color-fill-2);
   padding: 12px 16px;
   border-radius: 8px;
   border-left: 4px solid rgb(var(--blue-6));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.partial-confirmed {
+  color: var(--color-text-1);
+  font-weight: 500;
+}
+
+.partial-candidate {
+  color: rgb(var(--blue-6));
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.partial-meta {
+  margin-top: 8px;
+  color: #86909c;
+  font-size: 12px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .final-text {
@@ -931,6 +1018,14 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border);
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.final-sentence {
+  margin: 0 0 8px;
+}
+
+.final-sentence:last-child {
+  margin-bottom: 0;
 }
 
 .logs-section {
