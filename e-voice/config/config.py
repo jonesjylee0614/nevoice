@@ -1,6 +1,8 @@
 import os
 import sys
 from configparser import ConfigParser
+from pathlib import Path
+
 
 # 解析环境名优先级：
 # 1) 命令行 -e/--env 传参（例如: python rest.py -e wnl）
@@ -40,4 +42,5 @@ def _resolve_env_name() -> str:
 env = _resolve_env_name()
 
 conf = ConfigParser()
-conf.read(f'./config/{env}.ini')
+BASE_DIR = Path(__file__).resolve().parent
+conf.read(f'{BASE_DIR}/{env}.ini')

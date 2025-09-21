@@ -178,7 +178,7 @@ print(res)
     # 优先检查本地缓存中是否已存在模型文件（通常数量大于1）
     if len(cache.cached_files) > 1:
         # 如果有，打印一条提示信息（可选），然后直接返回本地路径，中断后续所有操作。
-        print("Found local model cache, using it directly. To re-download, delete the model folder.")
+        print(f"Found local model cache, using it directly. To re-download, delete the model folder：{cache.get_root_location()}")
         return cache.get_root_location()
     else:
         # 如果本地没有缓存，为防止上游错误地传入 local_files_only=True 导致下载失败，
@@ -200,10 +200,11 @@ nohup sh finetune.sh \
     --cuda_devices 0,1,2,3 \
 	--train_data /home/zrway/evoice/pkgs/voices/tts-voice/output/train.jsonl \
 	--val_data /home/zrway/evoice/pkgs/voices/tts-voice/output/val.jsonl \
-	--output_dir /mnt/ramdisk/evoice/finetune-out \
-> /mnt/ramdisk/evoice/finetune-out/finetune.log 2>&1 &
+	--output_dir /home/zrway/evoice/audio/outputs/leo \
+> /home/zrway/evoice/audio/outputs/leo/finetune.log 2>&1 &
 
-tail -f /mnt/ramdisk/evoice/finetune-out/finetune.log
+tail -f /home/zrway/evoice/audio/outputs/leo/finetune.log
+
 
 
 ```

@@ -3,27 +3,39 @@ import time
 
 import torch
 from loguru import logger
-from modelscope import pipeline, Tasks
+from modelscope import pipeline, Tasks, snapshot_download
 
 from config.config import conf
 
 # 创建专用的语音识别日志
 recognition_logger = logger.bind(component="speech_recognition")
 
-model_conf = conf['model']
+cache_dir = conf.get('model', 'cache_dir', fallback='')
 
-# 🔧 临时修复：使用最简单的配置
-try:
-    speech_paraformer_large_pipeline = pipeline(
-        task=Tasks.auto_speech_recognition,
-        model=model_conf['speech_paraformer'],
-        disable_update=True,
-        local_files_only=True
-    )
-    recognition_logger.success("✅ 使用最简单的ModelScope配置")
-except Exception as e:
-    recognition_logger.error(f"❌ ModelScope初始化失败: {e}")
-    speech_paraformer_large_pipeline = None
+model_dir = snapshot_download(
+    model_id='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
+    local_dir=f'{cache_dir}/speech_train'
+)
+
+
+def reinst_test_model():
+    try:
+        global speech_paraformer_large_pipeline
+        speech_paraformer_large_pipeline = pipeline(
+            task=Tasks.auto_speech_recognition,
+            model=model_dir,
+            disable_update=True,
+            local_files_only=True
+        )
+        recognition_logger.success("✅ 使用最简单的ModelScope配置")
+    except Exception as e:
+        recognition_logger.error(f"❌ ModelScope初始化失败: {e}")
+        speech_paraformer_large_pipeline = None
+
+    return speech_paraformer_large_pipeline
+
+
+speech_paraformer_large_pipeline = reinst_test_model()
 
 
 def recognize(audio):
@@ -136,3 +148,7 @@ def empty_cache():
         torch.cuda.empty_cache()
     except:
         pass
+
+
+if __name__ == '__main__':
+    print(recognize('../resource/audio_data/0/014.wav'))

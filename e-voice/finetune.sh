@@ -126,9 +126,9 @@ conda activate ${conda_env} && torchrun \
 ++optim_conf.lr=0.0002 \
 ++output_dir="${output_dir}"
 
-# 训练完成后 删除临时文件，保留最终结果
-mv ${output_dir}/model.pt.best ${output_dir}/best_model.pt
+# 训练完成后 删除临时文件，保留最优结果
+mv ${output_dir}/model.pt.avg${max_epoch} ${output_dir}/avg_model.pt
 rm -rf ${output_dir}/model.*
-mv ${output_dir}/best_model.pt ${output_dir}/model.pt
+mv ${output_dir}/avg_model.pt ${output_dir}/model.pt
 
 echo "Finished training! see ${output_dir}/model.pt"

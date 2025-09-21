@@ -81,3 +81,16 @@ voice:
   # 用户声纹存放路径 后面拼接用户id/声纹文件名即可访问
   print-path: /home/zrway/evoice/audio/voice/print
   meeting-path: /home/zrway/evoice/audio/meeting/offline
+  # funasr 项目根目录，用于执行FunASR/examples/industrial_data_pretraining/paraformer/finetune.sh脚本
+  fun-asr-path: /home/zrway/evoice/pkgs/FunASR
+  # funasr conda环境名称
+  fun-asr-conda-env-name: funasr
+  conda-path: /home/zrway/miniconda3/bin
+  # cuda id, 多个id用英文逗号隔开
+  cuda-devices: 2,3
+  # 指定模型输出文件夹
+  fun-asr-output-dir: /home/zrway/evoice/audio/outputs
+  # 测试模型路径
+  model_test: /home/zrway/.cache/model/speech_test
+  # 训练完成模型路径
+  model_train: /home/zrway/.cache/model/speech_train

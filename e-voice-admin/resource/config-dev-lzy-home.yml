@@ -79,5 +79,18 @@ api:
     password:
 voice:
      # 用户声纹存放路径 后面拼接用户id/声纹文件名即可访问
-     print-path: /home/leozy/Desktop/developer/git/python/evoice/e-voice/data/voice/print
-     meeting-path: /home/leozy/Desktop/developer/git/python/evoice/e-voice/data/meeting/offline
+     print-path: /home/leozy/Desktop/developer/git/python/evoice/data/print
+     meeting-path: /home/leozy/Desktop/developer/git/python/evoice/data/meeting/offline
+     # funasr 项目根目录，用于执行FunASR/examples/industrial_data_pretraining/paraformer/finetune.sh脚本
+     fun-asr-path: /home/leozy/Desktop/developer/git/third/FunASR
+     # funasr conda环境名称
+     fun-asr-conda-env-name: FunASR
+     conda-path: /home/leozy/miniconda3/bin
+     # cuda id, 多个id用英文逗号隔开
+     cuda-devices: 0
+     # 指定模型输出文件夹
+     fun-asr-output-dir: /home/leozy/Desktop/developer/git/python/evoice/finetune-out
+     # 测试模型路径
+     model_test: /home/leozy/.cache/model/speech_test
+     # 训练完成模型路径
+     model_train: /home/leozy/.cache/model/speech_train

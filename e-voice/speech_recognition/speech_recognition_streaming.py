@@ -1,6 +1,8 @@
 import numpy as np
 import pyaudio
-from funasr import AutoModel
+from modelscope import pipeline, Tasks, snapshot_download
+
+from config.config import conf
 
 # 实时根据麦克风识别语音转文字
 
@@ -8,7 +10,18 @@ from funasr import AutoModel
 chunk_size = [0, 10, 5]  # [0, 10, 5] 600ms, [0, 8, 4] 480ms
 encoder_chunk_look_back = 4  # number of chunks to lookback for encoder self-attention
 decoder_chunk_look_back = 1  # number of encoder chunks to lookback for decoder cross-attention
-model = AutoModel(model="paraformer-zh-streaming", disable_update=True)
+
+cache_dir = conf.get('model', 'cache_dir', fallback='')
+
+model_dir = snapshot_download(
+    model_id='iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online',
+    local_dir=f'{cache_dir}/speech_stream'
+)
+
+model = pipeline(
+    task=Tasks.auto_speech_recognition,
+    model=model_dir,
+    disable_update=True)
 
 # 设置音频参数
 CHUNK = 960 * 10  # 与模型的 chunk_size 对应
@@ -37,7 +50,7 @@ try:
         audio_array = np.frombuffer(audio_data, dtype=np.float32)
 
         # 进行语音识别
-        res = model.generate(
+        res = model(
             input=audio_array,
             cache=cache,
             is_final=False,

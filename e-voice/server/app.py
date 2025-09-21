@@ -12,13 +12,13 @@ from flask_socketio import SocketIO
 from config.config import conf
 from rest_meeting import meeting_app
 from rest_prints import print_app
-
 from .audio_utils import init_audio_utils
 from .logging import configure_logging
 from .routes.basic import create_basic_blueprint
 from .routes.debug import create_debug_blueprint
 from .routes.hotwords import create_hotword_blueprint
 from .routes.logs import create_logs_blueprint
+from .routes.model import create_model_blueprint
 from .routes.socketio_events import register_socketio_events
 from .routes.status import create_status_blueprint
 from .routes.voice import create_voice_blueprint
@@ -47,6 +47,7 @@ def create_app() -> Tuple[Flask, SocketIO, Sock]:
     app.register_blueprint(create_logs_blueprint())
     app.register_blueprint(create_hotword_blueprint())
     app.register_blueprint(create_status_blueprint())
+    app.register_blueprint(create_model_blueprint())
 
     register_socketio_events(socketio)
     register_ws_routes(sock)

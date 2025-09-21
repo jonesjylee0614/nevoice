@@ -1,39 +1,49 @@
 from funasr import AutoModel
+from modelscope import snapshot_download
+
 from config.config import conf
-import os
 
-# 分角色语音识别
+cache_dir = conf.get('model', 'cache_dir', fallback='')
 
-# output_dir = "../results"
-# spk_pipeline = pipeline(
-#     task=Tasks.auto_speech_recognition,
-#     model='/home/leozy/.cache/modelscope/hub/iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch', model_revision='v2.0.4',
-#     vad_model='iic/speech_fsmn_vad_zh-cn-16k-common-pytorch', vad_model_revision="v2.0.4",
-#     punc_model='iic/punc_ct-transformer_cn-en-common-vocab471067-large', punc_model_revision="v2.0.4",
-#     disable_update=True,
-#     spk_model="iic/speech_campplus_sv_zh-cn_16k-common", spk_model_version="v2.0.2"
-#     # output_dir=output_dir,
-# )
-
-model_conf = conf['model']
-
-# 仅使用本地模型路径，避免任何联网下载
-asr_model_path = model_conf.get('speech_paraformer')
-spk_model_path = model_conf.get('speech_campplus')
-
-if not asr_model_path or not os.path.exists(asr_model_path):
-    raise RuntimeError(f"ASR 本地模型未配置或不存在: {asr_model_path}")
-if not spk_model_path or not os.path.exists(spk_model_path):
-    raise RuntimeError(f"说话人本地模型未配置或不存在: {spk_model_path}")
-
-spk_pipeline = AutoModel(
-    model=asr_model_path,
-    # 不传独立的 VAD 与 PUNC 模型，使用 paraformer-vad-punc 集成模型能力
-    spk_model=spk_model_path,
-    disable_update=True,
+model_dir = snapshot_download(
+    model_id='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
+    local_dir=f'{cache_dir}/speech_train'
 )
 
 
-if __name__ == "__main__":
-    rec_result = spk_pipeline.generate("../resource/asr_speaker_demo.wav")
-    print(rec_result)
+def load_spk_model():
+    """加载或重新加载spk_pipeline模型"""
+    global spk_pipeline
+    spk_pipeline = AutoModel(
+        model=model_dir,
+        vad_model="iic/speech_fsmn_vad_zh-cn-16k-common-pytorch",
+        punc_model="iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch",
+        spk_model="iic/speech_campplus_sv_zh-cn_16k-common",
+        disable_update=True,
+    )
+    return spk_pipeline
+
+
+def reload_spk_pipeline():
+    """重新加载spk_pipeline模型实例"""
+    global spk_pipeline
+    import gc
+    import torch
+
+    # 删除旧实例
+    if spk_pipeline is not None:
+        del spk_pipeline
+
+    # 清理内存
+    torch.cuda.empty_cache()
+    gc.collect()
+
+    # 重新加载
+    return load_spk_model()
+
+
+# 初始加载
+spk_pipeline = load_spk_model()
+
+if __name__ == '__main__':
+    print(spk_pipeline.generate("../resource/1分20.wav"))
