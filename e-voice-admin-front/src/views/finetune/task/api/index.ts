@@ -1,11 +1,13 @@
 import { defHttp } from '@/utils/http';
-const Api = {
+export const Api = {
   getList: '/finetune/task/get_list',
   getCate: '/finetune/task/get_cate',
   save: '/finetune/task/save',
   start: '/finetune/task/start',
   del: '/finetune/task/del',
-  log: '/finetune/task/log'
+  log: '/finetune/task/log',
+  testModel: '/finetune/task/testModel',
+  adoptModel: '/finetune/task/adoptModel'
 };
 
 // 列表数据
@@ -31,6 +33,16 @@ export function del(params: object) {
 // 删除数据
 export function fetchLog(params: object) {
   return defHttp.post({ url: Api.log, params }, { errorMessageMode: 'message' });
+}
+// 测试模型
+export function testModel(params: object) {
+  return defHttp.post(
+    { url: Api.testModel, params, headers: { 'Content-Type': 'multipart/form-data' } },
+    { errorMessageMode: 'message' }
+  );
+}
+export function adoptModel(params: object) {
+  return defHttp.post({ url: Api.adoptModel, params }, { errorMessageMode: 'message' });
 }
 /** 数据类型 */
 export interface DataItem {

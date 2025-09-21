@@ -92,8 +92,6 @@ def create_model_blueprint() -> Blueprint:
         finally:
             os.remove(save_path)
 
-        return "success"
-
     @bp.route("/model/adopt_model", methods=["POST"])
     def adopt_model():
         # go后端调用 把训练好的模型文件放到speech_train下
@@ -101,6 +99,6 @@ def create_model_blueprint() -> Blueprint:
         # 重新实例化训练模型，以支持正式使用
         reload_spk_pipeline()
 
-        return "success"
+        return {'data': 'success'}
 
     return bp

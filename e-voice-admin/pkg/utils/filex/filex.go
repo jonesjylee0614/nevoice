@@ -3,6 +3,7 @@ package filex
 import (
 	"fmt"
 	"gofly/pkg/utils/stringx"
+	"io"
 	"os"
 )
 
@@ -65,4 +66,34 @@ func DelFile(fileList ...string) {
 	for _, val := range fileList {
 		_ = os.Remove(val)
 	}
+}
+
+func CopyFile(src, dest string) error {
+	// 打开源文件
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	// 创建目标文件（如果存在则覆盖）
+	destFile, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	// 复制文件内容
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	// 确保数据写入磁盘
+	err = destFile.Sync()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

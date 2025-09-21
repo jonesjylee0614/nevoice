@@ -1,14 +1,20 @@
 package finetune
 
 import (
+	"gofly/internal/config"
 	"gofly/internal/domain/dto"
 	"gofly/internal/domain/service"
 	"gofly/internal/model/base"
 	"gofly/internal/model/biz"
 	"gofly/pkg/utils/assert"
+	"gofly/pkg/utils/collx"
+	"gofly/pkg/utils/filex"
 	"gofly/pkg/utils/gf"
+	"gofly/pkg/utils/httpclient"
 	"gofly/pkg/utils/results"
+	"path"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +27,10 @@ type Task struct {
 func init() {
 	gf.RegisterRoute(&Task{})
 }
+
+var (
+	pyVoiceServer = "py_voice"
+)
 
 // 获取列表 /finetune/task/get_list
 func (s *Task) Get_list(c *gin.Context) {
@@ -62,14 +72,45 @@ func (s *Task) Log(c *gin.Context) {
 	results.ResObj(c, res, err)
 }
 
-// 测试微调模型，模型会重新实例化到python，所以会比较慢，是正常的
+// 测试微调后的模型，模型会重新实例化到python，所以会比较慢，是正常的 /finetune/task/testModel
 func (s *Task) TestModel(c *gin.Context) {
-	_, form := gf.ReqMultipartForm(c, "audio")
+	files, form := gf.ReqMultipartForm(c, "audio")
+	request := httpclient.NewRequest(config.Inst.App.Micro[pyVoiceServer].Host + "/model/test_model")
+	request.Timeout(time.Second * 30)
+
 	taskId := form.Value["taskId"][0]
+	// 把task对应的model.pt文件复制到speech_test目录下
 	task, err := s.svc.GetById(c, taskId)
-	assert.ErrIsNilAppendErr(err, "获取任务失败！")
-	//res, err := s.svc.TestModel(c, req.Id)
-	results.ResObj(c, task, err)
+	assert.ErrIsNilAppendErr(err, "任务ID不存在 %s")
+
+	src := path.Join(config.Inst.Voice.FunAsrOutputDir, task.ModelPath)
+	dest := path.Join(config.Inst.Voice.ModelTest, "/model.pt")
+	err = filex.CopyFile(src, dest)
+	assert.ErrIsNilAppendErr(err, "复制模型文件出错 %s")
+
+	res := request.PostMultipart(files, collx.M{})
+	m, err := res.BodyToMap()
+	results.ResObj(c, m, err)
+}
+
+func (s *Task) AdoptModel(c *gin.Context) {
+	req := gf.ReqBody(c, &base.ReqId{})
+
+	// 把task对应的model.pt文件复制到speech_train目录下
+	task, err := s.svc.GetById(c, req.Id)
+	assert.ErrIsNilAppendErr(err, "任务ID不存在 %s")
+
+	src := path.Join(config.Inst.Voice.FunAsrOutputDir, task.ModelPath)
+	dest := path.Join(config.Inst.Voice.ModelTrain, "/model.pt")
+	err = filex.CopyFile(src, dest)
+	assert.ErrIsNilAppendErr(err, "复制模型文件出错 %s")
+
+	// 重载模型
+	request := httpclient.NewRequest(config.Inst.App.Micro[pyVoiceServer].Host + "/model/adopt_model")
+	request.Timeout(time.Second * 30)
+	res := request.Post()
+	m, err := res.BodyToMap()
+	results.ResObj(c, m, err)
 }
 
 // 删除 /finetune/task/del

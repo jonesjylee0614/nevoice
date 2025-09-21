@@ -20,7 +20,7 @@
           </ARadioGroup>
         </AFormItem>
         <AFormItem v-if="saveType === 1">
-          <IdentifyUpload :params="formData" @success="handleUploadSuccess" />
+          <TestModelUpload :params="formData" @success="handleUploadSuccess" @upload="toggle" />
         </AFormItem>
         <AFormItem v-if="saveType === 2">
           <AButton @click="toggleRecording">
@@ -32,12 +32,16 @@
           </AButton>
         </AFormItem>
 
-        <AFormItem v-if="resData.txt" label="鉴定结果">
-          <div>
-            <AImage :src="resData.user.avatar" width="30px" />
-            <span>{{ resData.user.name }}</span>
+        <AFormItem label="鉴定结果">
+          <icon-loading v-if="loading" />
+          <div v-else>
+            <AImage v-if="resData.avatar" :src="resData.avatar" width="30px" />
+            <span>{{ resData.username }}</span>
             <div>{{ resData.txt }}</div>
           </div>
+          <template #help>
+            <div>测试模型会初始化加载模型实例，会消耗20-30秒不等，请耐心等待...</div>
+          </template>
         </AFormItem>
 
         <AFormItem v-if="errorMsg" label="错误信息">
@@ -53,8 +57,8 @@ import type { FormInstance } from '@arco-design/web-vue';
 import { Message } from '@arco-design/web-vue';
 import useLoading from '@/hooks/loading';
 import { BasicModal, useModalInner } from '@/components/Modal';
-import IdentifyUpload from '@/views/voice/print/IdentifyUpload.vue';
-import { userIdentify } from './api';
+import TestModelUpload from '@/views/finetune/task/TestModelUpload.vue';
+import { testModel } from './api';
 
 const attrs = useAttrs();
 const emit = defineEmits(['success']);
@@ -62,20 +66,20 @@ const formRef = ref<FormInstance>();
 const saveType = ref(2);
 const recording = ref(false);
 const parsing = ref(false);
-const getTitle = computed(() => '声纹鉴定');
-const basRes = { user: {} as any, txt: '' };
+const getTitle = computed(() => '测试模型');
+const basRes = { username: '', avatar: '', txt: '' };
 const resData = ref(basRes);
 const errorMsg = ref('');
+const doing = ref(false);
 
 const baseData = {
-  id: 0,
-  userId: '',
-  userName: ''
+  taskId: 0
 };
 const formData = ref<any>(baseData);
-const { loading, setLoading } = useLoading();
+const { loading, toggle } = useLoading();
 
-const [registerModal, { closeModal }] = useModalInner(async data => {
+const [registerModal] = useModalInner(async data => {
+  formData.value.taskId = data.record.id;
   formRef.value?.resetFields();
 });
 
@@ -133,11 +137,21 @@ const toggleRecording = async () => {
     const audioBlob = new Blob(audioChunks.value, { type: mediaRecorder.mimeType });
     const param = new FormData();
     param.append('audio', audioBlob, 'recording.wav');
-
+    param.append('taskId', formData.value.taskId);
+    toggle();
     Message.loading({ content: '解析中...', id: 'upStatus' });
 
     try {
-      resData.value = await userIdentify(param);
+      const res = await testModel(param);
+
+      toggle();
+
+      resData.value = {
+        username: (res.data && res.data.length > 0 && res.data[0].username) || '',
+        avatar: '',
+        txt: res.txt
+      };
+
       console.log(resData.value);
     } catch (error) {
       console.error('音频上传失败:', error);
@@ -150,6 +164,8 @@ const toggleRecording = async () => {
 };
 
 const handleUploadSuccess = (data: any) => {
+  toggle();
+  console.log(data);
   resData.value = data.data;
   console.log(resData.value);
 };

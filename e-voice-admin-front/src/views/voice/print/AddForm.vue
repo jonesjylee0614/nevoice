@@ -24,11 +24,11 @@
         </AFormItem>
         <AFormItem v-if="saveType === 2">
           <AButton @click="toggleRecording">
-            <template #icon>
+            <ASpace>
               <icon-record v-if="!recording" size="22" />
               <icon-record-stop v-if="recording" size="22" style="color: #f53f3f" />
-            </template>
-            {{ recording ? '停止并提交' : '开始录音' }}
+              {{ recording ? '停止并提交' : '开始录音' }}
+            </ASpace>
           </AButton>
         </AFormItem>
       </ARow>

@@ -77,8 +77,11 @@
               <Icon icon="icon-safe" color="rgb(var(--warning-6))" @click="handleTest(record)" />
             </ATooltip>
             <ATooltip v-if="record.status === 2" content="应用">
-              <Icon icon="icon-check" color="rgb(var(--success-6))" @click="handleAdopt(record)" />
+              <APopconfirm content="您确定要应用吗?" position="tr" @ok="handleAdopt(record)">
+                <Icon icon="icon-check" color="rgb(var(--success-6))" />
+              </APopconfirm>
             </ATooltip>
+
             <APopconfirm content="您确定要删除吗?" @ok="handleDel(record)">
               <ATooltip content="删除">
                 <Icon icon="icon-delete" :size="18" color="#ed6f6f" />
@@ -92,6 +95,8 @@
     <AddForm @register="registerModal" @success="handleData" />
   </div>
   <Log :log-model="logModel" @success="handleTaskSuccess" />
+
+  <TestModelForm @register="registerTestModel" />
 </template>
 
 <script lang="ts" setup>
@@ -104,12 +109,15 @@ import type { Pagination } from '@/types/global';
 import { useModal } from '@/components/Modal';
 import type { LogModel } from '@/views/finetune/task/Log.vue';
 import Log from '@/views/finetune/task/Log.vue';
+import TestModelForm from '@/views/finetune/task/TestModelForm.vue';
 import AddForm from './AddForm.vue';
 import { columns } from './data';
-import { del, getList, save, start } from './api';
+import { adoptModel, del, getList, save, start } from './api';
 
 const route = useRoute();
 const [registerModal, { openModal }] = useModal();
+
+const [registerTestModel, { openModal: openTestModelForm }] = useModal();
 
 // 分页
 const basePagination: Pagination = {
@@ -199,10 +207,18 @@ const handleLog = async (record: any) => {
 
 const handleAdopt = async (record: any) => {
   console.log(record);
+  const res = await adoptModel({ id: record.id });
+  if (res) {
+    console.log(res);
+    Message.success({ content: '模型应用成功' });
+  }
 };
 
 const handleTest = async (record: any) => {
-  console.log(record);
+  openTestModelForm(true, {
+    isUpdate: false,
+    record
+  });
 };
 
 const handleTrain = async (record: any) => {
