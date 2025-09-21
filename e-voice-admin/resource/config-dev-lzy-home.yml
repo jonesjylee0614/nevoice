@@ -82,7 +82,7 @@ voice:
      print-path: /home/leozy/Desktop/developer/git/python/evoice/data/print
      meeting-path: /home/leozy/Desktop/developer/git/python/evoice/data/meeting/offline
      # funasr 项目根目录，用于执行FunASR/examples/industrial_data_pretraining/paraformer/finetune.sh脚本
-     fun-asr-path: /home/leozy/Desktop/developer/git/third/FunASR
+     fun-asr-path: /home/leozy/Desktop/developer/git/python/FunASR
      # funasr conda环境名称
      fun-asr-conda-env-name: FunASR
      conda-path: /home/leozy/miniconda3/bin
@@ -91,6 +91,6 @@ voice:
      # 指定模型输出文件夹
      fun-asr-output-dir: /home/leozy/Desktop/developer/git/python/evoice/finetune-out
      # 测试模型路径
-     model_test: /home/leozy/.cache/model/speech_test
+     model-test: /home/leozy/.cache/model/speech_test
      # 训练完成模型路径
-     model_train: /home/leozy/.cache/model/speech_train
+     model-train: /home/leozy/.cache/model/speech_train

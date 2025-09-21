@@ -90,3 +90,7 @@ voice:
      cuda-devices: GPU-e19ee01b-e44c-bd7e-f03f-545fc58b0daf
      # 指定模型输出文件夹
      fun-asr-output-dir: /home/leozy/Desktop/developer/git/leo/evoice/data/outputs
+  # 测试模型路径
+     model-test: /home/leozy/.cache/model/speech_test
+  # 训练完成模型路径
+     model-train: /home/leozy/.cache/model/speech_train

@@ -189,4 +189,6 @@ type Voice struct {
 	FunAsrCondaEnvName string `yaml:"fun-asr-conda-env-name" default:"FunASR"`
 	CudaDevices        string `yaml:"cuda-devices" default:"0"`
 	FunAsrOutputDir    string `yaml:"fun-asr-output-dir" default:"/data/voice/finetune/output"`
+	ModelTest          string `yaml:"model-test" default:"/home/leozy/.cache/model/speech_test"`
+	ModelTrain         string `yaml:"model-train" default:"/home/leozy/.cache/model/speech_train"`
 }

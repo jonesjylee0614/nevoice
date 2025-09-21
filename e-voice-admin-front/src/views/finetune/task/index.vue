@@ -73,6 +73,12 @@
             <ATooltip content="日志">
               <Icon icon="icon-file" color="rgb(var(--primary-6))" @click="handleLog(record)" />
             </ATooltip>
+            <ATooltip v-if="record.status === 2" content="测试模型">
+              <Icon icon="icon-safe" color="rgb(var(--warning-6))" @click="handleTest(record)" />
+            </ATooltip>
+            <ATooltip v-if="record.status === 2" content="应用">
+              <Icon icon="icon-check" color="rgb(var(--success-6))" @click="handleAdopt(record)" />
+            </ATooltip>
             <APopconfirm content="您确定要删除吗?" @ok="handleDel(record)">
               <ATooltip content="删除">
                 <Icon icon="icon-delete" :size="18" color="#ed6f6f" />
@@ -191,6 +197,14 @@ const handleLog = async (record: any) => {
   current.value = record;
 };
 
+const handleAdopt = async (record: any) => {
+  console.log(record);
+};
+
+const handleTest = async (record: any) => {
+  console.log(record);
+};
+
 const handleTrain = async (record: any) => {
   console.log(record);
   await start({ id: record.id });
@@ -225,7 +239,7 @@ const handleDel = async (record: any) => {
 const handleTaskSuccess = async () => {
   if (current.value.status !== 2) {
     current.value.status = 2;
-    await save(current.value);
+    await save({ id: current.value.id, status: 2 });
   }
 };
 // 状态

@@ -19,7 +19,6 @@ from numba import int64
 from es.voice import insert_voice
 from pipeline.spk_v_pipeline import embedding
 from speech_recognition.recognize import recognize
-
 from ..audio_utils import NumpyEncoder, extract_text_from_result, process_audio_file, resolve_temp_dir
 
 
@@ -48,7 +47,7 @@ def create_voice_blueprint(voice_conf: Dict[str, object]) -> Blueprint:
                 os.makedirs(folder)
 
             filename = f"{int(time.time() * 1000)}.{uuid.uuid4()}.{audio_file.filename}"
-            wav_file_path = f"{voice_conf['print_wav_path']}/{userid_int}/{filename}"
+            wav_file_path = f"{folder}/{filename}"
             sf.write(wav_file_path, audio_array, samplerate)
             print(f"音频已保存到 {wav_file_path}")
 

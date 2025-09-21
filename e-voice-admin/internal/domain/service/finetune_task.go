@@ -103,7 +103,7 @@ func (t FinetuneTask) Start(c *gin.Context, id int64) (string, error) {
 	valData := trainData
 
 	// FIXME 后期可以手动指定
-	model := "iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+	model := config.Inst.Voice.ModelTrain
 
 	// 执行finetune.sh训练脚本
 	shPath := config.Inst.Voice.FunAsrPath + "/examples/industrial_data_pretraining/paraformer/"

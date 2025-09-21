@@ -91,6 +91,6 @@ voice:
   # 指定模型输出文件夹
   fun-asr-output-dir: /home/zrway/evoice/audio/outputs
   # 测试模型路径
-  model_test: /home/zrway/.cache/model/speech_test
+  model-test: /home/zrway/.cache/model/speech_test
   # 训练完成模型路径
-  model_train: /home/zrway/.cache/model/speech_train
+  model-train: /home/zrway/.cache/model/speech_train
