@@ -133,3 +133,9 @@ def empty_cache():
 
 if __name__ == '__main__':
     print(test_recognize('../resource/audio_data/0/015.wav'))
+    print(test_recognize('../resource/medical/26e1e410-e096-4ef0-bcfc-2f1f15ab5581.wav'))  # 环氧化水化酶
+    print(test_recognize('../resource/medical/26e44373-be2f-43ae-a62e-c8a7496e1217.wav'))  # 细针抽吸活检
+    print(test_recognize('../resource/medical/27c53560-6557-4d26-8eff-dd12687cfb5b.wav'))  # 脂类转移蛋白
+    print(test_recognize('../resource/medical/27ccb4dd-c33c-458b-8872-6bf576d534c7.wav'))  # 绝经期后出血
+    print(test_recognize('../resource/medical/27e1f997-fb57-40ad-b4e4-6639108335ae.wav'))  # 非小细胞肺癌
+    print(test_recognize('../resource/medical/27e71bd1-00d1-4af1-bc41-2bb2a00b1bfd.wav'))  # 冠黄感冒颗粒
