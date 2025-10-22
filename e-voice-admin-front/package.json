@@ -57,6 +57,7 @@
     "@antfu/utils": "^9.2.0",
     "@arco-plugins/vite-vue": "^1.4.5",
     "@iconify/json": "^2.1.30",
+    "@rolldown/binding-linux-x64-gnu": "1.0.0-beta.42",
     "@soybeanjs/eslint-config": "1.6.0",
     "@types/blueimp-md5": "^2.7.0",
     "@types/codemirror": "^5.60.5",

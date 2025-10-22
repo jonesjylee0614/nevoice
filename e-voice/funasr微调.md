@@ -215,6 +215,9 @@ tail -f /home/zrway/evoice/audio/outputs/leo/finetune.log
 
 cd /home/zrway/evoice/pkgs/FunASR/examples/industrial_data_pretraining/paraformer_streaming
 
+# 视情况调整finetune.sh的++dataset_conf.batch_size
+# 实测140000语料 4卡 3090 24G显存，batch_size为250
+
 nohup sh finetune.sh \
 	--model /home/zrway/.cache/model/speech_stream \
 	--conda_path /home/zrway/miniconda3/bin \

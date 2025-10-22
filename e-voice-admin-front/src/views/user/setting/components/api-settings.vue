@@ -32,7 +32,7 @@ const signDesData = [
   },
   {
     label: 'x-t',
-    value: '当前毫秒时间戳'
+    value: '当前毫秒时间戳(误差不超过5分钟)'
   },
   {
     label: 'x-sign',
