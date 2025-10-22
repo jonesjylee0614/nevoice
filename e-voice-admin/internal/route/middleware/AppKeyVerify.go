@@ -31,6 +31,10 @@ func AppKeyVerify(c *gin.Context, ak string) {
 	// 通过ak获取用户信息和sk
 	svc := ioc.GetType[*core_service.BusinessAccount]()
 	account := svc.GetByAk(c, ak)
+	if account == nil || account.AppKeySecret == "" {
+		abort(c, "账号不存在")
+		return
+	}
 
 	// 通过ak sk 验证签名
 	if !checkSign(c, ak, account.AppKeySecret, t) {
