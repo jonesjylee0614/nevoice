@@ -1,5 +1,7 @@
 """
 性能测试脚本 - 实时语音识别系统
+
+TODO(P3): 替换为调用 `/ws/recognize?v=2` 的流式压测脚本，覆盖在线/离线双路。
 """
 import os
 import sys

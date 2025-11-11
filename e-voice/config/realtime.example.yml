@@ -1,0 +1,25 @@
+# 实时识别配置示例
+
+mode:
+  default: "2pass"
+
+audio:
+  sample_rate: 16000
+  chunk_interval_ms: 40
+
+timeouts:
+  idle_audio_timeout_ms: 5000
+  grace_period_ms: 200
+  max_session_ms: 300000
+
+models:
+  vad: "fsmn-vad"
+  online_asr: "paraformer-zh-streaming"
+  offline_asr: "paraformer-zh-offline"
+  punc: "ct-punc"
+  itn: "zh-itn"
+
+resources:
+  offline_thread_pool: 4
+  device: "auto"  # auto/cpu/gpu
+

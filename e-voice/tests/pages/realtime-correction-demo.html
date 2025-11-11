@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时纠错演示 | E-Voice</title>
+    <link rel="stylesheet" href="../components/common.css">
+    <style>
+        .status-card {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .status-pill {
+            min-width: 160px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            box-shadow: inset 0 0 0 1px #d0d7de;
+        }
+        .status-pill strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+        .panel-grid {
+            display: grid;
+            gap: 18px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        }
+        .result-box {
+            min-height: 140px;
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            overflow-y: auto;
+        }
+        .result-box pre {
+            margin: 0;
+            font-family: "Fira Code", "Consolas", monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+        .correction-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .correction-table th,
+        .correction-table td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .correction-table th {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        .log-area {
+            width: 100%;
+            min-height: 160px;
+            font-family: "Menlo", "Consolas", monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            background: #0f172a;
+            color: #e2e8f0;
+            overflow-y: auto;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            margin-right: 6px;
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        .tag-success { background: #d1fae5; color: #047857; }
+        .tag-info { background: #e0f2fe; color: #0369a1; }
+        .tag-warning { background: #fef3c7; color: #b45309; }
+        .tag-error { background: #fee2e2; color: #b91c1c; }
+        .note {
+            border-left: 4px solid #2563eb;
+            background: #eff6ff;
+            padding: 16px;
+            border-radius: 6px;
+            color: #1d4ed8;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>实时语音识别 + 智能纠错演示</h1>
+            <p>基于 FunASR 重构能力的实验页面，展示实时流式识别、自动纠错与增量反馈。</p>
+        </div>
+
+        <div class="note">
+            <strong>使用建议：</strong>
+            <ol style="margin: 8px 0 0 18px; line-height: 1.6;">
+                <li>先选择服务器并完成连接检查。</li>
+                <li>点击“建立 WebSocket”后再开始录音。</li>
+                <li>观察实时增量、最终确认与纠错轨迹面板。</li>
+                <li>如需重置，请先停止录音，再断开连接。</li>
+            </ol>
+        </div>
+
+        <div class="config-section">
+            <h3>服务器配置</h3>
+            <div class="input-group">
+                <label for="serverUrl">服务器地址:</label>
+                <select id="serverEnv" onchange="changeServerEnvironment()">
+                    <option value="localhost">本地开发 (localhost:8210)</option>
+                    <option value="wsl-localhost">WSL内部 (localhost:8210)</option>
+                    <option value="wsl-host">WSL宿主机 (172.31.77.180:8210)</option>
+                    <option value="wsl-bridge">WSL桥接 (127.0.0.1:8210)</option>
+                    <option value="development">开发环境 (172.31.77.180:8210)</option>
+                    <option value="production">生产环境 (127.0.0.1:8210)</option>
+                    <option value="custom">自定义</option>
+                </select>
+                <input type="text" id="serverUrl" value="http://localhost:8210" placeholder="输入服务器地址">
+                <button class="btn" onclick="checkServerStatus()">检查连接</button>
+                <span id="serverStatus" class="status-indicator status-checking">未检查</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 统一导航区域 - 由 navigation.js 注入 -->
+
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-live">LIVE</span>
+                        实时会话控制
+                    </div>
+                    <div class="api-description">管理 WebSocket 会话、流式配置与录音权限。</div>
+                </div>
+                <div class="api-body">
+                    <div class="status-card">
+                        <div class="status-pill">
+                            <strong>连接状态</strong>
+                            <span id="wsStatus" class="status-indicator status-offline">未连接</span>
+                        </div>
+                        <div class="status-pill">
+                            <strong>会话 ID</strong>
+                            <div id="sessionIdDisplay">—</div>
+                        </div>
+                        <div class="status-pill">
+                            <strong>累计识别</strong>
+                            <div id="statsSentences">0 句</div>
+                        </div>
+                        <div class="status-pill">
+                            <strong>自动纠错</strong>
+                            <div id="statsCorrections">0 次</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 18px;">
+                        <label>连接控制:</label>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                            <button class="btn" id="connectBtn" onclick="connectWebSocket()">建立 WebSocket</button>
+                            <button class="btn btn-danger" id="disconnectBtn" onclick="disconnectWebSocket()" disabled>断开</button>
+                            <button class="btn" id="checkHealthBtn" onclick="pingSession()" disabled>发送 Ping</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>识别配置:</label>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <label><input type="checkbox" id="optEnableCorrection" checked> 启用自动纠错</label>
+                            <label><input type="checkbox" id="optEnableItn" checked> 智能标点 (ITN)</label>
+                            <label><input type="checkbox" id="optEnablePartial" checked> 输出实时增量</label>
+                            <label><input type="checkbox" id="optEnableDetails" checked> 返回纠错细节</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>录音控制:</label>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                            <button class="btn" id="startBtn" onclick="startStreaming()" disabled>开始录音</button>
+                            <button class="btn btn-danger" id="stopBtn" onclick="stopStreaming()" disabled>停止录音</button>
+                            <span class="tag" id="timerDisplay">00:00</span>
+                            <span class="tag" id="rmsDisplay">RMS: 0.0000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-live">LIVE</span>
+                        识别反馈面板
+                    </div>
+                    <div class="api-description">实时监听候选文本、最终确认文本以及纠错轨迹。</div>
+                </div>
+                <div class="api-body">
+                    <div class="panel-grid">
+                        <div>
+                            <h4>实时候选</h4>
+                            <div class="result-box" id="partialBox">
+                                <em style="color: #64748b;">等待语音输入…</em>
+                            </div>
+                        </div>
+                        <div>
+                            <h4>最终确认</h4>
+                            <div class="result-box" id="finalBox">
+                                <pre>—</pre>
+                            </div>
+                        </div>
+                        <div>
+                            <h4>自动纠错结果</h4>
+                            <div class="result-box" style="min-height: 180px;">
+                                <table class="correction-table" id="correctionTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 30%;">原始文本</th>
+                                            <th style="width: 45%;">纠错后</th>
+                                            <th style="width: 25%;">详情</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="3" style="text-align: center; color: #94a3b8;">暂无纠错记录</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-log">LOG</span>
+                        事件与调试日志
+                    </div>
+                    <div class="api-description">记录关键事件、错误信息与纠错细节，可下载保存。</div>
+                </div>
+                <div class="api-body">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="autoScrollLog" checked>
+                            自动滚动
+                        </label>
+                        <button class="btn" onclick="downloadLogs()">下载日志</button>
+                        <button class="btn" onclick="clearLogs()">清空日志</button>
+                    </div>
+                    <div class="log-area" id="logArea">[日志] 等待操作…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/config.js"></script>
+    <script src="../components/common.js"></script>
+    <script src="../components/navigation.js"></script>
+    <script>
+        let websocket = null;
+        let mediaStream = null;
+        let audioContext = null;
+        let scriptProcessor = null;
+        let isStreaming = false;
+        let realtimeTimer = null;
+        let sessionId = null;
+
+        const finalSentences = [];
+        const correctionHistory = [];
+
+        // ✅ P0-2 修复：添加 revision_id 追踪，防止旧结果覆盖新结果
+        let lastRevision = 0;
+
+        // ✅ P1-2 新增：音频分块配置，对齐 FunASR 官方推荐
+        const SAMPLE_RATE = 16000;
+        const CHUNK_STRIDE = 9600;  // 600ms @ 16kHz (FunASR 官方推荐: chunk_size=[0,10,5])
+        let audioBuffer = [];  // 音频累积缓冲区
+
+        function changeServerEnvironment() {
+            const envSelect = document.getElementById('serverEnv');
+            const urlInput = document.getElementById('serverUrl');
+            const selected = envSelect.value;
+
+            if (selected === 'custom') {
+                urlInput.disabled = false;
+                urlInput.focus();
+            } else {
+                urlInput.disabled = true;
+                urlInput.value = Config.SERVER_OPTIONS[selected];
+                updateServerUrl(urlInput.value);
+            }
+        }
+
+        function connectWebSocket() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                appendLog('info', 'WebSocket 已连接');
+                return;
+            }
+
+            const wsUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/recognize';
+            appendLog('info', `准备连接: ${wsUrl}`);
+
+            try {
+                websocket = new WebSocket(wsUrl);
+                websocket.binaryType = 'arraybuffer';
+
+                websocket.onopen = () => {
+                    sessionId = crypto.randomUUID();
+                    document.getElementById('sessionIdDisplay').textContent = sessionId;
+                    document.getElementById('wsStatus').className = 'status-indicator status-online';
+                    document.getElementById('wsStatus').textContent = '已连接';
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('disconnectBtn').disabled = false;
+                    document.getElementById('checkHealthBtn').disabled = false;
+                    document.getElementById('startBtn').disabled = false;
+                    appendLog('success', 'WebSocket 连接成功');
+                };
+
+                websocket.onmessage = (event) => {
+                    try {
+                        const payload = JSON.parse(event.data);
+                        handleRealtimePayload(payload);
+                    } catch (error) {
+                        appendLog('error', `消息解析失败: ${error.message}`);
+                    }
+                };
+
+                websocket.onerror = (event) => {
+                    appendLog('error', `WebSocket 错误: ${event.message || '未知错误'}`);
+                };
+
+                websocket.onclose = (event) => {
+                    appendLog('warning', `连接关闭: code=${event.code}, reason=${event.reason || '无'}`);
+                    cleanupAudio();
+                    resetSessionState();
+                };
+            } catch (error) {
+                appendLog('error', `创建连接失败: ${error.message}`);
+            }
+        }
+
+        function pingSession() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                appendLog('warning', '当前未连接 WebSocket');
+                return;
+            }
+
+            const payload = {
+                type: 'ping',
+                ts: Date.now(),
+                session_id: sessionId
+            };
+            websocket.send(JSON.stringify(payload));
+            appendLog('info', '发送 Ping');
+        }
+
+        async function startStreaming() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                appendLog('error', '请先建立 WebSocket 连接');
+                return;
+            }
+
+            if (isStreaming) {
+                appendLog('warning', '已经在录音中');
+                return;
+            }
+
+            try {
+                const constraints = {
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                };
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const source = audioContext.createMediaStreamSource(mediaStream);
+
+                const bufferSize = 4096;
+                scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+                scriptProcessor.onaudioprocess = processAudioFrame;
+
+                source.connect(scriptProcessor);
+                scriptProcessor.connect(audioContext.destination);
+
+                const configPayload = {
+                    type: 'start',
+                    request_id: sessionId,
+                    channel: 'mic',
+                    enable_correction: document.getElementById('optEnableCorrection').checked,
+                    enable_itn: document.getElementById('optEnableItn').checked,
+                    enable_partial: document.getElementById('optEnablePartial').checked,
+                    return_details: document.getElementById('optEnableDetails').checked
+                };
+                websocket.send(JSON.stringify(configPayload));
+                appendLog('info', `发送开始配置: ${JSON.stringify(configPayload)}`);
+
+                isStreaming = true;
+                realtimeTimer = setInterval(updateTimer, 1000);
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                appendLog('success', '开始实时录音');
+            } catch (error) {
+                appendLog('error', `无法访问麦克风: ${error.message}`);
+                cleanupAudio();
+            }
+        }
+
+        function processAudioFrame(event) {
+            if (!isStreaming || !websocket || websocket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            const input = event.inputBuffer.getChannelData(0);
+
+            // ✅ P1-2 修复：累积音频到缓冲区，达到 CHUNK_STRIDE 时再发送
+            // 原方案：每 4096 samples (256ms) 发送一次
+            // 新方案：累积到 9600 samples (600ms) 再发送，对齐 FunASR 官方推荐
+            audioBuffer.push(...input);
+
+            // 计算 RMS（使用全部累积的音频）
+            const rms = Math.sqrt(input.reduce((sum, sample) => sum + sample * sample, 0) / input.length);
+            document.getElementById('rmsDisplay').textContent = `RMS: ${rms.toFixed(4)} (缓冲: ${audioBuffer.length}/${CHUNK_STRIDE})`;
+
+            // 当累积到 CHUNK_STRIDE 时发送
+            while (audioBuffer.length >= CHUNK_STRIDE) {
+                // 取出 CHUNK_STRIDE 长度的音频
+                const chunk = audioBuffer.slice(0, CHUNK_STRIDE);
+                audioBuffer = audioBuffer.slice(CHUNK_STRIDE);
+
+                // 转换为 Int16 PCM
+                const pcm = new Int16Array(chunk.length);
+                for (let i = 0; i < chunk.length; i++) {
+                    const s = Math.max(-1, Math.min(1, chunk[i]));
+                    pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+                }
+
+                // 打包为 ArrayBuffer
+                const buffer = new ArrayBuffer(pcm.length * 2);
+                const view = new DataView(buffer);
+                for (let i = 0; i < pcm.length; i++) {
+                    view.setInt16(i * 2, pcm[i], true);
+                }
+
+                // Base64 编码
+                const bytes = new Uint8Array(buffer);
+                const base64 = btoa(String.fromCharCode.apply(null, bytes));
+
+                const message = {
+                    type: 'chunk',
+                    format: 'pcm',
+                    sample_rate: SAMPLE_RATE,
+                    audio: base64,
+                    rms: rms.toFixed(4),
+                    ts: Date.now(),
+                    chunk_size: chunk.length  // ✅ 新增：标识分块大小
+                };
+
+                try {
+                    websocket.send(JSON.stringify(message));
+                } catch (error) {
+                    appendLog('error', `发送音频失败: ${error.message}`);
+                    break;  // 发送失败时停止处理
+                }
+            }
+        }
+
+        function stopStreaming() {
+            if (!isStreaming) {
+                appendLog('info', '录音已停止');
+                return;
+            }
+
+            isStreaming = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('rmsDisplay').textContent = 'RMS: 0.0000';
+
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({ type: 'end', request_id: sessionId }));
+                appendLog('info', '发送结束指令');
+            }
+
+            cleanupAudio();
+        }
+
+        function disconnectWebSocket() {
+            stopStreaming();
+            if (websocket) {
+                websocket.close(1000, 'frontend close');
+                websocket = null;
+            }
+            resetSessionState();
+            appendLog('info', '手动断开连接');
+        }
+
+        function cleanupAudio() {
+            // ✅ P1-2 新增：清空音频缓冲区
+            audioBuffer = [];
+
+            if (realtimeTimer) {
+                clearInterval(realtimeTimer);
+                realtimeTimer = null;
+            }
+
+            if (scriptProcessor) {
+                scriptProcessor.disconnect();
+                scriptProcessor.onaudioprocess = null;
+                scriptProcessor = null;
+            }
+            if (audioContext) {
+                if (audioContext.state !== 'closed') {
+                    audioContext.close().catch(() => {});
+                }
+                audioContext = null;
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+        }
+
+        function resetSessionState() {
+            document.getElementById('wsStatus').className = 'status-indicator status-offline';
+            document.getElementById('wsStatus').textContent = '未连接';
+            document.getElementById('connectBtn').disabled = false;
+            document.getElementById('disconnectBtn').disabled = true;
+            document.getElementById('checkHealthBtn').disabled = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('timerDisplay').textContent = '00:00';
+            document.getElementById('sessionIdDisplay').textContent = '—';
+        }
+
+        function updateTimer() {
+            if (!isStreaming) return;
+
+            const display = document.getElementById('timerDisplay');
+            const current = display.textContent.split(':');
+            let minutes = parseInt(current[0]);
+            let seconds = parseInt(current[1]);
+            seconds += 1;
+            if (seconds >= 60) {
+                minutes += 1;
+                seconds = 0;
+            }
+            display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function handleRealtimePayload(data) {
+            const type = data.type;
+            switch (type) {
+                case 'partial':
+                    if (!document.getElementById('optEnablePartial').checked) {
+                        return;
+                    }
+                    renderPartialText(data);
+                    appendLog('info', `增量: ${data.text || data.candidate_text || ''}`);
+                    break;
+                case 'final':
+                    renderFinalText(data);
+                    appendLog('success', `确认: ${data.text}`);
+                    break;
+                case 'correction':
+                    renderCorrection(data);
+                    appendLog('success', `纠错: ${(data.raw_text || data.original_text || '')} -> ${data.text}`);
+                    break;
+                case 'pong':
+                    appendLog('info', '收到 Pong');
+                    break;
+                case 'session_end':
+                    appendLog('info', `会话结束，总句数: ${data.total_sentences}`);
+                    break;
+                case 'error':
+                    appendLog('error', data.message || '未知错误');
+                    break;
+                default:
+                    appendLog('info', `收到 ${type}: ${JSON.stringify(data)}`);
+            }
+        }
+
+        function renderPartialText(data) {
+            // ✅ P0-2 修复：时序校验，丢弃过期事件
+            const revision = (data.text_state && data.text_state.revision_id) || 0;
+            if (revision < lastRevision) {
+                console.warn(`[时序校验] 丢弃过期 partial 事件 revision=${revision} (当前=${lastRevision})`);
+                appendLog('warning', `丢弃过期事件: revision ${revision} < ${lastRevision}`);
+                return;
+            }
+            lastRevision = revision;
+
+            const partialBox = document.getElementById('partialBox');
+            const text = (data.text_state && data.text_state.candidate_text) || data.text || '';
+            partialBox.innerHTML = text ? `<strong style="color:#2563eb;">${text}</strong>` : '<em style="color:#94a3b8;">静音中…</em>';
+
+            if (data.text_state && data.text_state.confirmed_text) {
+                renderFinalText({ text: data.text_state.confirmed_text });
+            }
+        }
+
+        function renderFinalText(data) {
+            const text = (data.text || '').trim();
+            if (!text) return;
+
+            finalSentences.push(text);
+            document.getElementById('statsSentences').textContent = `${finalSentences.length} 句`;
+
+            const finalBox = document.getElementById('finalBox');
+            finalBox.innerHTML = `<pre>${finalSentences.join('\n')}</pre>`;
+        }
+
+        function renderCorrection(data) {
+            // ✅ P0-2 修复：时序校验，丢弃过期纠错事件
+            const revision = (data.text_state && data.text_state.revision_id) || 0;
+            if (revision < lastRevision) {
+                console.warn(`[时序校验] 丢弃过期 correction 事件 revision=${revision} (当前=${lastRevision})`);
+                appendLog('warning', `丢弃过期纠错: revision ${revision} < ${lastRevision}`);
+                return;
+            }
+            lastRevision = revision;
+
+            const original = (data.raw_text || data.original_text || data.before || '').trim();
+            const corrected = (data.text || data.after || '').trim();
+            const details = data.details || data.auto_correction || [];
+
+            if (!corrected) return;
+
+            correctionHistory.push({ original, corrected, details });
+            document.getElementById('statsCorrections').textContent = `${correctionHistory.length} 次`;
+
+            const tbody = document.querySelector('#correctionTable tbody');
+            tbody.innerHTML = '';
+
+            correctionHistory.slice(-20).reverse().forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.original || '—'}</td>
+                    <td><strong>${item.corrected}</strong></td>
+                    <td>${formatCorrectionDetails(item.details)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatCorrectionDetails(details) {
+            if (!details || details.length === 0) {
+                return '<span class="tag tag-info">自动</span>';
+            }
+            if (Array.isArray(details)) {
+                return details.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join('<br>');
+            }
+            if (typeof details === 'object') {
+                return Object.entries(details).map(([k, v]) => `${k}: ${v}`).join('<br>');
+            }
+            return String(details);
+        }
+
+        function appendLog(level, message) {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            if (!logArea.textContent || logArea.textContent.startsWith('[日志]')) {
+                logArea.textContent = '';
+            }
+            const line = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`;
+            logArea.textContent += line;
+
+            if (document.getElementById('autoScrollLog').checked) {
+                logArea.scrollTop = logArea.scrollHeight;
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logArea').textContent = '';
+            appendLog('info', '日志已清空');
+        }
+
+        function downloadLogs() {
+            const logContent = document.getElementById('logArea').textContent;
+            if (!logContent.trim()) {
+                alert('没有日志内容');
+                return;
+            }
+
+            const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `realtime-correction-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            appendLog('info', '日志已下载');
+        }
+
+        window.addEventListener('beforeunload', () => {
+            stopStreaming();
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.close(1001, 'page unload');
+            }
+        });
+
+        window.addEventListener('load', () => {
+            changeServerEnvironment();
+            appendLog('info', '页面初始化完成');
+        });
+    </script>
+</body>
+</html>
+

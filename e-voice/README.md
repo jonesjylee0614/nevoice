@@ -45,6 +45,24 @@ e-voice Python后端 (语音处理)
 ModelScope AI模型 (语音识别)
 ```
 
+## 🔌 开放接口说明
+
+- **规范归属**：对外的《开放接口设计》文档现由 `nevoice` 项目维护，FunASR 仅作为底层模型参考。最新版请参见 [《开放接口设计》](../e-docs/SDK相关/接口文档/开放接口设计.md)。
+- **统一结构**：REST/WS 业务消息全部遵循 `{ code, message, data }` 响应体，分页字段固定为 `page`、`pageSize`、`total`、`items`，时间使用 `xxx_ms`。
+- **鉴权机制**：所有调用需传入 `x-ak`、`x-t`、`x-sign`，其中 `x-sign = MD5(AppKey + AppSecret + x-t)`；WebSocket 将三元组附加到查询参数。
+- **接入域名**：HTTPs `https://<domain>/v1`，WebSocket `wss://<domain>/v1`，支持 dev/test/prod 多环境前缀。
+- **REST 离线识别**：`POST /v1/voice/offline/jobs` 创建任务（multipart 上传音频 + 可选热词/ITN），`GET /v1/voice/offline/jobs/{job_id}` 轮询进度与结果。
+- **实时识别 & 声纹**：WebSocket 帧定义、声纹注册/识别等接口协议详见文档附录，涵盖错误码、重试策略与示例脚本。
+
+## 🔄 实时识别与纠错改造进展
+
+- ✅ StreamingEngine、会话管理与 WebSocket v2 协议骨架已落地，2pass 纠错链路运行稳定。
+- ✅ `config/realtime.yml`、`monitoring/streaming_metrics.py` 与日志方案完成，实现核心指标采集。
+- ✅ 网关与后端统一 `/ws/recognize`，移除 legacy/v1 分支。
+- ✅ `e-voice-admin-front` 实时调试页面聚焦 v2，展示热词/纠错结果。
+- 待开发 FunASR 官方客户端回归脚本、压测方案与测试报告模板。
+- 待开发 文档与 SDK 示例同步，补充单版本接入指南。
+
 ## ⚡ 快速开始
 
 ### 环境要求
@@ -65,18 +83,22 @@ cd evoice
 cd e-voice
 pip install -r requirements.txt
 
-# 3. 启动服务
-python rest.py
+# 3. 启动服务（支持实时识别 v2）
+python rest.py --env dev
 ```
 
 ### 验证安装
 ```bash
 # 功能验证测试
-cd e-voice/tests
-python validation_test.py
+cd nevoice/e-voice
+pytest tests/websocket/test_streaming_engine.py -q
+pytest tests/websocket/test_streaming_basic.py -q
 
-# 性能基准测试
-python -m asyncio performance_test.py
+# 协议回归（含实时 & 纠错）
+pytest tests/validation_test.py -k "realtime_v2" --maxfail=1
+
+# 性能基准测试（可选）
+pytest tests/performance_test.py
 ```
 
 ## 📊 性能指标
@@ -128,10 +150,10 @@ vocab_modes = {
 ## 🧪 测试覆盖
 
 ### 功能验证
-- ✅ WebSocket连接通信
+- ✅ WebSocket v2 连接通信
 - ✅ 音频数据传输处理
-- ✅ 语音识别准确性
-- ✅ 实时响应能力
+- ✅ 实时/离线纠错融合
+- ✅ 会话状态管理
 - ✅ 错误处理机制
 
 ### 性能测试  
@@ -162,21 +184,34 @@ e-voice/
 
 ## 🔍 使用示例
 
-### WebSocket 客户端
+### WebSocket 客户端（实时识别 v2）
 ```javascript
-const ws = new WebSocket('ws://localhost:8210');
+const url = new URL('ws://localhost:8210/ws/recognize');
+url.searchParams.set('request_id', crypto.randomUUID());
 
-// 发送音频数据
-ws.send(JSON.stringify({
-    type: 'audio_chunk',
-    data: base64AudioData,
-    sample_rate: 16000
-}));
+const ws = new WebSocket(url);
 
-// 接收识别结果
-ws.onmessage = function(event) {
-    const result = JSON.parse(event.data);
-    console.log('识别结果:', result.text);
+ws.onopen = () => {
+    ws.send(JSON.stringify({
+        type: 'config',
+        language: 'zh-CN',
+        sample_rate: 16000,
+        mode: '2pass',
+        chunk_interval: 40,
+    }));
+};
+
+function sendPcmChunk(arrayBuffer) {
+    ws.send(arrayBuffer);
+}
+
+ws.onmessage = (event) => {
+    const payload = JSON.parse(event.data);
+    if (payload.type === 'partial') {
+        console.log('实时增量:', payload.text);
+    } else if (payload.type === 'correction') {
+        console.log('离线纠错:', payload.text);
+    }
 };
 ```
 

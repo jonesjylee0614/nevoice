@@ -1,0 +1,28 @@
+services:
+  es01:
+    container_name: es01
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false  # 开发环境可禁用安全认证
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g    # 限制JVM内存（避免占用过高）
+      - TZ=Asia/Shanghai
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    mem_limit: 2g                     # 限制容器总内存
+    volumes:
+      - ./es_config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - es_data:/usr/share/elasticsearch/data  # 改为命名卷，避免Windows路径权限问题
+      - ./es_plugins:/usr/share/elasticsearch/plugins
+      - ./es_logs:/usr/share/elasticsearch/logs
+    networks:
+      - elastic_net
+
+volumes:
+  es_data:  # 命名卷由Docker自动管理，数据持久化且无需处理Windows路径
+
+networks:
+  elastic_net:
+    driver: bridge
+

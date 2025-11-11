@@ -147,6 +147,13 @@
           <div class="config-row">
             <ASpace>
               <div class="config-item">
+                <label>协议版本:</label>
+                <ASpace>
+                  <AButton type="primary" disabled>实时识别 v2</AButton>
+                </ASpace>
+              </div>
+
+              <div class="config-item">
                 <label>音频块间隔:</label>
                 <ASelect 
                   v-model="chunkIntervalMs" 
@@ -173,16 +180,38 @@
                   自适应增益控制
                 </ACheckbox>
               </div>
+
+              <div class="config-item">
+                <ACheckbox v-model="recordingPreferences.enableHotwords" :disabled="isRealtimeRecording">
+                  热词增强
+                </ACheckbox>
+              </div>
+
+              <div class="config-item">
+                <ACheckbox v-model="recordingPreferences.enableSpeaker" :disabled="isRealtimeRecording">
+                  声纹辅助
+                </ACheckbox>
+              </div>
             </ASpace>
           </div>
           
           <div class="config-info">
-            <AAlert 
-              type="info" 
-              show-icon
-              banner
-              :message="`当前配置: ${chunkIntervalMs}ms间隔 (${chunkSamples}样本/块), 静音检测${DROP_SILENCE ? '开启' : '关闭'}`"
-            />
+            <div class="config-summary">
+              <div class="summary-line">
+                <strong>链路策略:</strong>
+                <span>{{ gatewaySummary }}</span>
+              </div>
+              <div class="summary-line">
+                <strong>音频配置:</strong>
+                <span>
+                  {{ chunkIntervalMs }}ms 间隔 ({{ chunkSamples }} 样本/块)，静音检测{{ DROP_SILENCE ? '开启' : '关闭' }}，自适应增益{{ APPLY_CUSTOM_AGC ? '开启' : '关闭' }}，热词{{ recordingPreferences.enableHotwords ? '开启' : '关闭' }}，声纹{{ recordingPreferences.enableSpeaker ? '开启' : '关闭' }}
+                </span>
+              </div>
+              <div class="summary-line debug-json" v-if="showLogs">
+                <strong>配置JSON:</strong>
+                <code>{{ JSON.stringify({ preferences: recordingPreferences }, null, 0) }}</code>
+              </div>
+            </div>
           </div>
         </ACard>
       </div>
@@ -231,12 +260,18 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onBeforeUnmount } from 'vue';
-import { computed } from 'vue';
+import { ref, reactive, computed, onBeforeUnmount } from 'vue';
 import { defHttp } from '@/utils/http';
 
 const wsHost = (import.meta as any).env.VITE_API_PY_WS_HOST || 'ws://localhost:8210';
 const httpHost = wsHost.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:');
+
+const recordingPreferences = reactive({
+  enableHotwords: false,
+  enableSpeaker: false
+});
+
+const gatewaySummary = '直连实时识别 v2 链路';
 
 let websocket: WebSocket | null = null;
 let audioContext: AudioContext | null = null;
@@ -371,7 +406,8 @@ async function refreshWsStatus() {
 async function resolveWsUrl() {
   try {
     const res: any = await defHttp.post({ url: '/voice/gateway/wsRecognize' });
-    const ws = res?.ws || res?.data?.ws;
+    const data = res?.data && typeof res.data === 'object' ? res.data : res;
+    const ws = data?.ws;
     if (ws && typeof ws === 'string') return ws;
   } catch (e: any) {
     addLog('error', `获取网关WS地址失败，降级直连: ${e?.message || e}`);
@@ -445,6 +481,12 @@ function handleWSMessage(data: any) {
   switch (data.type) {
     case 'started':
       addLog('info', `识别开始: ${data.message || ''}`);
+      if (recordingPreferences.enableHotwords) {
+        addLog('info', '热词增强已启用');
+      }
+      if (recordingPreferences.enableSpeaker) {
+        addLog('info', '声纹辅助已启用');
+      }
       break;
     case 'partial':
       if (!isRealtimeRecording.value) break;
@@ -673,7 +715,14 @@ async function startRealtime() {
     scriptProcessor.connect(audioContext.destination);
 
     // 发送开始
-    websocket.send(JSON.stringify({ type: 'start' }));
+    const startPayload: Record<string, any> = { type: 'start' };
+    if (recordingPreferences.enableHotwords) {
+      startPayload.hotwords = true;
+    }
+    if (recordingPreferences.enableSpeaker) {
+      startPayload.speaker = true;
+    }
+    websocket.send(JSON.stringify(startPayload));
     isRealtimeRecording.value = true;
     startTs = Date.now();
     timer = window.setInterval(() => {
@@ -1145,5 +1194,48 @@ onBeforeUnmount(() => {
 }
 :deep(body[arco-theme="dark"]) .voice-identify-container .volume-bar {
   background: var(--color-fill-3);
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-item label {
+  font-size: 14px;
+  color: var(--color-text-2);
+  min-width: 72px;
+}
+
+.config-summary {
+  margin-top: 12px;
+  background: var(--color-fill-2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: grid;
+  gap: 6px;
+  border: 1px dashed var(--color-border);
+}
+
+.summary-line {
+  font-size: 13px;
+  color: var(--color-text-2);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.summary-line strong {
+  color: var(--color-text-1);
+}
+
+.config-summary .debug-json code {
+  font-size: 12px;
+  color: var(--color-text-3);
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  word-break: break-all;
 }
 </style>

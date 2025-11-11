@@ -6,412 +6,205 @@ import json
 import time
 import traceback
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
+from flask import request
 from flask_sock import Sock
 
-from ..logging import key_logger, ws_logger
-from ..session import RealtimeSpeechSession
-from ..state import active_sessions, global_counters
-from ..text_processing import normalize_text
+from server.logging import ws_logger, key_logger
+from server.services.streaming_session import SessionContext, StreamingSessionManager
+from speech_recognition.streaming.engine import StreamingEngine
+from speech_recognition.streaming.loader import ModelLoader
+from speech_recognition.streaming.state import StreamingState
+from speech_recognition.streaming.text_accumulator import TextAccumulator
+
+CONFIG_MESSAGE_TYPES = {"config", "control"}
+
+
+def _apply_config(state: StreamingState, payload: Dict[str, Any]) -> None:
+    if "mode" in payload:
+        state.mode = payload["mode"]
+    if "language" in payload:
+        state.language = payload["language"]
+    if "sample_rate" in payload:
+        try:
+            state.sample_rate = int(payload["sample_rate"])
+        except (TypeError, ValueError):
+            ws_logger.warning("invalid sample_rate in config payload")
+    if "hotwords" in payload:
+        state.hotwords = payload["hotwords"] or {}
+    if "chunk_interval" in payload:
+        try:
+            state.chunk_interval = int(payload["chunk_interval"])
+        except (TypeError, ValueError):
+            ws_logger.warning("invalid chunk_interval in config payload")
+
+
+def _apply_control(
+    state: StreamingState,
+    payload: Dict[str, Any],
+    engine: StreamingEngine,
+    ws,
+    request_id: str,
+) -> None:
+    if "chunk_interval" in payload:
+        try:
+            state.chunk_interval = int(payload["chunk_interval"])
+        except (TypeError, ValueError):
+            ws_logger.warning("invalid chunk_interval in control payload")
+    if "hotwords" in payload:
+        state.hotwords = payload["hotwords"] or {}
+    if "is_speaking" in payload:
+        state.metrics["is_speaking"] = payload["is_speaking"]
+    if payload.get("is_speaking") is False and state.mode != "online":
+        events = engine.flush(state)
+        state.mark_segment_final(state.current_segment_id)
+        _send_events(ws, events, state, request_id)
+
+
+def _run_vad(state: StreamingState, bundle, audio_chunk: bytes) -> bool:
+    if bundle.vad is None:
+        return False
+    try:
+        result = bundle.vad.generate(input=audio_chunk, **state.vad_state)[0]["value"]
+        state.vad_state = result.get("cache", state.vad_state)
+        if result and isinstance(result, list) and result[0][1] != -1:
+            return True
+    except Exception as exc:  # pylint: disable=broad-except
+        ws_logger.warning(f"[ws] VAD 执行失败: {exc}")
+    return False
+
+
+def _send_events(
+    ws,
+    events: Iterable[Dict[str, Any]],
+    state: StreamingState,
+    request_id: str,
+) -> None:
+    # ✅ P0-1 修复：按 revision_id 严格排序，防止前端收到乱序事件导致文本闪回
+    # 将 Iterable 转为 list 以支持排序
+    events_list = list(events or [])
+    events_list.sort(key=lambda e: e.get('text_state', {}).get('revision_id', 0))
+
+    for event in events_list:
+        event.setdefault("session_id", state.session_id)
+        event.setdefault("request_id", request_id)
+
+        # ✅ P0-3 修复：简化 segment_id 逻辑，engine 中已设置，这里仅做兜底
+        # engine.push() 和 flush() 已经通过 ensure_segment() 设置了 segment_id
+        # 这里只在缺失时补充，确保同一句话的 partial 和 correction 使用相同 ID
+        event.setdefault("segment_id", state.ensure_segment())
+        event.setdefault(
+            "mode",
+            event.get("mode") or ("offline" if event.get("type") == "correction" else "realtime"),
+        )
+        timestamps = event.setdefault("timestamps", {})
+        timestamps.setdefault("event_ms", int(time.time() * 1000))
+
+        metadata = event.setdefault("metadata", {})
+        if state.hotwords:
+            metadata.setdefault("hotwords", sorted(state.hotwords.keys()))
+
+        if event.get("is_final"):
+            state.mark_segment_final(segment_id)
+        ws.send(json.dumps(event))
+
+
+def _send_error(ws, code: int, message: str) -> None:
+    ws.send(
+        json.dumps(
+            {
+                "type": "error",
+                "code": code,
+                "message": message,
+            }
+        )
+    )
 
 
 def register_ws_routes(sock: Sock) -> None:
-    @sock.route("/ws/recognize")
-    def ws_recognize(ws):
+    @sock.route("/ws/recognize", methods=["GET"])
+    def recognize(ws):
+        manager = StreamingSessionManager.current()
         session_id = str(uuid.uuid4())[:8]
-        ws_logger.info(f"会话开始: {session_id}")
-        key_logger.info(f"session={session_id} started")
-        session = RealtimeSpeechSession()
-        try:
-            session.set_session(session_id)
-        except Exception:
-            pass
-        try:
-            global_counters["total_connections"] += 1
-            global_counters["active_connections"] += 1
-            active_sessions[session_id] = {
-                "start": int(time.time() * 1000),
-                "chunks": 0,
-                "partials": 0,
-                "finals": 0,
-                "last_active": int(time.time() * 1000),
-                "last_partial": "",
-                "last_final": "",
-            }
-        except Exception:
-            pass
+        request_id = request.args.get("request_id", session_id)
+        key_logger.info(f"request_id={request_id} session={session_id} websocket started")
+        ws_logger.info(f"[ws] 会话开始 session={session_id}")
 
-        message_count = 0
-        audio_chunks_received = 0
-        partial_results_sent = 0
-        final_results_sent = 0
+        model_loader = ModelLoader.current()
+        bundle = model_loader.get_bundle()
+        engine = StreamingEngine()
 
-        while True:
-            try:
+        state = StreamingState(
+            session_id=session_id,
+            request_id=request_id,
+            chunk_interval=40,
+            sample_rate=16000,
+            hotwords={},
+        )
+        accumulator = TextAccumulator()
+        state.text_accumulator = accumulator
+
+        context = SessionContext(
+            session_id=session_id,
+            request_id=request_id,
+            state=state,
+            text_accumulator=accumulator,
+        )
+        manager.create_session(context)
+        state.metrics["started_ms"] = int(time.time() * 1000)
+
+        try:
+            while True:
                 message = ws.receive()
-                message_count += 1
-                try:
-                    global_counters["total_messages"] += 1
-                except Exception:
-                    pass
-
-                if not message:
-                    ws_logger.debug(f"会话{session_id}: 收到空消息，连接关闭")
+                if message is None:
+                    ws_logger.info(f"[ws] session={session_id} connection closed by client")
                     break
 
-                msg = json.loads(message)
-
-                seq_local = None
-                if "data" in msg and isinstance(msg.get("data"), dict):
-                    data_obj = msg["data"]
-                    status = data_obj.get("status")
-                    mapped_type = "chunk"
-                    if status == 0:
-                        mapped_type = "start"
-                    elif status == 2:
-                        mapped_type = "end"
-
-                    fmt = data_obj.get("format", "audio/L16;rate=16000")
-                    fmt_lower = str(fmt).lower()
-                    if "l16" in fmt_lower or "pcm" in fmt_lower:
-                        audio_format = "pcm"
-                    elif "webm" in fmt_lower:
-                        audio_format = "webm"
-                    else:
-                        audio_format = "wav"
-
-                    try:
-                        if "rate=" in fmt_lower:
-                            sr_txt = fmt_lower.split("rate=")[-1].split(";")[0]
-                            sample_rate = int(sr_txt)
-                        else:
-                            sample_rate = int(msg.get("sample_rate", 16000))
-                    except Exception:
-                        sample_rate = 16000
-
-                    msg_type = mapped_type
-                    audio_data = data_obj.get("audio", "")
-                    try:
-                        seq_local = data_obj.get("seq", msg.get("seq"))
-                    except Exception:
-                        seq_local = None
-                else:
-                    msg_type = msg.get("type", "chunk")
-                    audio_data = msg.get("audio", "")
-                    audio_format = msg.get("format", "pcm")
-                    sample_rate = msg.get("sample_rate", 16000)
-                    try:
-                        seq_local = msg.get("seq")
-                    except Exception:
-                        seq_local = None
-
-                ws_logger.debug(
-                    f"会话{session_id}: 收到消息#{message_count}, type={msg_type}, format={audio_format}"
-                )
-
-                if msg_type == "start":
-                    ws_logger.info(f"会话{session_id}: 开始实时识别")
-                    session.reset()
-                    try:
-                        active_sessions[session_id]["last_active"] = int(time.time() * 1000)
-                    except Exception:
-                        pass
-
-                    response = {
-                        "type": "started",
-                        "message": "实时识别已开始",
-                        "timestamp": int(time.time() * 1000),
-                        "session_id": session_id,
-                    }
-                    ws.send(json.dumps(response))
-                    ws_logger.debug(f"会话{session_id}: 发送started消息")
-                    continue
-
-                if msg_type == "end":
-                    ws_logger.info(f"会话{session_id}: 结束实时识别，处理最终结果")
-                    key_logger.info(f"session={session_id} end requested")
-
-                    final_sentence = None
-                    final_meta: Dict[str, Any] = {}
-                    if session.full_sentence:
-                        payload = session.finalize_current_sentence()
-                        if isinstance(payload, str):
-                            final_sentence = normalize_text(payload)
-                            final_meta = {"text": final_sentence}
-                        elif isinstance(payload, dict):
-                            final_meta = payload
-                            final_sentence = normalize_text(payload.get("text", ""))
-                    elif session.audio_buffer.size > 0:
-                        try:
-                            last_text = session.get_final_result()
-                            if last_text and last_text.strip():
-                                session.full_sentence = last_text.strip()
-                                payload = session.finalize_current_sentence()
-                                if isinstance(payload, str):
-                                    final_sentence = normalize_text(payload)
-                                    final_meta = {"text": final_sentence}
-                                elif isinstance(payload, dict):
-                                    final_meta = payload
-                                    final_sentence = normalize_text(payload.get("text", ""))
-                        except Exception:
-                            pass
-
-                    if not final_sentence:
-                        fallback = session.full_sentence.strip() if session.full_sentence else ""
-                        if not fallback and len(session.confirmed_sentences) > 0:
-                            fallback = session.confirmed_sentences[-1].strip()
-                        if fallback:
-                            final_sentence = normalize_text(fallback)
-                            final_meta = {"text": final_sentence}
-
-                    if final_sentence:
-                        if session._is_duplicate_final(final_sentence):
-                            ws_logger.info(
-                                f"会话{session_id}: 跳过重复final(结束): '{final_sentence}'"
-                            )
-                        else:
-                            segment_id = session._allocate_segment_id()
-                            session._register_final(final_sentence)
-                            final_results_sent += 1
-                            confirmed_join = normalize_text("".join(session.confirmed_sentences))
-                            response = {
-                                "type": "final",
-                                "text": final_sentence,
-                                "index": len(session.confirmed_sentences) - 1,
-                                "timestamp": int(time.time() * 1000),
-                                "is_final": True,
-                                "segment_id": segment_id,
-                                "session_id": session_id,
-                                "offsets": {"start_ms": None, "end_ms": None},
-                                "text_state": {
-                                    "confirmed_text": confirmed_join,
-                                    "candidate_text": "",
-                                    "full_text": confirmed_join,
-                                    "segment_id": segment_id,
-                                    "revision": 0,
-                                },
-                            }
-                            for key in [
-                                "raw_text",
-                                "selected_source",
-                                "streaming_text",
-                                "offline_text",
-                                "segment_seq",
-                                "segment_id_hint",
-                                "auto_correction",
-                                "auto_correction_applied",
-                            ]:
-                                if key in final_meta and final_meta[key] is not None:
-                                    response[key] = final_meta[key]
-                            ws.send(json.dumps(response))
-                            ws_logger.info(
-                                f"会话{session_id}: 发送最终句子#{final_results_sent}: '{final_sentence}', segment_id={segment_id}"
-                            )
-
-                    try:
-                        session.save_original_audio_files()
-                    except Exception:
-                        pass
-
-                    response = {
-                        "type": "session_end",
-                        "message": "识别会话结束",
-                        "total_sentences": len(session.confirmed_sentences),
-                        "timestamp": int(time.time() * 1000),
-                        "session_id": session_id,
-                        "stats": {
-                            "messages_received": message_count,
-                            "audio_chunks_processed": audio_chunks_received,
-                            "partial_results_sent": partial_results_sent,
-                            "final_results_sent": final_results_sent,
-                        },
-                    }
-                    ws.send(json.dumps(response))
-                    ws_logger.info(
-                        f"会话{session_id}: 结束统计 - 消息:{message_count}, 音频块:{audio_chunks_received}, 实时:{partial_results_sent}, 最终:{final_results_sent}"
+                if isinstance(message, (bytes, bytearray)):
+                    ws_logger.debug(
+                        f"[ws] session={session_id} received binary chunk (len={len(message)})"
                     )
-                    break
-
-                if msg_type == "reset":
-                    ws_logger.info(f"会话{session_id}: 重置会话状态")
-                    session.reset()
-                    response = {
-                        "type": "reset_confirm",
-                        "message": "会话状态已重置",
-                        "timestamp": int(time.time() * 1000),
-                    }
-                    ws.send(json.dumps(response))
-                    ws_logger.debug(f"会话{session_id}: 发送reset_confirm消息")
+                    speech_end = _run_vad(state, bundle, message)
+                    events = engine.push(message, state)
+                    _send_events(ws, events, state, request_id)
+                    if speech_end and state.mode != "online":
+                        _apply_control(state, {"is_speaking": False}, engine, ws, request_id)
                     continue
 
-                if msg_type == "ping":
-                    try:
-                        pong = {
-                            "type": "pong",
-                            "ts": msg.get("ts", int(time.time() * 1000)),
-                            "timestamp": int(time.time() * 1000),
-                        }
-                        ws.send(json.dumps(pong))
-                    except Exception:
-                        pass
-                    continue
-
-                if msg_type == "chunk":
-                    if audio_data:
-                        audio_chunks_received += 1
-                        ws_logger.trace(f"会话{session_id}: 处理音频块#{audio_chunks_received}")
-
-                        session.add_audio_chunk(audio_data, audio_format, sample_rate, seq_local)
-                        try:
-                            global_counters["total_chunks"] += 1
-                            active_sessions[session_id]["chunks"] += 1
-                            active_sessions[session_id]["last_active"] = int(time.time() * 1000)
-                        except Exception:
-                            pass
-
-                        sentence_completed = session.check_sentence_complete()
-                        if sentence_completed:
-                            final_payload = session.finalize_current_sentence()
-                            if isinstance(final_payload, str):
-                                final_text = normalize_text(final_payload)
-                                final_meta: Dict[str, Any] = {"text": final_text}
-                            elif isinstance(final_payload, dict):
-                                final_meta = final_payload
-                                final_text = normalize_text(final_payload.get("text", ""))
-                            else:
-                                final_text = ""
-                                final_meta = {}
-
-                            if final_text and len(final_text.strip()) >= 2:
-                                if session._is_duplicate_final(final_text):
-                                    ws_logger.info(
-                                        f"会话{session_id}: 跳过重复final: '{final_text}'"
-                                    )
-                                else:
-                                    segment_id = session._allocate_segment_id()
-                                    session._register_final(final_text)
-                                    final_results_sent += 1
-                                    confirmed_join = normalize_text("".join(session.confirmed_sentences))
-                                    response = {
-                                        "type": "final",
-                                        "text": final_text,
-                                        "index": len(session.confirmed_sentences) - 1,
-                                        "timestamp": int(time.time() * 1000),
-                                        "is_final": True,
-                                        "segment_id": segment_id,
-                                        "session_id": session_id,
-                                        "offsets": {"start_ms": None, "end_ms": None},
-                                        "text_state": {
-                                            "confirmed_text": confirmed_join,
-                                            "candidate_text": "",
-                                            "full_text": confirmed_join,
-                                            "segment_id": segment_id,
-                                            "revision": 0,
-                                        },
-                                    }
-                                    if isinstance(final_meta, dict):
-                                        for key in [
-                                            "raw_text",
-                                            "selected_source",
-                                            "streaming_text",
-                                            "offline_text",
-                                            "segment_seq",
-                                            "segment_id_hint",
-                                            "auto_correction",
-                                            "auto_correction_applied",
-                                        ]:
-                                            if key in final_meta and final_meta[key] is not None:
-                                                response[key] = final_meta[key]
-                                    ws.send(json.dumps(response))
-                                    ws_logger.info(
-                                        f"会话{session_id}: 句子完成#{final_results_sent}: '{final_text}', segment_id={segment_id}"
-                                    )
-                                    try:
-                                        global_counters["total_finals"] += 1
-                                        active_sessions[session_id]["finals"] += 1
-                                        active_sessions[session_id]["last_final"] = final_text
-                                        key_logger.info(
-                                            f"session={session_id} final id={segment_id}: '{final_text}'"
-                                        )
-                                    except Exception:
-                                        pass
-
-                        partial_result = session.get_partial_result()
-                        if partial_result:
-                            partial_results_sent += 1
-                            response = {
-                                "type": "partial",
-                                "text": partial_result["text"],
-                                "confidence": partial_result.get("confidence", 0.0),
-                                "words": partial_result.get("words", []),
-                                "timestamp": int(time.time() * 1000),
-                                "processing_time_ms": partial_result.get(
-                                    "processing_time_ms", 0
-                                ),
-                                "is_final": False,
-                                "session_id": session_id,
-                                "text_state": partial_result.get("text_state"),
-                            }
-                            if "segment_id" in partial_result:
-                                response["segment_id"] = partial_result["segment_id"]
-                            if "revision" in partial_result:
-                                response["revision"] = partial_result["revision"]
-                            if "combined_text" in partial_result:
-                                response["combined_text"] = partial_result["combined_text"]
-                            if "raw_text" in partial_result:
-                                response["raw_text"] = partial_result["raw_text"]
-                            ws.send(json.dumps(response))
-                            ws_logger.debug(
-                                f"会话{session_id}: 发送实时结果#{partial_results_sent}: '{partial_result['text']}' (置信度: {partial_result.get('confidence', 0):.3f})"
-                            )
-                            try:
-                                global_counters["total_partials"] += 1
-                                active_sessions[session_id]["partials"] += 1
-                                active_sessions[session_id]["last_partial"] = (
-                                    partial_result.get("combined_text")
-                                    or partial_result["text"]
-                                )
-                            except Exception:
-                                pass
-                    else:
-                        ws_logger.warning(f"会话{session_id}: 收到chunk消息但无音频数据")
-
-            except json.JSONDecodeError as exc:
-                ws_logger.error(f"会话{session_id}: JSON解析失败: {exc}")
-                error_response = {
-                    "type": "error",
-                    "message": f"消息格式错误: {exc}",
-                    "timestamp": int(time.time() * 1000),
-                }
-                ws.send(json.dumps(error_response))
-
-            except Exception as exc:
-                error_info = traceback.format_exc()
-                ws_logger.error(f"会话{session_id}: WebSocket错误详情:\n{error_info}")
-                error_response = {
-                    "type": "error",
-                    "message": f"识别错误: {exc}",
-                    "timestamp": int(time.time() * 1000),
-                }
                 try:
-                    ws.send(json.dumps(error_response))
-                except Exception:
-                    ws_logger.error(f"会话{session_id}: 无法发送错误消息，连接可能已断开")
-                break
+                    payload = json.loads(message)
+                except json.JSONDecodeError:
+                    ws_logger.warning(f"[ws] session={session_id} invalid JSON payload")
+                    _send_error(ws, 440001, "invalid json payload")
+                    continue
 
-        try:
-            session.save_original_audio_files()
-        except Exception:
-            pass
+                message_type = payload.get("type")
+                if message_type in CONFIG_MESSAGE_TYPES:
+                    ws_logger.debug(
+                        f"[ws] session={session_id} received config/control: {payload}"
+                    )
+                    _apply_config(state, payload)
+                    if message_type == "control":
+                        _apply_control(state, payload, engine, ws, request_id)
+                    continue
 
-        ws_logger.info(f"会话{session_id}: WebSocket连接关闭")
-        key_logger.info(f"session={session_id} closed")
-        try:
-            global_counters["active_connections"] = max(
-                0, global_counters["active_connections"] - 1
+                if message_type == "ping":
+                    ws.send(json.dumps({"type": "pong", "ts": payload.get("ts")}))
+                    continue
+
+                ws_logger.warning(
+                    f"[ws] session={session_id} unsupported message type: {message_type}"
+                )
+                _send_error(ws, 440001, "unsupported message type")
+        except Exception as exc:  # pylint: disable=broad-except
+            ws_logger.error(
+                f"[ws] session={session_id} exception: {exc}\n{traceback.format_exc()}"
             )
-            if session_id in active_sessions:
-                del active_sessions[session_id]
-        except Exception:
-            pass
+            _send_error(ws, 50001, "internal server error")
+        finally:
+            events = engine.flush(state)
+            _send_events(ws, events, state, request_id)
+            manager.close_session(session_id)
+            ws_logger.info(f"[ws] 会话结束 session={session_id}")
+            key_logger.info(f"request_id={request_id} session={session_id} websocket closed")

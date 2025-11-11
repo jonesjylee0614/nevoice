@@ -61,14 +61,19 @@ func (s *Index) Check_Captcha(c *gin.Context) {
 func (s *Index) Login(c *gin.Context) {
 	login := gf.ReqBody(c, &dto.Login{})
 
-	decryptStr, err := cryptox.AesDecrypt(login.EncryptStr, []byte(login.Check.Secret))
-	assert.ErrIsNilAppendErr(err, "加密信息错误: %s")
+	// 保留加密解密逻辑，但跳过验证码检查
+	if login.EncryptStr != "" && login.Check != nil && login.Check.Secret != "" {
+		// 使用原来的加密传输方式，但不检查验证码
+		decryptStr, err := cryptox.AesDecrypt(login.EncryptStr, []byte(login.Check.Secret))
+		assert.ErrIsNilAppendErr(err, "加密信息错误: %s")
 
-	err = json.Unmarshal([]byte(decryptStr), login)
-	assert.ErrIsNilAppendErr(err, "json转换出错: %s")
-	// 检查验证码正确性
-	checkRes := s.CaptchaService.Check(c.Request.Context(), login.Check)
-	assert.IsTrue(checkRes, "验证码校验失败")
+		err = json.Unmarshal([]byte(decryptStr), login)
+		assert.ErrIsNilAppendErr(err, "json转换出错: %s")
+		
+		// 跳过验证码检查
+		// checkRes := s.CaptchaService.Check(c.Request.Context(), login.Check)
+		// assert.IsTrue(checkRes, "验证码校验失败")
+	}
 
 	cond := base.NewCond()
 	cond.Where(true, "username", login.UserName)

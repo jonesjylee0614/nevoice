@@ -14,7 +14,9 @@ tests/
 │   ├── common.js          # 共用JavaScript函数
 │   └── common.css         # 共用样式
 ├── pages/                 # 专项测试页面
-│   ├── voice-test.html    # 语音接口测试
+│   ├── voice-test.html    # 语音注册接口测试
+│   ├── speech-recognition-test.html # 传统实时/离线识别测试
+│   ├── realtime-correction-demo.html # 流式识别 + 自动纠错演示
 │   └── embedding-test.html # Embedding接口测试
 ├── test_api.sh           # Shell脚本测试
 ├── test_page.html        # 原始测试页面（现已重构）
@@ -64,6 +66,12 @@ tests/
 - 在线语音识别接口测试
 - 实时录音识别功能
 - 支持多种音频格式和采样率
+
+**实时纠错演示页面** (`pages/realtime-correction-demo.html`):
+- 聚焦 FunASR 重构后的实时识别 + 智能纠错链路
+- 展示候选增量、最终确认、纠错轨迹三面板
+- 内建日志面板、Ping 检测与录音质量（RMS）反馈
+- 适合演示新版 WebSocket `/ws/recognize` 流程
 
 **Embedding测试页面**:
 - 预设测试数据（简单、复杂、中文、医学）

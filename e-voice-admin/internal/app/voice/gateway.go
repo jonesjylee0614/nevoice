@@ -52,17 +52,17 @@ func (g *Gateway) VoiceRecognizeOnline(c *gin.Context) {
 }
 
 // WSRecognize 代理 WebSocket /voice/gateway/ws/recognize -> {py}/ws/recognize
-// 采用 101 切换协议的原始代理，前端可统一走本域名。
 // 兼容前端 '/voice/gateway/wsRecognize' 路径
 func (g *Gateway) WsRecognize(c *gin.Context) {
-    // 简化实现：返回目标WS地址，前端据此直连，避免在此实现复杂的WS中继
-    // 若需要真正的WS反向代理，可引入 gorilla/websocket 与 fasthttp/websocket 进行中继
     py := config.Inst.App.Micro[pyVoiceServer].Host
     u, _ := url.Parse(py)
     scheme := "ws"
     if strings.HasPrefix(u.Scheme, "https") { scheme = "wss" }
-    ws := scheme + "://" + u.Host + "/ws/recognize"
-    results.ResObj(c, gin.H{"ws": ws}, nil)
+
+    path := "/ws/recognize"
+
+    ws := scheme + "://" + u.Host + path
+    results.ResObj(c, gin.H{"ws": ws, "path": path, "version": "2"}, nil)
 }
 
 // Perms 声明需要鉴权的接口，可按需补充

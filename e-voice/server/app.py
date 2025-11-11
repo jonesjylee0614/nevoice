@@ -23,6 +23,7 @@ from .routes.socketio_events import register_socketio_events
 from .routes.status import create_status_blueprint
 from .routes.voice import create_voice_blueprint
 from .routes.ws import register_ws_routes
+from speech_recognition.streaming.loader import ModelLoader
 
 
 def create_app() -> Tuple[Flask, SocketIO, Sock]:
@@ -40,6 +41,7 @@ def create_app() -> Tuple[Flask, SocketIO, Sock]:
 
     voice_conf = conf["voice"]
     init_audio_utils(voice_conf)
+    ModelLoader.current().load()
 
     app.register_blueprint(create_basic_blueprint())
     app.register_blueprint(create_voice_blueprint(voice_conf))
@@ -48,8 +50,8 @@ def create_app() -> Tuple[Flask, SocketIO, Sock]:
     app.register_blueprint(create_hotword_blueprint())
     app.register_blueprint(create_status_blueprint())
     app.register_blueprint(create_model_blueprint())
+    register_ws_routes(sock)
 
     register_socketio_events(socketio)
-    register_ws_routes(sock)
 
     return app, socketio, sock

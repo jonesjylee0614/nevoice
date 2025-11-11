@@ -1,0 +1,33 @@
+# 实时识别配置
+
+mode:
+  default: "2pass"
+
+audio:
+  sample_rate: 16000
+  chunk_interval_ms: 40
+
+timeouts:
+  idle_audio_timeout_ms: 5000
+  grace_period_ms: 200
+  max_session_ms: 300000
+
+models:
+  vad: "fsmn-vad"
+  online_asr: "paraformer-zh-streaming"
+  # offline_asr 和 itn 模型暂时禁用（这些模型在 ModelScope 上不存在或使用短名称）
+  # 如果需要离线 ASR，可以使用完整的 ModelScope ID
+  # offline_asr: "iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+  offline_asr: ""
+  punc: "ct-punc"
+  # ITN 模型需要使用完整的 ModelScope ID，如：
+  # itn: "damo/speech_inverse_text_processing_fun-text-processing-itn-en"
+  # 中文 ITN 暂时禁用
+  itn: ""
+
+resources:
+  offline_thread_pool: 4
+  device: "auto"  # auto/cpu/gpu
+
+
+

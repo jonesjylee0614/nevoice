@@ -16,6 +16,12 @@ const Navigation = {
             description: '语音注册、声纹识别',
             icon: '🎤'
         },
+        realtimeCorrection: {
+            title: '实时纠错演示',
+            url: 'pages/realtime-correction-demo.html',
+            description: '实时语音识别 + 智能纠错',
+            icon: '✨'
+        },
         speechRecognition: {
             title: '语音识别测试',
             url: 'pages/speech-recognition-test.html',

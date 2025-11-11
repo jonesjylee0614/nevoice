@@ -41,8 +41,6 @@
 -->
       </ASpace>
     </AForm>
-
-    <GoCaptcha ref="captchaRef" v-model:visible="captchaVisible" @success="handleSuccess" />
   </div>
 </template>
 
@@ -52,10 +50,6 @@ import type { ValidatedError } from '@arco-design/web-vue/es/form/interface';
 import type { LoginData } from '@/api/user';
 import { useUserStore } from '@/store';
 import useLoading from '@/hooks/loading';
-import GoCaptcha from '@/components/captcha/go-captcha.vue';
-
-const captchaVisible = ref(false);
-const captchaRef = ref();
 
 const emit = defineEmits(['reback']);
 const router = useRouter();
@@ -79,22 +73,15 @@ async function handleSubmit({
 }) {
   if (loading.value || errors) return;
 
-  captchaVisible.value = true;
-}
-
-const handleSuccess = async (data: any) => {
-  if (loading.value) return;
   setLoading(true);
   try {
     const loginData = {
       ...userInfo,
-      ...data,
       t: new Date().getTime()
     };
     const res = await userStore.login(loginData as LoginData);
     if (!res) {
       console.log(res);
-      captchaRef.value.reset();
       return;
     }
 

@@ -1,4 +1,29 @@
-"""Realtime speech session management."""
+"""
+Realtime speech session management.
+
+⚠️ 【已废弃 / DEPRECATED】2025-11-09
+=====================================
+
+此模块中的 RealtimeSpeechSession 类已被新架构替代，不再在生产环境中使用。
+
+新架构位置：
+- speech_recognition/streaming/engine.py    (StreamingEngine)
+- speech_recognition/streaming/state.py     (StreamingState)
+- speech_recognition/streaming/text_accumulator.py (TextAccumulator)
+- server/routes/ws.py                       (WebSocket 路由)
+
+旧架构问题：
+1. 状态管理复杂，存在多个冗余字段
+2. 缓冲区裁剪逻辑导致"吞字回删"问题
+3. 双模型调用混乱，难以维护
+
+请使用新的 streaming 模块进行开发。此文件仅保留用于：
+- 历史测试（tests/test_session_pipeline.py）
+- 参考对照
+
+如需新功能，请勿修改此文件。
+=====================================
+"""
 
 from __future__ import annotations
 
@@ -42,9 +67,15 @@ except Exception:  # pragma: no cover - 纠错模型不可用时自动降级
 
 class RealtimeSpeechSession:
     """
+    ⚠️ 【已废弃 / DEPRECATED】
     实时语音识别会话类 - 输入法风格（已修复回删问题）
-    
-    特点：
+
+    此类已被新的 StreamingEngine 架构替代，请使用：
+    - speech_recognition.streaming.engine.StreamingEngine
+    - speech_recognition.streaming.state.StreamingState
+    - speech_recognition.streaming.text_accumulator.TextAccumulator
+
+    旧特点（仅供参考）：
     1. 流式处理音频块
     2. 区分"已确认文本"和"候选文本"，避免已确认内容被回删
     3. 智能文本确认机制，基于稳定性和置信度

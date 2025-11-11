@@ -9,6 +9,8 @@ from pathlib import Path
 
 _BASE_DIR = Path(__file__).resolve().parents[1]
 _SERVER_DIR = _BASE_DIR / "server"
+# ✅ 2025-11-09: session.py 已移至废弃代码目录
+_DEPRECATED_DIR = Path(__file__).resolve().parents[2] / "e-voice-deprecated" / "2025-11-09-session-cleanup"
 
 if str(_BASE_DIR) not in sys.path:
     sys.path.insert(0, str(_BASE_DIR))
@@ -83,10 +85,12 @@ if "server.hotwords" not in sys.modules:
     dummy_hotwords.load_hotword_replace_map = lambda: {}
     sys.modules["server.hotwords"] = dummy_hotwords
 
+# ✅ 2025-11-09: 从废弃代码目录加载 session.py
+# 旧架构已被 speech_recognition/streaming/ 替代，此处仅用于历史测试
 _SESSION_SPEC = importlib.util.spec_from_file_location(
     "server.session",
-    _SERVER_DIR / "session.py",
-    submodule_search_locations=[str(_SERVER_DIR)],
+    _DEPRECATED_DIR / "session.py",
+    submodule_search_locations=[str(_DEPRECATED_DIR)],
 )
 assert _SESSION_SPEC and _SESSION_SPEC.loader
 _SESSION_MODULE = importlib.util.module_from_spec(_SESSION_SPEC)
