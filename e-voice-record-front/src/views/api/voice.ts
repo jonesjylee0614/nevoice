@@ -9,3 +9,7 @@ export function register(formData: FormData) {
         }
       })
 }
+
+export function getUserInfo(token: string) {
+    return request.post('/getUserInfo', {token}, {})
+}

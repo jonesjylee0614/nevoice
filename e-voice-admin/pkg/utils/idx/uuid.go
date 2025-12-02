@@ -22,8 +22,8 @@ func Uuid() uuid.UUID {
 	return id
 }
 
-func Sha1(uuidStr string, data []byte) string {
-	space, err := uuid.Parse(uuidStr)
+func Sha1(uuidKey string, data []byte) string {
+	space, err := uuid.Parse(uuidKey)
 	if err != nil {
 		logx.Error("转换uuid字符串出错", err)
 		return ""

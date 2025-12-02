@@ -12,7 +12,9 @@ import (
 	"gofly/pkg/utils/collx"
 	"gofly/pkg/utils/gf"
 	"gofly/pkg/utils/httpclient"
+	"gofly/pkg/utils/idx"
 	"gofly/pkg/utils/jsonx"
+	"gofly/pkg/utils/redis"
 	"gofly/pkg/utils/results"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 
 // 用于自动注册路由
 type Print struct {
+	redis.BaseRedis
 	svc                    *service.VoicePrint                  `inject:""`
 	BusinessAccount        *core_service.BusinessAccount        `inject:""`
 	BusinessAuthRoleAccess *core_service.BusinessAuthRoleAccess `inject:""`
@@ -32,6 +35,7 @@ var (
 
 	// 语音服务配置名
 	pyVoiceServer = "py_voice"
+	recordH5      = "record_h5"
 )
 
 func init() {
@@ -107,7 +111,13 @@ func (s *Print) Del(c *gin.Context) {
 
 // H5url 生成用户h5url /voice/print/h5url
 func (s *Print) H5url(c *gin.Context) {
-	results.ResObj(c, "testurl", nil)
+	req := gf.ReqBody(c, &dto.BaseUserIdReq{})
+
+	token := idx.UuidStr()
+
+	s.RedisClient.Set(c, token, req.UserId.Int64(), 30*time.Minute)
+
+	results.ResObj(c, config.Inst.App.Micro[recordH5].Host+"?token="+token, nil)
 }
 
 // Identify 声纹鉴定 /voice/print/identify

@@ -199,7 +199,7 @@ const fetchData = async () => {
 const copyH5Url = async () => {
   // navigator.clipboard.writeText(url);
   // 调用后端接口生成H5链接并复制到剪贴板
-  const params = formData.value;
+  const params = { userId: formData.value.userId };
   const data = await fetchUserH5Url(params);
   try {
     await navigator.clipboard.writeText(data);

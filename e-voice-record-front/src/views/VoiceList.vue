@@ -21,6 +21,8 @@
 
 <script setup>
 
+import {getUserInfo} from "@/views/api/voice.js";
+
 const router = useRouter()
 const sentences = ref([
   {
@@ -39,6 +41,13 @@ const goToRecord = (id) => {
 }
 
 const onClickLeft = () => history.back();
+
+// 判断url中是否有token参数，有的话就获取参数并请求用户信息
+if (router.currentRoute.value.query.token) {
+    const token = router.currentRoute.value.query.token
+    const data = await getUserInfo(token)
+    console.log(data)
+}
 
 </script>
 

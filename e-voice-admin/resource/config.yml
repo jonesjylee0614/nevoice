@@ -66,6 +66,8 @@ app:
      micro:
           py_voice:
                host: http://127.0.0.1:8210
+          record_h5:
+               host: http://localhost:9527/#/voice-list
 log:
      level: debug  # 日志等级 debug | info | warn | error ，默认 info
      enable-sql-log: true # 是否开启sql日志，报错的日志一直会有，开关不影响
