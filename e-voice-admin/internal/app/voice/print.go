@@ -105,6 +105,11 @@ func (s *Print) Del(c *gin.Context) {
 	results.ResObj(c, m, err)
 }
 
+// H5url 生成用户h5url /voice/print/h5url
+func (s *Print) H5url(c *gin.Context) {
+	results.ResObj(c, "testurl", nil)
+}
+
 // Identify 声纹鉴定 /voice/print/identify
 func (s *Print) Identify(c *gin.Context) {
 	files, _ := gf.ReqMultipartForm(c, "audio")

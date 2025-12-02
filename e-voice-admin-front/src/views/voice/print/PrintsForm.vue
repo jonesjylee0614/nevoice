@@ -10,15 +10,16 @@
   >
     <AForm ref="formRef" :model="formData" auto-label-width>
       <ARow style="margin-bottom: 10px">
-        <ACol :span="16"></ACol>
-        <ACol :span="8" style="text-align: right">
+        <ACol :span="24" style="text-align: right">
           <ASpace>
+            <ALink style="width: 100px" @click="copyH5Url">复制H5链接</ALink>
             <AButton type="primary" @click="fetchData">
               <template #icon>
                 <icon-search />
               </template>
               查询
             </AButton>
+
             <AButton v-perm="[perms.add]" type="primary" @click="addPrint">
               <template #icon>
                 <icon-plus />
@@ -91,7 +92,7 @@ import { Icon } from '@/components/Icon';
 import { BasicModal, useModal, useModalInner } from '@/components/Modal';
 import { printsColumns } from '@/views/voice/print/data';
 import AddForm from './AddForm.vue';
-import { delUserPrint, getUserPrints } from './api';
+import { delUserPrint, fetchUserH5Url, getUserPrints } from './api';
 import type { Pagination } from '/#/global';
 // 按钮权限写到一起
 const perms = {
@@ -193,6 +194,20 @@ const fetchData = async () => {
   } finally {
     setLoading(false);
   }
+};
+
+const copyH5Url = async () => {
+  // navigator.clipboard.writeText(url);
+  // 调用后端接口生成H5链接并复制到剪贴板
+  const params = formData.value;
+  const data = await fetchUserH5Url(params);
+  try {
+    await navigator.clipboard.writeText(data);
+  } catch (e) {
+    Message.success('复制成功');
+    return;
+  }
+  Message.success('复制成功');
 };
 
 const addPrint = () => {

@@ -45,6 +45,12 @@ func Init() {
 			Req(dto.VoiceUserPrintDelReq{}),
 
 		openapi.NewPathDoc().
+			Handler(t.H5url).
+			Name("生成用户h5url").State(1).
+			ReqType(openapi.ReqTypeJson).
+			Req(dto.BaseUserIdReq{}),
+
+		openapi.NewPathDoc().
 			Handler(t.Identify).State(1).
 			Name("声纹鉴定").
 			Note("上传或录制音频,返回声纹鉴定结果及文字信息").

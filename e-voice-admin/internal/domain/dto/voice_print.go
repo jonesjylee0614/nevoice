@@ -13,7 +13,7 @@ type VoicePrintPageReq struct {
 
 type VoiceUserPrintPageReq struct {
 	base.IPage
-	UserId json.JsonInt64 `form:"userId" json:"userId" comment:"用户ID" binding:"required"`
+	BaseUserIdReq
 }
 
 type VoiceUserPrintPageRes struct {
@@ -31,9 +31,13 @@ type VoiceUserPrintPageData struct {
 }
 
 type VoiceUserPrintDelReq struct {
+	BaseUserIdReq
+	DocId string `form:"docId" json:"docId" comment:"声纹ID" binding:"required"`
+}
+
+type BaseUserIdReq struct {
 	// 需要接收前端字符串参数，但是python后端固定需要int64
 	UserId *json.JsonInt64 `form:"userId" json:"userId" comment:"用户ID" binding:"required"`
-	DocId  string          `form:"docId" json:"docId" comment:"声纹ID" binding:"required"`
 }
 
 type VoiceUserPrintIdentifyRes struct {

@@ -4,6 +4,7 @@ export const Api = {
   getUserPrints: '/voice/print/getUserPrints',
   saveUserPrint: '/voice/print/saveUserPrint',
   userIdentify: '/voice/print/identify',
+  fetchUserH5Url: '/voice/print/h5url',
   delUserPrint: '/voice/print/del'
 };
 
@@ -28,6 +29,9 @@ export function userIdentify(params: object) {
     { url: Api.userIdentify, params, headers: { 'Content-Type': 'multipart/form-data' } },
     { errorMessageMode: 'message' }
   );
+}
+export function fetchUserH5Url(params: object) {
+  return defHttp.post({ url: Api.fetchUserH5Url, params }, { errorMessageMode: 'message' });
 }
 // 删除数据
 export function delUserPrint(params: object) {
