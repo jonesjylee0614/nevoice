@@ -53,6 +53,7 @@ func RunServer() {
 	url := fmt.Sprintf("http://%s:%s/%s", ipx.GetOutBoundIP(), config.Inst.App.Port, config.Inst.App.ContextPath)
 
 	frontUrl := fmt.Sprintf("\n ⚡ 前端地址：%s%s", url, "webbusiness")
+	h5Url := fmt.Sprintf("\n ⚡ h5地址：%s%s", url, "webh5")
 
 	// 添加openapi的静态资源
 	apiStr := ""
@@ -69,9 +70,9 @@ func RunServer() {
 
 	logx.Infof(`
  ⚡ 启动App[ %s ]成功，用时：%dms 
- ⚡ 接口地址：%s%s%s
+ ⚡ 接口地址：%s%s%s%s
 `, config.Inst.App.Name, time.Now().UnixMilli()-config.Inst.App.StartTime,
-		url, frontUrl, apiStr)
+		url, frontUrl, h5Url, apiStr)
 
 	if config.Inst.App.IsDev() {
 		logx.Infof("在浏览器访问：http://localhost:" + config.Inst.App.Port + "/common/install/index 进行安装")
