@@ -40,6 +40,7 @@ func InitRouter() *gin.Engine {
 	//a.3.业务后台
 	R.Static(contextPath+"/webadmin", "./resource/webadmin")
 	R.Static(contextPath+"/webbusiness", "./resource/webbusiness")
+	R.Static(contextPath+"/webh5", "./resource/webh5")
 	// 静态文件
 	R.Static(contextPath+"/print_voice", config.Inst.Voice.PrintPath)
 	R.Static(contextPath+"/meeting_voice", config.Inst.Voice.MeetingPath)
