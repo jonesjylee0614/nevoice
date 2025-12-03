@@ -298,11 +298,25 @@ class FunASRStreamer:
             # 记录当前段的起始时间 - 使用实际的音频位置而非 last_segment_end_ms
             # 这样可以准确反映语音在整个音频文件中的位置
             state.current_segment_start_ms = state.total_audio_ms - duration_ms
+            
+            # 计算需要回溯的帧数
+            # beg_bias 表示从当前帧往前数多少帧是语音开始点
             beg_bias = (state.vad_pre_idx - speech_start_i) // duration_ms if duration_ms > 0 else 0
-            frames_pre = state.frames[-beg_bias:] if beg_bias > 0 else []
+            if beg_bias > 0 and beg_bias <= len(state.frames):
+                frames_pre = state.frames[-beg_bias:]
+            else:
+                frames_pre = state.frames[:]  # 使用所有缓存的帧
+            
             state.frames_asr = list(frames_pre)
             # 同时开始收集音频片段
             state.current_segment_audio = list(frames_pre)
+            
+            # 关键日志
+            if len(state.frames) > 0:
+                logger.info(
+                    f"[FunASRStreamer] speech_start: beg_bias={beg_bias}, "
+                    f"frames_pre={len(frames_pre)}, frames={len(state.frames)}"
+                )
         
         # 6. 更新 online_is_final 供下一帧使用（与 FunASR Demo 逻辑一致）
         state.online_is_final = speech_end_i != -1
@@ -341,8 +355,15 @@ class FunASRStreamer:
                 state.frames = []
                 state.vad_cache = {}
             else:
-                # 保留最近 20 帧用于下一段
-                state.frames = state.frames[-20:]
+                # 保留最近帧用于下一段
+                # 增大保留帧数以避免丢失语音开始部分
+                # 原先是20帧(~1.2s)，现在改为50帧(~3s)以容纳较长的静音间隔
+                max_keep_frames = 50
+                if len(state.frames) > max_keep_frames:
+                    state.frames = state.frames[-max_keep_frames:]
+                    logger.debug(
+                        f"[FunASRStreamer] speech_end: truncated frames to {max_keep_frames}"
+                    )
         
         return events
     
@@ -356,6 +377,8 @@ class FunASRStreamer:
         - 触发离线 ASR 进行最终纠错
         - 复位所有缓存
         
+        重要：即使 frames_asr 为空，也检查 frames 中是否有未处理的音频
+        
         Args:
             state: 流式状态对象
             
@@ -368,7 +391,8 @@ class FunASRStreamer:
         logger.info(
             f"[FunASRStreamer] flush called: "
             f"frames={len(state.frames)}, frames_asr={len(state.frames_asr)}, "
-            f"frames_asr_online={len(state.frames_asr_online)}, mode={self.config.mode}"
+            f"frames_asr_online={len(state.frames_asr_online)}, "
+            f"speech_start={state.speech_start}, mode={self.config.mode}"
         )
         
         # 强制触发最终状态
@@ -388,7 +412,22 @@ class FunASRStreamer:
             state.frames_asr_online = []
         
         # 触发离线 ASR 进行最终纠错
-        if state.frames_asr and self.model_asr is not None:
+        # 重要：如果 frames_asr 为空但 frames 有数据，说明有未处理的静音后音频
+        audio_to_process = state.frames_asr if state.frames_asr else state.frames
+        
+        if audio_to_process and self.model_asr is not None:
+            # 如果 frames_asr 为空，使用 frames 作为离线ASR输入
+            if not state.frames_asr and state.frames:
+                logger.info(
+                    f"[FunASRStreamer] flush: frames_asr is empty but frames has {len(state.frames)} chunks, "
+                    f"using frames for offline ASR"
+                )
+                state.frames_asr = list(state.frames)
+                state.current_segment_audio = list(state.frames)
+                # 设置时间起点为上一段结束位置
+                if state.current_segment_start_ms == 0:
+                    state.current_segment_start_ms = state.last_segment_end_ms
+            
             logger.info(
                 f"[FunASRStreamer] flush: running offline ASR with {len(state.frames_asr)} frames"
             )
