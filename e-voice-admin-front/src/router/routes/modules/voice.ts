@@ -62,5 +62,3 @@ const routes: AppRouteRecordRaw[] = [
 ];
 
 export default routes;
-
-

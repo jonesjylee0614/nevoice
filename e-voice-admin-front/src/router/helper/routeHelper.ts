@@ -1,8 +1,9 @@
+import type { RouteRecordNormalized, Router } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import { cloneDeep, omit } from 'lodash-es';
 import { warn } from '@/utils/log';
 import type { AppRouteModule, AppRouteRecordRaw } from '@/router/types';
 import { EXCEPTION_COMPONENT, LAYOUT, getParentLayout } from '@/router/constants';
-import { createRouter, createWebHashHistory, Router, RouteRecordNormalized } from 'vue-router';
 
 export type LayoutMapKey = 'LAYOUT';
 const IFRAME = () => import('@/views/systool/iframe/FrameBlank.vue');

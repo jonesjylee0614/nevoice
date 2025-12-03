@@ -102,7 +102,7 @@ async function handleSubmit({
   } finally {
     setLoading(false);
   }
-};
+}
 </script>
 
 <style lang="less" scoped>

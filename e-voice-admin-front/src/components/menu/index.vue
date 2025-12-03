@@ -46,10 +46,10 @@ export default defineComponent({
       // Trigger router change
       // 当菜单来自服务端时，优先使用 name 跳转，避免相对 path 导致的错误（如 #/account、#/role）
       if (appStore.menuFromServer && item.name) {
-        router.push({ name: item.name as string, query: (route.query as any) });
+        router.push({ name: item.name as string, query: route.query as any });
       } else {
         // 使用路径进行跳转
-        router.push({ path: item.path || '/', query: (route.query as any) });
+        router.push({ path: item.path || '/', query: route.query as any });
       }
     };
     const findMenuOpenKeys = (target: string) => {

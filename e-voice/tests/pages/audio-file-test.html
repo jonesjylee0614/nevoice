@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频文件流式测试 | E-Voice</title>
+    <link rel="stylesheet" href="../components/common.css">
+    <style>
+        .drop-zone {
+            border: 3px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+        }
+        .drop-zone .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+        .drop-zone .text {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+        .drop-zone .hint {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 8px;
+        }
+        
+        .file-info {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .file-info.show {
+            display: block;
+        }
+        .file-info .name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        .file-info .details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .file-info .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .progress-container {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .progress-container.show {
+            display: block;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.1s ease;
+            width: 0%;
+        }
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 8px;
+        }
+        
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            padding: 14px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        .metric-card.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .metric-card.orange {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .metric-card.blue {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .metric-card .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .metric-card .label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .result-panel {
+            min-height: 100px;
+            padding: 16px;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            background: #fafafa;
+            margin-bottom: 16px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+        .result-panel.live {
+            border-color: #667eea;
+            background: linear-gradient(to bottom, #eff6ff, #ffffff);
+        }
+        .result-panel.final {
+            border-color: #38ef7d;
+            background: linear-gradient(to bottom, #f0fdf4, #ffffff);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .tag-mode {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 6px;
+        }
+        .tag-online { background: #dbeafe; color: #1d4ed8; }
+        .tag-offline { background: #dcfce7; color: #15803d; }
+        
+        /* 会议纪要样式 - 语义分段 */
+        .segment-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .segment-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #f8fafc;
+            border-left: 3px solid #16a34a;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .segment-item:last-child {
+            margin-bottom: 0;
+        }
+        .segment-number {
+            display: inline-block;
+            min-width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            background: #16a34a;
+            color: white;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        .segment-pending {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .segment-pending .segment-number {
+            background: #f59e0b;
+        }
+        
+        .sample-files {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .sample-files h4 {
+            margin-bottom: 12px;
+            color: #475569;
+        }
+        .sample-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .sample-btn {
+            padding: 8px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+        .sample-btn:hover {
+            border-color: #667eea;
+            background: #eff6ff;
+        }
+        .sample-btn.loading {
+            opacity: 0.6;
+            cursor: wait;
+        }
+        
+        .config-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .config-row label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .speed-control input[type="range"] {
+            width: 150px;
+        }
+        .speed-value {
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .log-box {
+            height: 180px;
+            overflow-y: auto;
+            font-family: "Menlo", "Consolas", monospace;
+            font-size: 0.8rem;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .log-box .log-info { color: #93c5fd; }
+        .log-box .log-success { color: #86efac; }
+        .log-box .log-warning { color: #fcd34d; }
+        .log-box .log-error { color: #fca5a5; }
+        
+        .waveform-container {
+            height: 60px;
+            background: #0f172a;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .waveform-bar {
+            position: absolute;
+            bottom: 0;
+            width: 2px;
+            background: #667eea;
+            border-radius: 1px 1px 0 0;
+            transition: height 0.05s ease;
+        }
+        .waveform-position {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #f59e0b;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📂 音频文件流式测试</h1>
+            <p>使用预录制的音频文件模拟实时语音流，无需麦克风</p>
+        </div>
+
+        <div class="config-section">
+            <h3>服务器配置</h3>
+            <div class="input-group">
+                <label for="serverEnv">服务环境:</label>
+                <select id="serverEnv" onchange="changeServerEnvironment()">
+                    <option value="localhost-sync" selected>本地同步 ws (localhost:8210)</option>
+                    <option value="localhost-async">本地异步 wss (localhost:10096)</option>
+                    <option value="wsl-sync">WSL同步 ws (172.31.77.180:8210)</option>
+                    <option value="wsl-async">WSL异步 wss (172.31.77.180:10096)</option>
+                    <option value="custom">自定义</option>
+                </select>
+                <input type="text" id="serverUrl" value="ws://localhost:8210" placeholder="输入 WebSocket 地址">
+                <button class="btn" onclick="checkConnection()">检查连接</button>
+                <span id="serverStatus" class="status-indicator status-checking">未检查</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-post">FILE</span>
+                        音频文件测试
+                    </div>
+                </div>
+                <div class="api-body">
+                    <!-- 文件拖放区 -->
+                    <div class="drop-zone" id="dropZone" onclick="document.getElementById('audioFile').click()">
+                        <div class="icon">📁</div>
+                        <div class="text">拖放音频文件到这里，或点击选择</div>
+                        <div class="hint">支持 WAV, MP3, M4A, FLAC 等格式</div>
+                        <input type="file" id="audioFile" accept="audio/*" style="display: none" onchange="handleFileSelect(this)">
+                    </div>
+
+                    <!-- 示例文件 -->
+                    <div class="sample-files">
+                        <h4>📎 示例音频文件</h4>
+                        <div class="sample-list" id="sampleList">
+                            <button class="sample-btn" onclick="loadSampleAudio('resource/asr_speaker_demo.wav')">asr_speaker_demo.wav</button>
+                            <button class="sample-btn" onclick="loadSampleAudio('resource/1分20.wav')">1分20.wav</button>
+                            <button class="sample-btn" onclick="loadSampleAudio('resource/audio_data/0/014.wav')">014.wav</button>
+                            <button class="sample-btn" onclick="loadSampleAudio('resource/audio_data/0/015.wav')">015.wav</button>
+                            <button class="sample-btn" onclick="generateTestTone()">🔊 生成测试音</button>
+                        </div>
+                    </div>
+
+                    <!-- 文件信息 -->
+                    <div class="file-info" id="fileInfo">
+                        <div class="name" id="fileName">-</div>
+                        <div class="details">
+                            <div class="detail-item">⏱️ <span id="fileDuration">-</span></div>
+                            <div class="detail-item">📊 <span id="fileSampleRate">-</span></div>
+                            <div class="detail-item">📦 <span id="fileSize">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 配置选项 -->
+                    <div class="config-row">
+                        <label>识别模式:</label>
+                        <label><input type="radio" name="mode" value="2pass" checked> 2pass (推荐)</label>
+                        <label><input type="radio" name="mode" value="online"> 仅在线</label>
+                        <label><input type="radio" name="mode" value="offline"> 仅离线</label>
+                    </div>
+                    <div class="config-row">
+                        <label><input type="checkbox" id="optItn" checked> 启用 ITN</label>
+                        <label>帧大小: <select id="chunkSizeSelect">
+                            <option value="960" selected>960 (60ms)</option>
+                            <option value="640">640 (40ms)</option>
+                            <option value="1280">1280 (80ms)</option>
+                        </select></label>
+                    </div>
+
+                    <!-- 播放速度控制 -->
+                    <div class="speed-control">
+                        <label>发送速度:</label>
+                        <input type="range" id="speedSlider" min="0.5" max="10" step="0.5" value="1" onchange="updateSpeedValue()">
+                        <span class="speed-value" id="speedValue">1x</span>
+                        <span style="font-size: 0.85rem; color: #64748b;">(1x = 实时, >1x = 加速)</span>
+                    </div>
+
+                    <!-- 波形显示 -->
+                    <div class="waveform-container" id="waveform">
+                        <div class="waveform-position" id="waveformPosition" style="left: 0"></div>
+                    </div>
+
+                    <!-- 进度条 -->
+                    <div class="progress-container" id="progressContainer">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="progressTime">0:00 / 0:00</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- 控制按钮 -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                        <button class="btn" id="startBtn" onclick="startStreaming()" disabled style="background: #16a34a;">▶ 开始流式发送</button>
+                        <button class="btn btn-danger" id="stopBtn" onclick="stopStreaming()" disabled>■ 停止</button>
+                        <button class="btn" id="resetBtn" onclick="resetTest()">🔄 重置</button>
+                        <button class="btn" onclick="clearStoredAudio()" style="background: #64748b;">🗑️ 清除缓存</button>
+                    </div>
+
+                    <!-- 统计指标 -->
+                    <div class="metric-grid">
+                        <div class="metric-card">
+                            <div class="value" id="metricChunks">0</div>
+                            <div class="label">发送帧数</div>
+                        </div>
+                        <div class="metric-card green">
+                            <div class="value" id="metricLatency">-</div>
+                            <div class="label">响应延迟 (ms)</div>
+                        </div>
+                        <div class="metric-card orange">
+                            <div class="value" id="metricBytes">0</div>
+                            <div class="label">发送字节 (KB)</div>
+                        </div>
+                        <div class="metric-card blue">
+                            <div class="value" id="metricPartials">0</div>
+                            <div class="label">partial 结果</div>
+                        </div>
+                    </div>
+
+                    <!-- 识别结果 -->
+                    <h4>🎯 实时识别（在线流式）</h4>
+                    <div class="result-panel live" id="liveResult">
+                        <em style="color: #94a3b8;">等待开始...</em>
+                    </div>
+
+                    <h4>📝 会议纪要（语义分段）</h4>
+                    <div class="result-panel final" id="finalResult">
+                        <ul class="segment-list" id="segmentList"></ul>
+                        <em id="emptyHint" style="color: #94a3b8;">等待离线纠错结果...</em>
+                    </div>
+                </div>
+            </div>
+
+            <div class="api-section">
+                <div class="api-header">
+                    <div class="api-title">
+                        <span class="api-method method-log">LOG</span>
+                        事件日志
+                    </div>
+                </div>
+                <div class="api-body">
+                    <div style="margin-bottom: 10px;">
+                        <label><input type="checkbox" id="autoScroll" checked> 自动滚动</label>
+                        <button class="btn" onclick="clearLog()" style="margin-left: 10px;">清空日志</button>
+                    </div>
+                    <div class="log-box" id="logBox">[系统] 页面加载完成，请选择音频文件...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../components/config.js"></script>
+    <script src="../components/common.js"></script>
+    <script>
+        // ============ 全局状态 ============
+        let audioContext = null;
+        let audioBuffer = null;
+        let pcmData = null;
+        let websocket = null;
+        let isStreaming = false;
+        let streamingInterval = null;
+
+        // 统计
+        let stats = {
+            chunksSent: 0,
+            bytesSent: 0,
+            partialCount: 0,
+            latencies: [],
+            lastSendTime: 0
+        };
+
+        // 累积文本状态（参考 FunASR 官方 funasr_wss_client.py）
+        let textState = {
+            text_print_2pass_online: '',   // 在线流式累积
+            text_print_2pass_offline: '',  // 离线纠错累积
+            semantic_segments: []          // 语义分段列表
+        };
+
+        const SAMPLE_RATE = 16000;
+        const STORAGE_KEY = 'evoice_last_audio';
+        const MAX_STORAGE_SIZE = 5 * 1024 * 1024; // 5MB 限制
+
+        // ============ 本地存储 ============
+        async function saveAudioToStorage(file, arrayBuffer) {
+            try {
+                // 检查文件大小
+                if (arrayBuffer.byteLength > MAX_STORAGE_SIZE) {
+                    log('warning', `文件过大 (${(arrayBuffer.byteLength/1024/1024).toFixed(1)}MB)，不保存到本地存储`);
+                    return;
+                }
+
+                // 转换为 Base64
+                const base64 = arrayBufferToBase64(arrayBuffer);
+                
+                const audioData = {
+                    name: file.name,
+                    type: file.type || 'audio/wav',
+                    size: arrayBuffer.byteLength,
+                    data: base64,
+                    savedAt: Date.now()
+                };
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(audioData));
+                log('info', `音频已保存到本地存储: ${file.name}`);
+            } catch (e) {
+                log('warning', `保存到本地存储失败: ${e.message}`);
+                // 如果存储满了，清理旧数据
+                try {
+                    localStorage.removeItem(STORAGE_KEY);
+                } catch (_) {}
+            }
+        }
+
+        function loadAudioFromStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return null;
+
+                const audioData = JSON.parse(stored);
+                if (!audioData.data || !audioData.name) return null;
+
+                // 转换 Base64 回 ArrayBuffer
+                const arrayBuffer = base64ToArrayBuffer(audioData.data);
+                
+                return {
+                    name: audioData.name,
+                    type: audioData.type,
+                    size: audioData.size,
+                    arrayBuffer: arrayBuffer,
+                    savedAt: audioData.savedAt
+                };
+            } catch (e) {
+                log('warning', `从本地存储加载失败: ${e.message}`);
+                return null;
+            }
+        }
+
+        function clearStoredAudio() {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+                log('info', '已清除本地存储的音频');
+            } catch (e) {}
+        }
+
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // ============ 文件处理 ============
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+            loadAudioFile(file);
+        }
+
+        async function loadAudioFile(file, arrayBuffer = null) {
+            log('info', `加载文件: ${file.name}`);
+            
+            try {
+                // 创建 AudioContext
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // 读取文件（如果没有提供 arrayBuffer）
+                if (!arrayBuffer) {
+                    arrayBuffer = await file.arrayBuffer();
+                    // 保存到本地存储
+                    await saveAudioToStorage(file, arrayBuffer);
+                }
+
+                // 解码音频
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+
+                // 转换为 16kHz 单声道 PCM
+                pcmData = convertToPCM(audioBuffer);
+
+                // 显示文件信息
+                showFileInfo(file.name, audioBuffer.duration, audioBuffer.sampleRate, pcmData.byteLength);
+                
+                // 绘制波形
+                drawWaveform(pcmData);
+
+                // 启用开始按钮
+                document.getElementById('startBtn').disabled = false;
+                
+                log('success', `音频加载完成: ${audioBuffer.duration.toFixed(2)}s, ${(pcmData.byteLength/1024).toFixed(1)}KB`);
+
+            } catch (e) {
+                log('error', `加载失败: ${e.message}`);
+            }
+        }
+
+        function convertToPCM(buffer) {
+            // 获取单声道数据
+            let channelData = buffer.getChannelData(0);
+            
+            // 如果采样率不是 16kHz，需要重采样
+            if (buffer.sampleRate !== SAMPLE_RATE) {
+                const ratio = SAMPLE_RATE / buffer.sampleRate;
+                const newLength = Math.floor(channelData.length * ratio);
+                const resampled = new Float32Array(newLength);
+                
+                for (let i = 0; i < newLength; i++) {
+                    const srcIndex = i / ratio;
+                    const srcIndexFloor = Math.floor(srcIndex);
+                    const srcIndexCeil = Math.min(srcIndexFloor + 1, channelData.length - 1);
+                    const t = srcIndex - srcIndexFloor;
+                    resampled[i] = channelData[srcIndexFloor] * (1 - t) + channelData[srcIndexCeil] * t;
+                }
+                channelData = resampled;
+            }
+
+            // 转换为 Int16
+            const pcm = new Int16Array(channelData.length);
+            for (let i = 0; i < channelData.length; i++) {
+                const s = Math.max(-1, Math.min(1, channelData[i]));
+                pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+            }
+
+            return pcm.buffer;
+        }
+
+        function showFileInfo(name, duration, sampleRate, size) {
+            document.getElementById('fileInfo').classList.add('show');
+            document.getElementById('fileName').textContent = name;
+            document.getElementById('fileDuration').textContent = formatTime(duration);
+            document.getElementById('fileSampleRate').textContent = `${sampleRate} Hz`;
+            document.getElementById('fileSize').textContent = `${(size/1024).toFixed(1)} KB`;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // ============ 波形绘制 ============
+        function drawWaveform(pcmBuffer) {
+            const container = document.getElementById('waveform');
+            const width = container.offsetWidth;
+            const numBars = Math.min(200, width / 3);
+            
+            // 清除旧的波形
+            const oldBars = container.querySelectorAll('.waveform-bar');
+            oldBars.forEach(bar => bar.remove());
+
+            const samples = new Int16Array(pcmBuffer);
+            const samplesPerBar = Math.floor(samples.length / numBars);
+
+            for (let i = 0; i < numBars; i++) {
+                let sum = 0;
+                for (let j = 0; j < samplesPerBar; j++) {
+                    sum += Math.abs(samples[i * samplesPerBar + j] || 0);
+                }
+                const avg = sum / samplesPerBar / 32768;
+                const height = Math.max(2, avg * 55);
+
+                const bar = document.createElement('div');
+                bar.className = 'waveform-bar';
+                bar.style.left = `${(i / numBars) * 100}%`;
+                bar.style.height = `${height}px`;
+                container.appendChild(bar);
+            }
+        }
+
+        function updateWaveformPosition(progress) {
+            const position = document.getElementById('waveformPosition');
+            position.style.left = `${progress * 100}%`;
+        }
+
+        // ============ 示例音频 ============
+        async function loadSampleAudio(path) {
+            const btn = event.target;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                log('info', `加载示例: ${path}`);
+                
+                // 构建正确的 URL - 使用服务器的静态文件路径
+                const serverUrl = document.getElementById('serverUrl').value.replace('ws://', 'http://').replace('wss://', 'https://');
+                // 移除端口后的路径，然后添加资源路径
+                const baseUrl = serverUrl.replace(/\/ws\/.*$/, '').replace(/\/$/, '');
+                const url = `${baseUrl}/${path}`;
+                
+                log('info', `请求 URL: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const blob = await response.blob();
+                const file = new File([blob], path.split('/').pop(), { type: 'audio/wav' });
+                await loadAudioFile(file);
+                
+                log('success', `示例音频加载成功: ${path}`);
+                
+            } catch (e) {
+                log('warning', `从服务器加载失败: ${e.message}`);
+                log('info', '请手动选择文件，或确保服务器已启动');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        function generateTestTone() {
+            log('info', '生成 440Hz 测试音 (3秒)');
+            
+            const duration = 3;
+            const frequency = 440;
+            const numSamples = SAMPLE_RATE * duration;
+            
+            const samples = new Float32Array(numSamples);
+            for (let i = 0; i < numSamples; i++) {
+                samples[i] = Math.sin(2 * Math.PI * frequency * i / SAMPLE_RATE) * 0.5;
+            }
+
+            // 转换为 Int16
+            const pcm = new Int16Array(numSamples);
+            for (let i = 0; i < numSamples; i++) {
+                pcm[i] = samples[i] * 32767;
+            }
+
+            pcmData = pcm.buffer;
+            showFileInfo('test_tone_440hz.wav', duration, SAMPLE_RATE, pcmData.byteLength);
+            drawWaveform(pcmData);
+            document.getElementById('startBtn').disabled = false;
+            
+            log('success', '测试音生成完成');
+        }
+
+        // ============ WebSocket 流式发送 ============
+        async function startStreaming() {
+            if (!pcmData) {
+                log('error', '请先选择音频文件');
+                return;
+            }
+
+            if (isStreaming) {
+                log('warning', '已在发送中');
+                return;
+            }
+
+            // 连接 WebSocket
+            const serverUrl = document.getElementById('serverUrl').value;
+            const wsUrl = serverUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+            const fullUrl = `${wsUrl}/ws/recognize`;
+
+            log('info', `连接到: ${fullUrl}`);
+
+            try {
+                websocket = new WebSocket(fullUrl);
+                websocket.binaryType = 'arraybuffer';
+
+                websocket.onopen = () => {
+                    log('success', 'WebSocket 连接成功');
+                    beginStreaming();
+                };
+
+                websocket.onmessage = (event) => {
+                    handleMessage(JSON.parse(event.data));
+                };
+
+                websocket.onerror = (e) => {
+                    log('error', 'WebSocket 错误');
+                };
+
+                websocket.onclose = (e) => {
+                    log('warning', `连接关闭: code=${e.code}`);
+                    stopStreaming();
+                };
+
+            } catch (e) {
+                log('error', `连接失败: ${e.message}`);
+            }
+        }
+
+        function beginStreaming() {
+            isStreaming = true;
+            
+            // 重置统计
+            stats = {
+                chunksSent: 0,
+                bytesSent: 0,
+                partialCount: 0,
+                latencies: [],
+                lastSendTime: 0
+            };
+            // 重置文本状态
+            textState = {
+                text_print_2pass_online: '',
+                text_print_2pass_offline: '',
+                semantic_segments: []
+            };
+            updateMetrics();
+
+            // 清空结果
+            document.getElementById('liveResult').innerHTML = '<em style="color: #94a3b8;">接收中...</em>';
+            document.getElementById('segmentList').innerHTML = '';
+            document.getElementById('emptyHint').style.display = 'block';
+            document.getElementById('emptyHint').textContent = '等待离线纠错结果...';
+
+            // 更新 UI
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('progressContainer').classList.add('show');
+
+            // 发送配置
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const config = {
+                chunk_size: [5, 10, 5],
+                chunk_interval: 10,
+                wav_name: 'file-test',
+                is_speaking: true,
+                mode: mode,
+                itn: document.getElementById('optItn').checked,
+                sample_rate: SAMPLE_RATE
+            };
+            websocket.send(JSON.stringify(config));
+            log('info', `发送配置: mode=${mode}`);
+
+            // 开始流式发送
+            const chunkSize = parseInt(document.getElementById('chunkSizeSelect').value);
+            const chunkBytes = chunkSize * 2;  // 16-bit = 2 bytes
+            const speed = parseFloat(document.getElementById('speedSlider').value);
+            const intervalMs = (chunkSize / SAMPLE_RATE * 1000) / speed;
+
+            const pcmArray = new Uint8Array(pcmData);
+            const totalChunks = Math.ceil(pcmArray.length / chunkBytes);
+            let currentChunk = 0;
+
+            log('info', `开始发送: ${totalChunks} 帧, 间隔 ${intervalMs.toFixed(1)}ms, 速度 ${speed}x`);
+
+            streamingInterval = setInterval(() => {
+                if (!isStreaming || !websocket || websocket.readyState !== WebSocket.OPEN) {
+                    stopStreaming();
+                    return;
+                }
+
+                if (currentChunk >= totalChunks) {
+                    // 发送停止信号
+                    const stopMsg = {
+                        is_speaking: false,
+                        mode: mode
+                    };
+                    websocket.send(JSON.stringify(stopMsg));
+                    log('info', '发送完成，等待最终结果...');
+                    
+                    clearInterval(streamingInterval);
+                    streamingInterval = null;
+                    
+                    // 等待最终结果后关闭
+                    setTimeout(() => {
+                        if (websocket && websocket.readyState === WebSocket.OPEN) {
+                            websocket.close(1000, 'streaming complete');
+                        }
+                        stopStreaming();
+                    }, 3000);
+                    return;
+                }
+
+                // 发送音频块
+                const start = currentChunk * chunkBytes;
+                const end = Math.min(start + chunkBytes, pcmArray.length);
+                const chunk = pcmArray.slice(start, end);
+
+                stats.lastSendTime = Date.now();
+                websocket.send(chunk.buffer);
+
+                stats.chunksSent++;
+                stats.bytesSent += chunk.length;
+                currentChunk++;
+
+                // 更新进度
+                const progress = currentChunk / totalChunks;
+                updateProgress(progress, currentChunk * chunkSize / SAMPLE_RATE, pcmArray.length / 2 / SAMPLE_RATE);
+                updateWaveformPosition(progress);
+                updateMetrics();
+
+            }, intervalMs);
+        }
+
+        function stopStreaming() {
+            isStreaming = false;
+
+            if (streamingInterval) {
+                clearInterval(streamingInterval);
+                streamingInterval = null;
+            }
+
+            document.getElementById('startBtn').disabled = !pcmData;
+            document.getElementById('stopBtn').disabled = true;
+
+            log('info', `发送结束: ${stats.chunksSent} 帧, ${(stats.bytesSent/1024).toFixed(1)} KB`);
+        }
+
+        // 按标点分割文本为语义段落
+        function splitByPunctuation(text) {
+            // 按句号、问号、感叹号分割，保留标点
+            const pattern = /([。！？!?]+)/g;
+            const parts = text.split(pattern);
+            
+            const segments = [];
+            let current = '';
+            for (const part of parts) {
+                if (/^[。！？!?]+$/.test(part)) {
+                    current += part;
+                    if (current.trim()) {
+                        segments.push(current.trim());
+                    }
+                    current = '';
+                } else {
+                    current += part;
+                }
+            }
+            if (current.trim()) {
+                segments.push(current.trim());
+            }
+            return segments;
+        }
+
+        // 更新语义分段显示
+        function updateSegmentDisplay() {
+            const segmentList = document.getElementById('segmentList');
+            const emptyHint = document.getElementById('emptyHint');
+            
+            // 从累积的离线文本提取语义分段
+            if (textState.text_print_2pass_offline) {
+                textState.semantic_segments = splitByPunctuation(textState.text_print_2pass_offline);
+            }
+            
+            if (textState.semantic_segments.length === 0 && !textState.text_print_2pass_online) {
+                emptyHint.style.display = 'block';
+                return;
+            }
+            
+            emptyHint.style.display = 'none';
+            
+            // 构建分段列表 HTML
+            let html = '';
+            textState.semantic_segments.forEach((segment, index) => {
+                html += `<li class="segment-item">
+                    <span class="segment-number">${index + 1}</span>
+                    ${segment}
+                </li>`;
+            });
+            
+            // 如果有正在识别的内容，显示为待确认状态
+            if (textState.text_print_2pass_online) {
+                html += `<li class="segment-item segment-pending">
+                    <span class="segment-number">⏳</span>
+                    ${textState.text_print_2pass_online}
+                </li>`;
+            }
+            
+            segmentList.innerHTML = html;
+            
+            // 自动滚动到底部
+            const finalDiv = document.getElementById('finalResult');
+            finalDiv.scrollTop = finalDiv.scrollHeight;
+        }
+
+        function handleMessage(data) {
+            // 计算延迟
+            if (stats.lastSendTime > 0) {
+                const latency = Date.now() - stats.lastSendTime;
+                stats.latencies.push(latency);
+                if (stats.latencies.length > 50) stats.latencies.shift();
+            }
+
+            const mode = data.mode || '';
+            const text = data.text || '';
+            const type = data.type || '';
+
+            // 参考 FunASR funasr_wss_client.py 的逻辑
+            if (mode === 'online') {
+                // 纯在线模式
+                textState.text_print_2pass_online += text;
+            } else if (mode === 'offline') {
+                // 纯离线模式
+                textState.text_print_2pass_offline += text;
+            } else if (mode === '2pass-online') {
+                // 2pass 在线流式结果：累积追加
+                stats.partialCount++;
+                textState.text_print_2pass_online += text;
+            } else if (mode === '2pass-offline') {
+                // 2pass 离线纠错结果：清空在线，累积离线
+                textState.text_print_2pass_online = '';  // 清空在线结果
+                textState.text_print_2pass_offline += text;  // 累积离线结果
+            }
+
+            // 更新实时识别显示（在线流式）
+            const liveDiv = document.getElementById('liveResult');
+            if (textState.text_print_2pass_online) {
+                // 合并显示：离线 + 在线
+                const combined = textState.text_print_2pass_offline + textState.text_print_2pass_online;
+                // 只显示最后 200 字符
+                const display = combined.slice(-200);
+                liveDiv.innerHTML = `<span class="tag-mode tag-online">实时</span>
+                    <span style="color: #16a34a;">${textState.text_print_2pass_offline.slice(-100)}</span>
+                    <span style="color: #2563eb; font-style: italic;">${textState.text_print_2pass_online}</span>`;
+            } else if (textState.text_print_2pass_offline) {
+                liveDiv.innerHTML = `<span class="tag-mode tag-offline">已确认</span>
+                    <span style="color: #16a34a;">${textState.text_print_2pass_offline.slice(-150)}</span>`;
+            }
+
+            // 更新会议纪要显示（语义分段）
+            updateSegmentDisplay();
+
+            if (type === 'error') {
+                log('error', data.message || '未知错误');
+            }
+
+            updateMetrics();
+            if (text) {
+                log('info', `[${mode || type}] ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`);
+            }
+        }
+
+        // ============ UI 更新 ============
+        function updateProgress(progress, current, total) {
+            document.getElementById('progressFill').style.width = `${progress * 100}%`;
+            document.getElementById('progressTime').textContent = `${formatTime(current)} / ${formatTime(total)}`;
+            document.getElementById('progressPercent').textContent = `${Math.round(progress * 100)}%`;
+        }
+
+        function updateMetrics() {
+            document.getElementById('metricChunks').textContent = stats.chunksSent;
+            document.getElementById('metricBytes').textContent = (stats.bytesSent / 1024).toFixed(1);
+            document.getElementById('metricPartials').textContent = stats.partialCount;
+            
+            if (stats.latencies.length > 0) {
+                const avgLatency = stats.latencies.reduce((a, b) => a + b, 0) / stats.latencies.length;
+                document.getElementById('metricLatency').textContent = avgLatency.toFixed(0);
+            }
+        }
+
+        function updateSpeedValue() {
+            const speed = document.getElementById('speedSlider').value;
+            document.getElementById('speedValue').textContent = `${speed}x`;
+        }
+
+        function resetTest() {
+            stopStreaming();
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+            
+            stats = { chunksSent: 0, bytesSent: 0, partialCount: 0, latencies: [], lastSendTime: 0 };
+            // 重置文本状态
+            textState = {
+                text_print_2pass_online: '',
+                text_print_2pass_offline: '',
+                semantic_segments: []
+            };
+            
+            updateMetrics();
+            updateProgress(0, 0, 0);
+            updateWaveformPosition(0);
+            
+            document.getElementById('liveResult').innerHTML = '<em style="color: #94a3b8;">等待开始...</em>';
+            document.getElementById('segmentList').innerHTML = '';
+            document.getElementById('emptyHint').style.display = 'block';
+            document.getElementById('emptyHint').textContent = '等待离线纠错结果...';
+            document.getElementById('progressContainer').classList.remove('show');
+            
+            log('info', '测试已重置');
+        }
+
+        // ============ 日志 ============
+        function log(level, message) {
+            const logBox = document.getElementById('logBox');
+            const time = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = `log-${level}`;
+            line.textContent = `[${time}] ${message}`;
+            logBox.appendChild(line);
+            if (document.getElementById('autoScroll').checked) {
+                logBox.scrollTop = logBox.scrollHeight;
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('logBox').innerHTML = '';
+            log('info', '日志已清空');
+        }
+
+        // ============ 服务器配置 ============
+        function changeServerEnvironment() {
+            const select = document.getElementById('serverEnv');
+            const input = document.getElementById('serverUrl');
+            const val = select.value;
+
+            const options = {
+                'localhost-sync': 'ws://localhost:8210',
+                'localhost-async': 'wss://localhost:10096',
+                'wsl-sync': 'ws://172.31.77.180:8210',
+                'wsl-async': 'wss://172.31.77.180:10096',
+                'custom': input.value
+            };
+
+            if (val !== 'custom') {
+                input.value = options[val] || 'ws://localhost:8210';
+                input.disabled = true;
+            } else {
+                input.disabled = false;
+                input.focus();
+            }
+        }
+
+        async function checkConnection() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const httpUrl = serverUrl.replace('ws://', 'http://').replace('wss://', 'https://');
+            const status = document.getElementById('serverStatus');
+            
+            status.className = 'status-indicator status-checking';
+            status.textContent = '检查中...';
+
+            try {
+                const response = await fetch(httpUrl, { method: 'GET', mode: 'cors' });
+                if (response.ok) {
+                    status.className = 'status-indicator status-online';
+                    status.textContent = '在线';
+                    log('success', '服务器连接正常');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (e) {
+                status.className = 'status-indicator status-offline';
+                status.textContent = '离线';
+                log('error', `服务器检查失败: ${e.message}`);
+            }
+        }
+
+        // ============ 拖放支持 ============
+        const dropZone = document.getElementById('dropZone');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('audio/')) {
+                loadAudioFile(files[0]);
+            } else {
+                log('error', '请拖放音频文件');
+            }
+        });
+
+        // ============ 初始化 ============
+        window.addEventListener('load', async () => {
+            changeServerEnvironment();
+            
+            // 尝试加载上次保存的音频
+            const storedAudio = loadAudioFromStorage();
+            if (storedAudio) {
+                const savedTime = new Date(storedAudio.savedAt).toLocaleString();
+                log('info', `发现上次保存的音频: ${storedAudio.name} (保存于 ${savedTime})`);
+                
+                try {
+                    // 创建一个模拟的 File 对象
+                    const file = {
+                        name: storedAudio.name,
+                        type: storedAudio.type,
+                        size: storedAudio.size
+                    };
+                    await loadAudioFile(file, storedAudio.arrayBuffer);
+                    log('success', '已自动加载上次的音频文件');
+                } catch (e) {
+                    log('warning', `加载上次音频失败: ${e.message}，请重新选择文件`);
+                    clearStoredAudio();
+                }
+            } else {
+                log('info', '页面初始化完成，请选择音频文件或使用示例');
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            stopStreaming();
+            if (websocket) {
+                websocket.close(1001, 'page unload');
+            }
+        });
+    </script>
+</body>
+</html>
+

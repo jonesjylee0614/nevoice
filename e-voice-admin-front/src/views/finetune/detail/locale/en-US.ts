@@ -1,3 +1,3 @@
 export default {
-  'store.article.title': 'article',
+  'store.article.title': 'article'
 };

@@ -5,266 +5,293 @@
         <div class="card-header">
           <icon-sound size="24" style="color: rgb(var(--blue-6))" />
           <span class="title">实时语音识别</span>
-          <ATag :color="wsConnected ? 'green' : 'red'" size="small">
+          <ATag v-if="activeTab === 'microphone'" :color="wsConnected ? 'green' : 'red'" size="small">
             {{ wsConnected ? '已连接' : '未连接' }}
           </ATag>
         </div>
       </template>
 
-      <!-- 连接控制区域 -->
-      <div class="control-section">
-        <ASpace size="medium">
-          <AButton 
-            type="primary" 
-            :loading="wsConnecting"
-            :disabled="wsConnected"
-            @click="connectWS"
-          >
-            <template #icon><icon-wifi /></template>
-            {{ wsConnecting ? '连接中...' : '连接服务' }}
-          </AButton>
-          
-          <AButton 
-            :disabled="!wsConnected"
-            @click="disconnectWS"
-          >
-            <template #icon><icon-disconnect /></template>
-            断开连接
-          </AButton>
-        </ASpace>
-      </div>
+      <!-- Tab 切换 -->
+      <ATabs v-model:active-key="activeTab" type="rounded" class="identify-tabs">
+        <ATabPane key="microphone" title="🎤 麦克风录音">
+          <template #title>
+            <span>
+              <icon-record style="margin-right: 4px" />
+              麦克风录音
+            </span>
+          </template>
+        </ATabPane>
+        <ATabPane key="file" title="📂 文件上传测试">
+          <template #title>
+            <span>
+              <icon-folder style="margin-right: 4px" />
+              文件上传测试
+            </span>
+          </template>
+        </ATabPane>
+      </ATabs>
 
-      <!-- 录音控制区域 -->
-      <div class="recording-section">
-        <div class="recording-controls">
-          <ASpace size="large">
-            <AButton 
-              type="primary" 
-              size="large"
-              :disabled="!wsConnected || isRealtimeRecording"
-              @click="startRealtime"
-              class="record-btn"
-            >
-              <template #icon><icon-record size="20" /></template>
-              开始识别
+      <!-- 文件上传测试模式 -->
+      <AudioFileTest v-if="activeTab === 'file'" />
+
+      <!-- 麦克风录音模式 -->
+      <template v-if="activeTab === 'microphone'">
+        <!-- 连接控制区域 -->
+        <div class="control-section">
+          <ASpace size="medium">
+            <AButton type="primary" :loading="wsConnecting" :disabled="wsConnected" @click="connectWS">
+              <template #icon><icon-wifi /></template>
+              {{ wsConnecting ? '连接中...' : '连接服务' }}
             </AButton>
-            
-            <AButton 
-              status="danger" 
-              size="large"
-              :disabled="!isRealtimeRecording"
-              @click="stopRealtime"
-              class="stop-btn"
-            >
-              <template #icon><icon-record-stop size="20" /></template>
-              停止识别
-            </AButton>
-            
-            <AButton 
-              :disabled="isRealtimeRecording"
-              @click="clearResults"
-            >
-              <template #icon><icon-delete /></template>
-              清空结果
+
+            <AButton :disabled="!wsConnected" @click="disconnectWS">
+              <template #icon><icon-disconnect /></template>
+              断开连接
             </AButton>
           </ASpace>
         </div>
 
-        <!-- 录音状态显示 -->
-        <div class="recording-status" v-if="isRealtimeRecording || displayTime !== '00:00'">
-          <div class="status-info">
-            <div class="timer-display">
-              <icon-clock-circle />
-              <span class="time">{{ displayTime }}</span>
-            </div>
-            
-            <div class="volume-meter">
-              <span class="volume-label">音量</span>
-              <div class="volume-bar">
-                <div class="volume-fill" :style="{ width: volumePercent + '%' }"></div>
-              </div>
-              <span class="volume-percent">{{ volumePercent }}%</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        <!-- 录音控制区域 -->
+        <div class="recording-section">
+          <div class="recording-controls">
+            <ASpace size="large">
+              <AButton
+                type="primary"
+                size="large"
+                :disabled="!wsConnected || isRealtimeRecording"
+                class="record-btn"
+                @click="startRealtime"
+              >
+                <template #icon><icon-record size="20" /></template>
+                开始识别
+              </AButton>
 
-      <!-- 识别结果展示 -->
-      <div class="results-section">
-        <ACard title="识别结果" class="results-card">
-          <div class="result-content">
-            <div class="partial-result">
-              <div class="result-label">
-                <icon-loading v-if="isRealtimeRecording" spin />
-                <icon-message v-else />
-                实时内容
-              </div>
-              <div class="partial-text">
-                <template v-if="hasPartialText">
-                  <span v-if="partialConfirmedText" class="partial-confirmed">{{ partialConfirmedText }}</span>
-                  <span v-if="partialCandidateText" class="partial-candidate">{{ partialCandidateText }}</span>
-                </template>
-                <template v-else>
-                  {{ isRealtimeRecording ? '正在监听语音...' : '等待开始识别' }}
-                </template>
-              </div>
-              <div class="partial-meta" v-if="hasPartialText || partialConfidence !== null">
-                <span v-if="partialSegmentId">段落 {{ partialSegmentId }}</span>
-                <span v-if="partialRevision !== null">修订 #{{ partialRevision }}</span>
-                <span v-if="partialConfidence !== null">置信度 {{ Math.round(partialConfidence * 100) }}%</span>
-              </div>
-            </div>
+              <AButton
+                status="danger"
+                size="large"
+                :disabled="!isRealtimeRecording"
+                class="stop-btn"
+                @click="stopRealtime"
+              >
+                <template #icon><icon-record-stop size="20" /></template>
+                停止识别
+              </AButton>
 
-            <ADivider />
-
-            <div class="final-result">
-              <div class="result-label">
-                <icon-check-circle />
-                确认文本
-              </div>
-              <div class="final-text">
-                <template v-if="finalDisplaySentences.length">
-                  <p
-                    v-for="(sentence, index) in finalDisplaySentences"
-                    :key="`${sentence}-${index}`"
-                    class="final-sentence"
-                  >
-                    {{ sentence }}
-                  </p>
-                </template>
-                <template v-else>
-                  暂无识别结果
-                </template>
-              </div>
-            </div>
-          </div>
-        </ACard>
-      </div>
-
-      <!-- 高级配置 -->
-      <div class="config-section">
-        <ACard title="高级配置" size="small" class="config-card">
-          <div class="config-row">
-            <ASpace>
-              <div class="config-item">
-                <label>协议版本:</label>
-                <ASpace>
-                  <AButton type="primary" disabled>实时识别 v2</AButton>
-                </ASpace>
-              </div>
-
-              <div class="config-item">
-                <label>音频块间隔:</label>
-                <ASelect 
-                  v-model="chunkIntervalMs" 
-                  :disabled="isRealtimeRecording"
-                  style="width: 120px"
-                  @change="onChunkIntervalChange"
-                >
-                  <AOption :value="64">64ms</AOption>
-                  <AOption :value="128">128ms</AOption>
-                  <AOption :value="256">256ms (默认)</AOption>
-                  <AOption :value="512">512ms</AOption>
-                  <AOption :value="1024">1024ms</AOption>
-                </ASelect>
-              </div>
-              
-              <div class="config-item">
-                <ACheckbox v-model="DROP_SILENCE" :disabled="isRealtimeRecording">
-                  启用静音检测
-                </ACheckbox>
-              </div>
-              
-              <div class="config-item">
-                <ACheckbox v-model="APPLY_CUSTOM_AGC" :disabled="isRealtimeRecording">
-                  自适应增益控制
-                </ACheckbox>
-              </div>
-
-              <div class="config-item">
-                <ACheckbox v-model="recordingPreferences.enableHotwords" :disabled="isRealtimeRecording">
-                  热词增强
-                </ACheckbox>
-              </div>
-
-              <div class="config-item">
-                <ACheckbox v-model="recordingPreferences.enableSpeaker" :disabled="isRealtimeRecording">
-                  声纹辅助
-                </ACheckbox>
-              </div>
+              <AButton :disabled="isRealtimeRecording" @click="clearResults">
+                <template #icon><icon-delete /></template>
+                清空结果
+              </AButton>
             </ASpace>
           </div>
-          
-          <div class="config-info">
-            <div class="config-summary">
-              <div class="summary-line">
-                <strong>链路策略:</strong>
-                <span>{{ gatewaySummary }}</span>
+
+          <!-- 录音状态显示 -->
+          <div v-if="isRealtimeRecording || displayTime !== '00:00'" class="recording-status">
+            <div class="status-info">
+              <div class="timer-display">
+                <icon-clock-circle />
+                <span class="time">{{ displayTime }}</span>
               </div>
-              <div class="summary-line">
-                <strong>音频配置:</strong>
-                <span>
-                  {{ chunkIntervalMs }}ms 间隔 ({{ chunkSamples }} 样本/块)，静音检测{{ DROP_SILENCE ? '开启' : '关闭' }}，自适应增益{{ APPLY_CUSTOM_AGC ? '开启' : '关闭' }}，热词{{ recordingPreferences.enableHotwords ? '开启' : '关闭' }}，声纹{{ recordingPreferences.enableSpeaker ? '开启' : '关闭' }}
-                </span>
-              </div>
-              <div class="summary-line debug-json" v-if="showLogs">
-                <strong>配置JSON:</strong>
-                <code>{{ JSON.stringify({ preferences: recordingPreferences }, null, 0) }}</code>
+
+              <div class="volume-meter">
+                <span class="volume-label">音量</span>
+                <div class="volume-bar">
+                  <div class="volume-fill" :style="{ width: volumePercent + '%' }"></div>
+                </div>
+                <span class="volume-percent">{{ volumePercent }}%</span>
               </div>
             </div>
           </div>
-        </ACard>
-      </div>
-
-      <!-- 日志控制 -->
-      <div class="logs-section">
-        <div class="logs-header">
-          <ASpace>
-            <ACheckbox v-model="showLogs">显示详细日志</ACheckbox>
-            <AButton size="small" @click="refreshServerLogs">
-              <template #icon><icon-refresh /></template>
-              拉取服务关键日志
-            </AButton>
-            <AButton size="small" :disabled="!logs" @click="downloadLogs">
-              <template #icon><icon-download /></template>
-              下载日志
-            </AButton>
-            <AButton size="small" :disabled="!logs" @click="copyLogs">
-              <template #icon><icon-copy /></template>
-              复制日志
-            </AButton>
-          </ASpace>
         </div>
-        
-        <ACard v-show="showLogs" class="logs-card">
-          <template #title>
-            <icon-file-text />
-            系统日志
-          </template>
-          <div class="log-content">{{ logs || '暂无日志' }}</div>
-        </ACard>
-      </div>
 
-      <!-- 实时状态面板 -->
-      <div class="logs-section">
-        <ACard class="logs-card" title="实时状态">
-          <div class="log-content">
-            <div>连接: {{ wsConnected ? '已连接' : '未连接' }} | 会话数: {{ status.counters.active_connections || 0 }}</div>
-            <div>消息: {{ status.counters.total_messages || 0 }} | 块: {{ status.counters.total_chunks || 0 }} | 实时: {{ status.counters.total_partials || 0 }} | 最终: {{ status.counters.total_finals || 0 }}</div>
-            <div v-if="(status.active_sessions || []).length">活跃会话: {{ (status.active_sessions || []).length }}</div>
+        <!-- 识别结果展示 -->
+        <div class="results-section">
+          <ACard title="识别结果" class="results-card">
+            <div class="result-content">
+              <div class="partial-result">
+                <div class="result-label">
+                  <icon-loading v-if="isRealtimeRecording" spin />
+                  <icon-message v-else />
+                  实时内容
+                </div>
+                <div class="partial-text">
+                  <template v-if="hasPartialText">
+                    <span v-if="partialConfirmedText" class="partial-confirmed">{{ partialConfirmedText }}</span>
+                    <span v-if="partialCandidateText" class="partial-candidate">{{ partialCandidateText }}</span>
+                  </template>
+                  <template v-else>
+                    {{ isRealtimeRecording ? '正在监听语音...' : '等待开始识别' }}
+                  </template>
+                </div>
+                <div v-if="hasPartialText || partialConfidence !== null" class="partial-meta">
+                  <span v-if="partialSegmentId">段落 {{ partialSegmentId }}</span>
+                  <span v-if="partialRevision !== null">修订 #{{ partialRevision }}</span>
+                  <span v-if="partialConfidence !== null">置信度 {{ Math.round(partialConfidence * 100) }}%</span>
+                </div>
+              </div>
+
+              <ADivider />
+
+              <div class="final-result">
+                <div class="result-label">
+                  <icon-check-circle />
+                  确认文本
+                </div>
+                <div class="final-text">
+                  <template v-if="finalDisplaySentences.length">
+                    <p
+                      v-for="(sentence, index) in finalDisplaySentences"
+                      :key="`${sentence}-${index}`"
+                      class="final-sentence"
+                    >
+                      {{ sentence }}
+                    </p>
+                  </template>
+                  <template v-else>暂无识别结果</template>
+                </div>
+              </div>
+            </div>
+          </ACard>
+        </div>
+
+        <!-- 高级配置 -->
+        <div class="config-section">
+          <ACard title="高级配置" size="small" class="config-card">
+            <div class="config-row">
+              <ASpace>
+                <div class="config-item">
+                  <label>协议版本:</label>
+                  <ASpace>
+                    <AButton type="primary" disabled>实时识别 v2</AButton>
+                  </ASpace>
+                </div>
+
+                <div class="config-item">
+                  <label>音频块间隔:</label>
+                  <ASelect
+                    v-model="chunkIntervalMs"
+                    :disabled="true"
+                    style="width: 180px"
+                    @change="onChunkIntervalChange"
+                  >
+                    <AOption :value="DEMO_CHUNK_MS">固定 60ms（对齐 Demo）</AOption>
+                  </ASelect>
+                </div>
+
+                <div class="config-item">
+                  <ACheckbox v-model="DROP_SILENCE" :disabled="isRealtimeRecording">启用静音检测</ACheckbox>
+                </div>
+
+                <div class="config-item">
+                  <ACheckbox v-model="APPLY_CUSTOM_AGC" :disabled="isRealtimeRecording">自适应增益控制</ACheckbox>
+                </div>
+
+                <div class="config-item">
+                  <ACheckbox v-model="recordingPreferences.enableHotwords" :disabled="isRealtimeRecording">
+                    热词增强
+                  </ACheckbox>
+                </div>
+
+                <div class="config-item">
+                  <ACheckbox v-model="recordingPreferences.enableSpeaker" :disabled="isRealtimeRecording">
+                    声纹辅助
+                  </ACheckbox>
+                </div>
+              </ASpace>
+            </div>
+
+            <div class="config-info">
+              <div class="config-summary">
+                <div class="summary-line">
+                  <strong>链路策略:</strong>
+                  <span>{{ gatewaySummary }}</span>
+                </div>
+                <div class="summary-line">
+                  <strong>音频配置:</strong>
+                  <span>
+                    {{ chunkIntervalMs }}ms 间隔 ({{ chunkSamples }} 样本/块)，静音检测{{
+                      DROP_SILENCE ? '开启' : '关闭'
+                    }}，自适应增益{{ APPLY_CUSTOM_AGC ? '开启' : '关闭' }}，热词{{
+                      recordingPreferences.enableHotwords ? '开启' : '关闭'
+                    }}，声纹{{ recordingPreferences.enableSpeaker ? '开启' : '关闭' }}
+                  </span>
+                </div>
+                <div v-if="showLogs" class="summary-line debug-json">
+                  <strong>配置JSON:</strong>
+                  <code>{{ JSON.stringify({ preferences: recordingPreferences }, null, 0) }}</code>
+                </div>
+              </div>
+            </div>
+          </ACard>
+        </div>
+
+        <!-- 日志控制 -->
+        <div class="logs-section">
+          <div class="logs-header">
+            <ASpace>
+              <ACheckbox v-model="showLogs">显示详细日志</ACheckbox>
+              <AButton size="small" @click="refreshServerLogs">
+                <template #icon><icon-refresh /></template>
+                拉取服务关键日志
+              </AButton>
+              <AButton size="small" :disabled="!logs" @click="downloadLogs">
+                <template #icon><icon-download /></template>
+                下载日志
+              </AButton>
+              <AButton size="small" :disabled="!logs" @click="copyLogs">
+                <template #icon><icon-copy /></template>
+                复制日志
+              </AButton>
+            </ASpace>
           </div>
-        </ACard>
-      </div>
+
+          <ACard v-show="showLogs" class="logs-card">
+            <template #title>
+              <icon-file-text />
+              系统日志
+            </template>
+            <div class="log-content">{{ logs || '暂无日志' }}</div>
+          </ACard>
+        </div>
+
+        <!-- 实时状态面板 -->
+        <div class="logs-section">
+          <ACard class="logs-card" title="实时状态">
+            <div class="log-content">
+              <div>
+                连接: {{ wsConnected ? '已连接' : '未连接' }} | 会话数: {{ status.counters.active_connections || 0 }}
+              </div>
+              <div>
+                消息: {{ status.counters.total_messages || 0 }} | 块: {{ status.counters.total_chunks || 0 }} | 实时:
+                {{ status.counters.total_partials || 0 }} | 最终: {{ status.counters.total_finals || 0 }}
+              </div>
+              <div v-if="(status.active_sessions || []).length">
+                活跃会话: {{ (status.active_sessions || []).length }}
+              </div>
+            </div>
+          </ACard>
+        </div>
+      </template>
     </ACard>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed, onBeforeUnmount } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref } from 'vue';
 import { defHttp } from '@/utils/http';
+import AudioFileTest from './AudioFileTest.vue';
+
+// Tab 切换
+const activeTab = ref('microphone');
 
 const wsHost = (import.meta as any).env.VITE_API_PY_WS_HOST || 'ws://localhost:8210';
 const httpHost = wsHost.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:');
+
+const DEMO_CHUNK_MS = 60; // demo 目标：每块约 60ms（960 样本）
+const DEMO_CHUNK_INTERVAL = 10; // 与 demo 一致：10 块触发一次在线 ASR
+const DEMO_CHUNK_SIZE = [5, 10, 5]; // 与 demo 一致：encoder/lookback 设置
+const DEMO_WAV_NAME = 'h5'; // 与 demo 客户端一致的来源标识
+const DEMO_PCM_SAMPLES = 960; // 每次发送 960 样本 (16kHz -> ~60ms)
+const PROCESSOR_BUFFER_SIZE = 1024; // 浏览器要求 2 的幂回调尺寸，内部再切 960 样本发送
 
 const recordingPreferences = reactive({
   enableHotwords: false,
@@ -283,16 +310,23 @@ let reconnectTimer: number | null = null;
 let reconnectAttempts = 0;
 let heartbeatTimer: number | null = null;
 let lastPongTs = 0;
+let sentChunkCount = 0;
 
 const wsConnected = ref(false);
 const wsConnecting = ref(false);
 const isRealtimeRecording = ref(false);
 const finalSentences = ref<string[]>([]);
 const finalDisplaySentences = computed(() => finalSentences.value.filter(Boolean));
-const partialConfirmedText = ref('');
+// Demo 风格的展示：一行实时文本 + 最终文本累积，避免频繁闪烁/覆盖
+const liveText = ref(''); // 实时正在说的内容（累积）
+const partialConfirmedText = ref(''); // 保留旧字段用于显示，但逻辑与 liveText 同步
 const partialCandidateText = ref('');
-const partialCombinedText = computed(() => `${partialConfirmedText.value}${partialCandidateText.value}`);
-const hasPartialText = computed(() => Boolean(partialConfirmedText.value || partialCandidateText.value));
+const partialCombinedText = computed(
+  () => liveText.value || `${partialConfirmedText.value}${partialCandidateText.value}`
+);
+const hasPartialText = computed(() =>
+  Boolean(liveText.value || partialConfirmedText.value || partialCandidateText.value)
+);
 const partialConfidence = ref<number | null>(null);
 const partialRevision = ref<number | null>(null);
 const partialSegmentId = ref('');
@@ -304,24 +338,22 @@ const status = ref<any>({ counters: {}, active_sessions: [] });
 let statusTimer: number | null = null;
 
 // 🌐 基于网络标准的自适应增益控制
-let gainHistory: number[] = [];
+const gainHistory: number[] = [];
 let currentGain = 15.0; // 默认增益（网络推荐范围内）
 
 // 🔧 可配置的音频处理参数
-const chunkIntervalMs = ref(256);  // chunk间隔时间(毫秒)
-const chunkSamples = ref(4096);    // 对应的采样数
-const APPLY_CUSTOM_AGC = ref(false);    // 是否应用自定义AGC
-const DROP_SILENCE = ref(true);         // 是否丢弃静音帧（现在默认开启，但阈值已放宽）
-const DISABLE_WEBRTC_DSP = true;        // 关闭浏览器内置回声/降噪/自动增益
-let seq = 0;                            // 分片序号，用于排查丢包乱序
+const chunkIntervalMs = ref(DEMO_CHUNK_MS); // 固定 ~60ms
+const chunkSamples = ref(DEMO_PCM_SAMPLES); // 实际发送 960 样本
+const APPLY_CUSTOM_AGC = ref(false); // 是否应用自定义AGC
+const DROP_SILENCE = ref(false); // 默认不过滤静音，避免误删有效语音
+const DISABLE_WEBRTC_DSP = true; // 关闭浏览器内置回声/降噪/自动增益
+const seq = 0; // 分片序号，用于排查丢包乱序
+let pendingPcm: number[] = []; // 缓冲 960 样本对齐发送
 
 // 🔧 根据时间间隔计算采样数
 function calculateChunkSamples(intervalMs: number): number {
-  const sampleRate = 16000; // 16kHz采样率
-  const samples = Math.round((intervalMs / 1000) * sampleRate);
-  // 确保是2的幂次方，便于音频处理
-  const powers = [256, 512, 1024, 2048, 4096, 8192, 16384];
-  return powers.find(p => p >= samples) || 4096;
+  // 对齐 demo 固定 960 样本发送
+  return DEMO_PCM_SAMPLES;
 }
 
 // 🔧 chunk间隔变化处理
@@ -332,28 +364,37 @@ function onChunkIntervalChange() {
 
 function calculateAdaptiveGain(rms: number): number {
   // 网络标准：1-32倍增益范围，目标RMS: 0.01-0.1
-  const TARGET_RMS = 0.05;           // 目标RMS（-26dB）
-  const MIN_GAIN = 1.0;              // 最小增益（网络标准）
-  const MAX_GAIN = 32.0;             // 最大增益（网络标准）
-  const ADAPTATION_SPEED = 0.1;      // 适应速度
-  
+  const TARGET_RMS = 0.05; // 目标RMS（-26dB）
+  const MIN_GAIN = 1.0; // 最小增益（网络标准）
+  const MAX_GAIN = 32.0; // 最大增益（网络标准）
+  const ADAPTATION_SPEED = 0.1; // 适应速度
+
   // 计算理想增益
   let idealGain = TARGET_RMS / (rms + 1e-10);
   idealGain = Math.max(MIN_GAIN, Math.min(MAX_GAIN, idealGain));
-  
+
   // 平滑调整（避免剧烈变化）
   currentGain = currentGain * (1 - ADAPTATION_SPEED) + idealGain * ADAPTATION_SPEED;
-  
+
   // 记录增益历史（用于监控）
   gainHistory.push(currentGain);
   if (gainHistory.length > 10) gainHistory.shift();
-  
+
   return currentGain;
 }
 
 function addLog(level: 'info' | 'error' | 'partial' | 'final' | 'success', message: string) {
   const ts = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '❌' : level === 'success' ? '✅' : level === 'partial' ? '🗣️' : level === 'final' ? '🏁' : 'ℹ️';
+  const prefix =
+    level === 'error'
+      ? '❌'
+      : level === 'success'
+        ? '✅'
+        : level === 'partial'
+          ? '🗣️'
+          : level === 'final'
+            ? '🏁'
+            : 'ℹ️';
   logs.value += `[${ts}] ${prefix} ${message}\n`;
 }
 
@@ -364,7 +405,7 @@ function postProcessText(input: string): string {
   // 统一将 ipo -> IPO（大小写规范化）
   t = t.replace(/\bipo\b/gi, 'IPO');
   // 兼容带标点的 IPO.
-  t = t.replace(/\bipo(?=[\u4e00-\u9fa5\w]?\.|\s|$)/gi, 'IPO');
+  t = t.replace(/\bipo(?=[\u4E00-\u9FA5\w]?\.|\s|$)/gi, 'IPO');
   return t;
 }
 
@@ -389,7 +430,7 @@ async function refreshServerLogs() {
     const res = await fetch(`${httpHost}/logs/key`);
     const txt = await res.text();
     addLog('info', '载入服务关键日志');
-    logs.value += `\n===== 服务器关键日志 =====\n` + txt + `\n==========================\n`;
+    logs.value += `\n===== 服务器关键日志 =====\n${txt}\n==========================\n`;
   } catch (e: any) {
     addLog('error', `载入关键日志失败: ${e?.message || e}`);
   }
@@ -422,11 +463,15 @@ async function connectWS() {
     const url = await resolveWsUrl();
     addLog('info', `连接 ${url}`);
     websocket = new WebSocket(url);
+    websocket.binaryType = 'arraybuffer';
     websocket.onopen = () => {
       wsConnected.value = true;
       wsConnecting.value = false;
       reconnectAttempts = 0;
-      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       addLog('success', 'WebSocket连接已建立');
       // 心跳：每10s发送一次，若30s未收到pong则判定断线
       startHeartbeat();
@@ -452,7 +497,10 @@ async function connectWS() {
       wsConnected.value = false;
       stopHeartbeat();
       if (isRealtimeRecording.value) stopRealtime();
-      if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
+      if (statusTimer) {
+        clearInterval(statusTimer);
+        statusTimer = null;
+      }
       scheduleReconnect();
     };
     websocket.onerror = () => {
@@ -469,7 +517,9 @@ function disconnectWS() {
     try {
       // 优先结束实时识别，通知服务端输出最终结果
       if (isRealtimeRecording.value && websocket.readyState === WebSocket.OPEN) {
-        try { websocket.send(JSON.stringify({ type: 'end' })); } catch {}
+        try {
+          websocket.send(JSON.stringify({ type: 'end' }));
+        } catch {}
       }
       websocket.close(1000, '用户主动断开');
     } catch {}
@@ -477,7 +527,47 @@ function disconnectWS() {
   }
 }
 
+function sendConfig() {
+  if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
+  // 与官方 FunASR Demo (funasr_wss_server.py) 配置格式完全对齐
+  // 官方 demo 客户端在连接后立即发送配置 JSON
+  const payload: Record<string, any> = {
+    // 与官方 demo 一致的配置字段（不使用 type 字段，纯 FunASR 风格）
+    mode: '2pass',
+    chunk_interval: DEMO_CHUNK_INTERVAL, // 与 demo 一致：10 块触发一次在线 ASR
+    chunk_size: DEMO_CHUNK_SIZE, // 与 demo 一致：[5, 10, 5]
+    encoder_chunk_look_back: DEMO_CHUNK_SIZE[0], // 与 demo 一致
+    decoder_chunk_look_back: DEMO_CHUNK_SIZE[2], // 与 demo 一致
+    is_speaking: true, // 开始时设置为正在说话
+    itn: true, // 启用 ITN
+    wav_name: DEMO_WAV_NAME // 来源标识
+  };
+  try {
+    websocket.send(JSON.stringify(payload));
+    addLog(
+      'info',
+      `下发配置 (FunASR demo 对齐): mode=2pass, chunk_interval=${DEMO_CHUNK_INTERVAL}, chunk_size=${JSON.stringify(DEMO_CHUNK_SIZE)}, ITN=on, is_speaking=true`
+    );
+  } catch (e: any) {
+    addLog('error', `配置下发失败: ${e?.message || e}`);
+  }
+}
+
 function handleWSMessage(data: any) {
+  // 兼容官方 FunASR Demo 格式和 nevoice 扩展格式
+  // 官方格式: {mode, text, wav_name, is_final}
+  // nevoice 格式: {type, text, text_state, session_id, segment_id, mode, is_final, is_speaking, ...}
+
+  // 如果没有 type 字段但有 mode 字段，可能是官方 demo 格式
+  // 根据 mode 推断 type
+  if (!data.type && data.mode) {
+    if (data.mode.includes('online')) {
+      data.type = 'partial';
+    } else if (data.mode.includes('offline')) {
+      data.type = 'correction';
+    }
+  }
+
   switch (data.type) {
     case 'started':
       addLog('info', `识别开始: ${data.message || ''}`);
@@ -492,74 +582,59 @@ function handleWSMessage(data: any) {
       if (!isRealtimeRecording.value) break;
       {
         const textState = data?.text_state ?? {};
-        const rawConfirmed = typeof textState.confirmed_text === 'string' ? textState.confirmed_text : '';
-        const rawCandidate = typeof textState.candidate_text === 'string'
-          ? textState.candidate_text
-          : (typeof data.text === 'string' ? data.text : '');
-        const rawCombined = typeof data.combined_text === 'string'
-          ? data.combined_text
-          : typeof textState.full_text === 'string'
-            ? textState.full_text
-            : '';
-
-        const confirmedProcessed = rawConfirmed ? postProcessText(rawConfirmed) : '';
-        if (confirmedProcessed) {
-          syncConfirmedSentencesFromState(confirmedProcessed);
+        const rawText =
+          typeof data.text === 'string' && data.text
+            ? data.text
+            : typeof textState.full_text === 'string'
+              ? textState.full_text
+              : '';
+        const processed = rawText ? postProcessText(rawText) : '';
+        if (processed) {
+          // Demo 风格：直接累积实时文本，不做分段覆盖
+          liveText.value += processed;
+          partialConfirmedText.value = '';
+          partialCandidateText.value = liveText.value;
+          const modeStr = data.mode ? ` [${data.mode}]` : '';
+          const metaLabel = data.segment_id ? ` (seg ${data.segment_id}${modeStr})` : modeStr;
+          addLog('partial', `实时${metaLabel}: ${processed}`);
         }
-        partialConfirmedText.value = confirmedProcessed;
+        // 置信度/修订号按需记录
+        partialRevision.value = typeof data.revision === 'number' ? data.revision : null;
+        partialSegmentId.value = typeof data.segment_id === 'string' ? data.segment_id : '';
+        if (typeof data.confidence === 'number') partialConfidence.value = data.confidence;
+      }
+      break;
+    case 'correction':
+      // 离线二次纠错结果（带标点和ITN）
+      {
+        const textState = data?.text_state ?? {};
+        const correctedText = typeof data.text === 'string' ? data.text : '';
+        const correctedProcessed = correctedText ? postProcessText(correctedText) : '';
 
-        let candidateProcessed = rawCandidate ? postProcessText(rawCandidate) : '';
-        partialCandidateText.value = candidateProcessed;
-
-        let combinedProcessed = rawCombined ? postProcessText(rawCombined) : '';
-        if (!combinedProcessed) {
-          combinedProcessed = `${partialConfirmedText.value}${partialCandidateText.value}`;
-        } else if (!candidateProcessed && partialConfirmedText.value && combinedProcessed.startsWith(partialConfirmedText.value)) {
-          partialCandidateText.value = combinedProcessed.slice(partialConfirmedText.value.length);
-        } else if (!candidateProcessed && !partialConfirmedText.value && combinedProcessed) {
-          partialCandidateText.value = combinedProcessed;
-        }
-
-        let confValue: number | null = null;
-        if (typeof data.confidence === 'number') {
-          confValue = data.confidence;
-        } else if (typeof data.confidence === 'string') {
-          const parsed = Number.parseFloat(data.confidence);
-          confValue = Number.isNaN(parsed) ? null : parsed;
-        } else if (typeof textState.confidence === 'number') {
-          confValue = textState.confidence;
-        }
-        if (confValue !== null) {
-          confValue = Math.min(Math.max(confValue, 0), 1);
-        }
-        partialConfidence.value = confValue;
-
-        if (typeof data.revision === 'number') {
-          partialRevision.value = data.revision;
-        } else if (typeof textState.revision === 'number') {
-          partialRevision.value = textState.revision;
-        } else {
-          partialRevision.value = null;
-        }
-
-        if (typeof data.segment_id === 'string') {
-          partialSegmentId.value = data.segment_id;
-        } else if (typeof textState.segment_id === 'string') {
-          partialSegmentId.value = textState.segment_id;
-        } else {
-          partialSegmentId.value = '';
+        if (correctedProcessed) {
+          // Demo 风格：将当前实时文本+纠错一起落地到最终文本，并清空实时区
+          finalSentences.value.push(correctedProcessed);
+          liveText.value = '';
+          partialConfirmedText.value = '';
+          partialCandidateText.value = '';
+          syncConfirmedSentencesFromState(correctedProcessed);
         }
 
         const metaParts: string[] = [];
-        if (partialSegmentId.value) metaParts.push(`seg ${partialSegmentId.value}`);
-        if (partialRevision.value !== null) metaParts.push(`rev ${partialRevision.value}`);
-        if (partialConfidence.value !== null) {
-          metaParts.push(`conf ${Math.round(partialConfidence.value * 100)}%`);
-        }
+        if (typeof data.segment_id === 'string' && data.segment_id) metaParts.push(`seg ${data.segment_id}`);
+        if (typeof data.mode === 'string' && data.mode) metaParts.push(data.mode);
+        if (typeof data.revision === 'number') metaParts.push(`rev ${data.revision}`);
+        // 显示 is_speaking 状态（官方 demo 语义）
+        if (typeof data.is_speaking === 'boolean') metaParts.push(data.is_speaking ? 'speaking' : 'stopped');
+        const metaLabel = metaParts.length ? ` (${metaParts.join(' | ')})` : '';
+        addLog('success', `纠错${metaLabel}: ${correctedProcessed || '[空]'}`);
 
-        const logCombined = combinedProcessed || partialCombinedText.value || '[空]';
-        const metaLabel = metaParts.length ? ` (${metaParts.join(', ')})` : '';
-        addLog('partial', `实时${metaLabel}: ${logCombined}`);
+        // 如果是 final 或 is_speaking=false，清空 partial 状态
+        if (data.is_final || data.is_speaking === false) {
+          partialConfidence.value = null;
+          partialRevision.value = null;
+          partialSegmentId.value = '';
+        }
       }
       break;
     case 'final':
@@ -570,6 +645,7 @@ function handleWSMessage(data: any) {
           finalSentences.value.length = idx + 1;
         }
         finalSentences.value[idx] = finalProcessed;
+        liveText.value = '';
         partialConfirmedText.value = '';
         partialCandidateText.value = '';
         partialConfidence.value = null;
@@ -600,6 +676,9 @@ async function startRealtime() {
     return;
   }
   try {
+    // 下发 FunASR 兼容配置
+    sendConfig();
+
     // 🌐 基于网络搜索的WebRTC标准优化配置
     mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -630,17 +709,21 @@ async function startRealtime() {
     });
     audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
     const source = audioContext.createMediaStreamSource(mediaStream);
+    // 🔧 重置缓存对齐 960 样本
+    pendingPcm = [];
+    sentChunkCount = 0;
+
     // 🔧 使用配置的chunk大小创建音频处理器
-    scriptProcessor = audioContext.createScriptProcessor(chunkSamples.value, 1, 1);
+    scriptProcessor = audioContext.createScriptProcessor(PROCESSOR_BUFFER_SIZE, 1, 1);
     scriptProcessor.onaudioprocess = (event: AudioProcessingEvent) => {
       if (!isRealtimeRecording.value || !websocket || websocket.readyState !== WebSocket.OPEN) return;
       const input = event.inputBuffer.getChannelData(0);
-      
+
       // 计算原始RMS
       let sum = 0;
       for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
       const originalRMS = Math.sqrt(sum / input.length);
-      
+
       // 🌐 自定义AGC（可选）
       const adaptiveGain = APPLY_CUSTOM_AGC.value ? calculateAdaptiveGain(originalRMS) : 1.0;
       let amplifiedRMS = originalRMS;
@@ -655,60 +738,47 @@ async function startRealtime() {
         amplifiedInput = tmp;
         amplifiedRMS = Math.sqrt(amplifiedSum / amplifiedInput.length);
       }
-      
+
       // 🔧 修复静音检测：放宽阈值，避免过滤有效语音
       const silenceThreshold = 0.0005; // 降低阈值，从0.001调整到0.0005
-      if (DROP_SILENCE.value && amplifiedRMS < silenceThreshold) {
-        console.log(`🔇 静音检测: 原始RMS=${originalRMS.toFixed(6)}, 增益=${adaptiveGain.toFixed(1)}x, 增益后RMS=${amplifiedRMS.toFixed(6)}`);
-        return;
-      }
-      
-      // 🔧 调试：记录通过静音检测的音频块
-      console.log(`🎤 音频通过: RMS=${amplifiedRMS.toFixed(6)}, 音量=${volumePercent.value}%`);
-      
+      if (DROP_SILENCE.value && amplifiedRMS < silenceThreshold) return;
+
       // 更新音量显示（基于增益后的RMS）
       volumePercent.value = Math.min(100, Math.max(0, Math.floor(amplifiedRMS * 100)));
-      
-      // 🔧 修复PCM编码：使用完整的16位范围
+
+      // 🔧 修复PCM编码：使用完整的16位范围，并按 960 样本分片对齐 demo
       const pcmData = new Int16Array(input.length);
       for (let i = 0; i < input.length; i++) {
         const sample = amplifiedInput[i];
-        // 使用完整的16位范围，避免精度丢失
         pcmData[i] = Math.round(sample * (sample < 0 ? 32768 : 32767));
+        pendingPcm.push(pcmData[i]);
       }
-      
-      // 直接使用pcmData.buffer，避免额外的数据复制
-      const buffer = pcmData.buffer;
-      const u8 = new Uint8Array(buffer);
-      const b64 = btoa(String.fromCharCode.apply(null, Array.from(u8) as any));
-      
-        try {
-        websocket.send(JSON.stringify({ 
-          type: 'chunk', 
-          audio: b64, 
-          format: 'pcm', 
-          sample_rate: audioContext?.sampleRate || 16000,
-          seq: (seq += 1),
-          // 🌐 基于网络标准的调试信息
-          debug: {
-            original_rms: originalRMS.toFixed(6),
-            amplified_rms: amplifiedRMS.toFixed(6),
-            adaptive_gain: adaptiveGain.toFixed(2),
-            gain_history: gainHistory.slice(-3).map(g => g.toFixed(1)).join(','),
-            compliance: 'WebRTC-Standard',
-            audio_size: b64.length,
-            pcm_samples: input.length
-          }
-        }));
-        
-        // 增强的控制台调试输出 - 添加音频数据详情
-        if (amplifiedRMS > silenceThreshold) {
-          const avgGain = gainHistory.length > 0 ? 
-            (gainHistory.reduce((a, b) => a + b, 0) / gainHistory.length).toFixed(1) : 'N/A';
-          console.log(`🎤 发送音频: RMS=${originalRMS.toFixed(6)} -> ${amplifiedRMS.toFixed(6)}, 增益=${adaptiveGain.toFixed(1)}x (平均${avgGain}x), 数据=${b64.length}bytes, 样本=${input.length}`);
+
+      // 按 960 样本切片发送，保持与 demo 完全一致
+      while (pendingPcm.length >= DEMO_PCM_SAMPLES) {
+        const chunk = pendingPcm.slice(0, DEMO_PCM_SAMPLES);
+        pendingPcm = pendingPcm.slice(DEMO_PCM_SAMPLES);
+
+        sentChunkCount += 1;
+        if (sentChunkCount === 1) {
+          addLog('info', `首包已发送，长度=${DEMO_PCM_SAMPLES} 样本 (~${(DEMO_PCM_SAMPLES / 16).toFixed(1)}ms)`);
+        } else if (sentChunkCount % 50 === 0) {
+          addLog(
+            'info',
+            `累计发送 ${sentChunkCount} 包，队列余量=${pendingPcm.length}，最近 RMS=${amplifiedRMS.toFixed(4)}`
+          );
         }
-      } catch (e: any) {
-        addLog('error', `发送失败: ${e?.message || e}`);
+
+        try {
+          websocket.send(Int16Array.from(chunk).buffer);
+        } catch (e: any) {
+          addLog('error', `发送失败: ${e?.message || e}`);
+        }
+      }
+
+      // 若缓冲异常膨胀，记录日志避免卡顿
+      if (pendingPcm.length > DEMO_PCM_SAMPLES * 5) {
+        addLog('info', `缓冲积压 ${pendingPcm.length} 样本，可能存在发送阻塞`);
       }
     };
     source.connect(scriptProcessor);
@@ -747,6 +817,11 @@ function stopRealtime() {
   if (!isRealtimeRecording.value) return;
   try {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
+      // 与官方 FunASR Demo 完全对齐：发送 is_speaking=false 配置消息
+      // 官方 demo 在停止时只发送 is_speaking=false，由服务端触发最终的离线纠错
+      websocket.send(JSON.stringify({ is_speaking: false }));
+      addLog('info', '已发送 is_speaking=false，等待服务端输出最终结果');
+      // 保留 legacy end 消息以兼容旧实现
       websocket.send(JSON.stringify({ type: 'end' }));
     }
   } catch {}
@@ -758,22 +833,30 @@ function stopRealtime() {
 
 function cleanupAudio() {
   if (scriptProcessor) {
-    try { scriptProcessor.disconnect(); } catch {}
+    try {
+      scriptProcessor.disconnect();
+    } catch {}
     scriptProcessor.onaudioprocess = null as any;
     scriptProcessor = null;
   }
   if (audioContext) {
-    try { if (audioContext.state !== 'closed') audioContext.close(); } catch {}
+    try {
+      if (audioContext.state !== 'closed') audioContext.close();
+    } catch {}
     audioContext = null;
   }
   if (mediaStream) {
-    try { mediaStream.getTracks().forEach(t => t.stop()); } catch {}
+    try {
+      mediaStream.getTracks().forEach(t => t.stop());
+    } catch {}
     mediaStream = null;
   }
   if (timer) {
     clearInterval(timer);
     timer = null;
   }
+  sentChunkCount = 0;
+  pendingPcm = [];
 }
 
 function clearResults() {
@@ -789,7 +872,7 @@ function clearResults() {
 function scheduleReconnect() {
   if (isRealtimeRecording.value) return; // 录音中不自动重连
   if (reconnectAttempts >= 5) return; // 最多重连5次
-  const delay = Math.min(15000, 1000 * Math.pow(2, reconnectAttempts));
+  const delay = Math.min(15000, 1000 * 2 ** reconnectAttempts);
   reconnectAttempts++;
   addLog('info', `准备自动重连（第${reconnectAttempts}次），等待 ${Math.floor(delay / 1000)}s`);
   reconnectTimer = window.setTimeout(() => {
@@ -802,11 +885,15 @@ function startHeartbeat() {
   lastPongTs = Date.now();
   heartbeatTimer = window.setInterval(() => {
     if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
-    try { websocket.send(JSON.stringify({ type: 'ping', ts: Date.now() })); } catch {}
+    try {
+      websocket.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+    } catch {}
     // 超时检测：30秒未收到pong，主动关闭以触发重连
     if (Date.now() - lastPongTs > 30000) {
       addLog('error', '心跳超时，断开重连');
-      try { websocket.close(4000, 'heartbeat timeout'); } catch {}
+      try {
+        websocket.close(4000, 'heartbeat timeout');
+      } catch {}
     }
   }, 10000) as unknown as number;
 }
@@ -1128,16 +1215,16 @@ onBeforeUnmount(() => {
   .voice-identify-container {
     padding: 16px;
   }
-  
+
   .status-info {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .volume-meter {
     max-width: none;
   }
-  
+
   .recording-controls :deep(.arco-space) {
     flex-wrap: wrap;
     justify-content: center;
@@ -1165,7 +1252,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -1174,25 +1262,25 @@ onBeforeUnmount(() => {
 }
 
 /* Dark theme overrides */
-:deep(body[arco-theme="dark"]) .voice-identify-container .control-section {
+:deep(body[arco-theme='dark']) .voice-identify-container .control-section {
   background: linear-gradient(135deg, var(--color-fill-2) 0%, var(--color-fill-3) 100%);
   border-color: var(--color-border);
 }
-:deep(body[arco-theme="dark"]) .voice-identify-container .recording-status {
+:deep(body[arco-theme='dark']) .voice-identify-container .recording-status {
   background: var(--color-bg-2);
   border-color: var(--color-border);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
-:deep(body[arco-theme="dark"]) .voice-identify-container .main-card {
+:deep(body[arco-theme='dark']) .voice-identify-container .main-card {
   border-color: var(--color-border);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
-:deep(body[arco-theme="dark"]) .voice-identify-container .results-card,
-:deep(body[arco-theme="dark"]) .voice-identify-container .logs-card {
+:deep(body[arco-theme='dark']) .voice-identify-container .results-card,
+:deep(body[arco-theme='dark']) .voice-identify-container .logs-card {
   border-color: var(--color-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-:deep(body[arco-theme="dark"]) .voice-identify-container .volume-bar {
+:deep(body[arco-theme='dark']) .voice-identify-container .volume-bar {
   background: var(--color-fill-3);
 }
 
@@ -1206,6 +1294,15 @@ onBeforeUnmount(() => {
   font-size: 14px;
   color: var(--color-text-2);
   min-width: 72px;
+}
+
+.identify-tabs {
+  margin-bottom: 24px;
+}
+
+.identify-tabs :deep(.arco-tabs-nav-tab) {
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .config-summary {

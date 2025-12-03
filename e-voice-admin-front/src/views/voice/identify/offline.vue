@@ -3,13 +3,16 @@
     <ACard class="card">
       <template #title>
         <div class="card-title">
-          <icon-sound style="color:#52c41a" />
+          <icon-sound style="color: #52c41a" />
           <span>离线语音识别</span>
         </div>
       </template>
 
       <div class="form-row">
-        <label for="offlineFile" class="label"><icon-upload /> 选择音频文件</label>
+        <label for="offlineFile" class="label">
+          <icon-upload />
+          选择音频文件
+        </label>
         <input id="offlineFile" class="file" type="file" accept="audio/*" @change="onFileChange" />
       </div>
 
@@ -27,7 +30,10 @@
 
       <ADivider />
 
-      <div v-if="loading" class="tips"><icon-loading spin /> 提交中，请稍候...</div>
+      <div v-if="loading" class="tips">
+        <icon-loading spin />
+        提交中，请稍候...
+      </div>
 
       <ACard v-if="result" class="result" title="识别结果">
         <pre>{{ result }}</pre>
@@ -64,7 +70,10 @@ async function submit() {
   try {
     // 优先走网关（通过系统通用上传方法）
     try {
-      const resp: any = await defHttp.uploadFile({ url: '/voice/gateway/voiceRecognizeOffline' }, { file: file.value as File, name: 'audio', data: { language: language.value } });
+      const resp: any = await defHttp.uploadFile(
+        { url: '/voice/gateway/voiceRecognizeOffline' },
+        { file: file.value as File, name: 'audio', data: { language: language.value } }
+      );
       // resp 为网关标准返回 data，已在拦截器中解包
       result.value = typeof resp === 'string' ? resp : JSON.stringify(resp, null, 2);
     } catch (e) {
@@ -84,7 +93,7 @@ async function submit() {
     loading.value = false;
   }
 }
- </script>
+</script>
 
 <style scoped>
 .page-wrap {
@@ -95,16 +104,47 @@ async function submit() {
   justify-content: center;
   background: linear-gradient(135deg, #fff7e6, #e6fffb);
 }
-.card { max-width: 820px; width: 100%; border-radius: 14px; }
-.card-title { display:flex; gap:10px; align-items:center; font-weight:600; }
-.form-row { margin: 12px 0; }
-.form-row.grid { display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:center; }
-.label { display:flex; gap:8px; color:#555; margin-bottom:6px; }
-.file { width: 100%; }
-.w { width: 100%; }
-.tips { color:#888; margin:10px 0; }
-.result pre { white-space: pre-wrap; word-break: break-word; }
-.err { color:#cf1322; }
+.card {
+  max-width: 820px;
+  width: 100%;
+  border-radius: 14px;
+}
+.card-title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 600;
+}
+.form-row {
+  margin: 12px 0;
+}
+.form-row.grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.label {
+  display: flex;
+  gap: 8px;
+  color: #555;
+  margin-bottom: 6px;
+}
+.file {
+  width: 100%;
+}
+.w {
+  width: 100%;
+}
+.tips {
+  color: #888;
+  margin: 10px 0;
+}
+.result pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.err {
+  color: #cf1322;
+}
 </style>
-
-

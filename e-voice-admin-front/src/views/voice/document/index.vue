@@ -1,38 +1,38 @@
 <template>
   <div class="container">
     <Breadcrumb :items="['语音能力', '语料管理']" />
-    <a-card class="general-card" :bordered="false">
-      <a-row :gutter="16">
-        <a-col :span="16">
-          <a-space>
-            <a-input v-model="formModel.title" placeholder="请输入标题" allow-clear style="width: 200px" />
-            <a-range-picker
+    <ACard class="general-card" :bordered="false">
+      <ARow :gutter="16">
+        <ACol :span="16">
+          <ASpace>
+            <AInput v-model="formModel.title" placeholder="请输入标题" allow-clear style="width: 200px" />
+            <ARangePicker
               v-model="formModel.createdTime"
               style="width: 240px"
               :placeholder="['创建开始时间', '创建结束时间']"
             />
-            <a-button type="primary" @click="search">
+            <AButton type="primary" @click="search">
               <template #icon>
                 <icon-search />
               </template>
               查询
-            </a-button>
-            <a-button @click="reset">重置</a-button>
-          </a-space>
-        </a-col>
-        <a-col :span="8" style="text-align: right">
-          <a-space>
-            <a-button type="primary" @click="handleAdd">
+            </AButton>
+            <AButton @click="reset">重置</AButton>
+          </ASpace>
+        </ACol>
+        <ACol :span="8" style="text-align: right">
+          <ASpace>
+            <AButton type="primary" @click="handleAdd">
               <template #icon>
                 <icon-plus />
               </template>
               新建
-            </a-button>
-          </a-space>
-        </a-col>
-      </a-row>
-      <a-divider style="margin-top: 16px" />
-      <a-table
+            </AButton>
+          </ASpace>
+        </ACol>
+      </ARow>
+      <ADivider style="margin-top: 16px" />
+      <ATable
         row-key="id"
         :loading="loading"
         :pagination="pagination"
@@ -44,42 +44,42 @@
         @page-size-change="handlePageSizeChange"
       >
         <template #status="{ record }">
-          <a-tag v-if="record.status === 1" color="green">启用</a-tag>
-          <a-tag v-else color="red">禁用</a-tag>
+          <ATag v-if="record.status === 1" color="green">启用</ATag>
+          <ATag v-else color="red">禁用</ATag>
         </template>
         <template #operations="{ record }">
-          <a-space>
-            <a-button type="text" size="small" @click="handleEdit(record)">编辑</a-button>
-            <a-popconfirm content="确定要删除该记录吗?" @ok="handleDelete(record)">
-              <a-button type="text" size="small" status="danger">删除</a-button>
-            </a-popconfirm>
-          </a-space>
+          <ASpace>
+            <AButton type="text" size="small" @click="handleEdit(record)">编辑</AButton>
+            <APopconfirm content="确定要删除该记录吗?" @ok="handleDelete(record)">
+              <AButton type="text" size="small" status="danger">删除</AButton>
+            </APopconfirm>
+          </ASpace>
         </template>
-      </a-table>
-    </a-card>
-    
+      </ATable>
+    </ACard>
+
     <!-- 编辑/新增模态框 -->
-    <a-modal
+    <AModal
       v-model:visible="modalVisible"
       :title="isUpdate ? '编辑语料' : '新增语料'"
       @ok="handleSave"
       @cancel="handleCancel"
     >
-      <a-form ref="formRef" :model="form" :rules="rules">
-        <a-form-item label="标题" field="name">
-          <a-input v-model="form.name" placeholder="请输入标题" />
-        </a-form-item>
-        <a-form-item label="内容" field="content">
-          <a-textarea v-model="form.content" placeholder="请输入内容" :auto-size="{ minRows: 4 }" />
-        </a-form-item>
-        <a-form-item label="状态" field="status">
-          <a-radio-group v-model="form.status">
-            <a-radio :value="1">启用</a-radio>
-            <a-radio :value="0">禁用</a-radio>
-          </a-radio-group>
-        </a-form-item>
-      </a-form>
-    </a-modal>
+      <AForm ref="formRef" :model="form" :rules="rules">
+        <AFormItem label="标题" field="name">
+          <AInput v-model="form.name" placeholder="请输入标题" />
+        </AFormItem>
+        <AFormItem label="内容" field="content">
+          <ATextarea v-model="form.content" placeholder="请输入内容" :auto-size="{ minRows: 4 }" />
+        </AFormItem>
+        <AFormItem label="状态" field="status">
+          <ARadioGroup v-model="form.status">
+            <ARadio :value="1">启用</ARadio>
+            <ARadio :value="0">禁用</ARadio>
+          </ARadioGroup>
+        </AFormItem>
+      </AForm>
+    </AModal>
   </div>
 </template>
 
@@ -88,7 +88,7 @@ import { ref } from 'vue';
 import { Message } from '@arco-design/web-vue';
 import useLoading from '@/hooks/loading';
 import { columns } from './data';
-import { getList, save, deleteDoc } from './api';
+import { deleteDoc, getList, save } from './api';
 
 defineOptions({
   name: 'VoiceDocument'

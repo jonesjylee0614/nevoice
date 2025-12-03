@@ -1,0 +1,73 @@
+# FunASR 实时识别配置
+# 基于 FunASR/runtime/python/websocket/funasr_wss_server.py 验证的参数
+
+mode:
+  default: "2pass"  # 可选: 2pass, online, offline
+
+audio:
+  sample_rate: 16000
+  chunk_interval: 10  # 每 chunk_interval 个 chunk 发送一次在线识别请求
+  chunk_size: [5, 10, 5]  # encoder_chunk_look_back, chunk_size, decoder_chunk_look_back (FunASR官方默认)
+
+timeouts:
+  idle_audio_timeout_ms: 5000
+  grace_period_ms: 200
+  max_session_ms: 300000
+
+models:
+  # 离线 ASR 模型（用于二次纠错）
+  asr:
+    model: "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+    revision: "v2.0.4"
+  # 在线流式 ASR 模型
+  asr_online:
+    model: "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online"
+    revision: "v2.0.4"
+  # VAD 模型
+  vad:
+    model: "damo/speech_fsmn_vad_zh-cn-16k-common-pytorch"
+    revision: "v2.0.4"
+  # 标点模型
+  punc:
+    model: "damo/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727"
+    revision: "v2.0.4"
+
+# VAD 分段参数配置
+vad:
+  # 单个语音段的最大时长 (毫秒)，超过此时长会强制分段
+  # 默认 60000ms = 60秒，适当调小避免单段过长
+  max_single_segment_time: 45000  # 45秒
+  
+  # 句末静音时长阈值 (毫秒)，静音超过此时长则认为语音结束
+  # 默认 800ms，调大让分段更稳定（避免中间停顿被误判为句末）
+  max_end_silence_time: 1200  # 1.2秒
+  
+  # 语音vs噪声阈值，范围 (-1, 1)
+  # 值越大越严格（需要更明显的语音才会识别为说话）
+  # 值越小越敏感（轻微声音也会被识别为说话）
+  speech_noise_thres: 0.7  # 调高更严格，避免"呃"等填充词触发分段
+
+# ITN (逆文本归一化) 配置
+itn:
+  enabled: true
+  language: "zh"
+  cache_dir: null  # null 表示使用默认目录 ./itn_cache
+
+resources:
+  ngpu: 1  # 0 表示 CPU, 1 表示 GPU
+  ncpu: 4
+  device: "cuda"  # cuda, cpu, auto
+
+# 特性开关
+features:
+  # 启用 FunASR 流式引擎 (设为 false 可回退到旧引擎)
+  use_funasr_streamer: true
+  # 启用标点
+  enable_punc: true
+  # 启用 ITN
+  enable_itn: true
+  # 启用 VAD
+  enable_vad: true
+  # 调试模式 - 输出更多日志
+  debug: false
+

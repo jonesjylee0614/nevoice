@@ -66,8 +66,8 @@ export default class Producer extends EvemtEmitter3 {
    *
    * @param id
    * @param beginIndex
-   * @param oldAttributes
    * @param path
+   * @param oldAttributes
    * @param newAttributes
    * @param isLoadingCard
    * @returns

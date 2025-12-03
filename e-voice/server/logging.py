@@ -52,6 +52,15 @@ def configure_logging() -> Dict[str, object]:
         format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | {message}",
         colorize=True,
     )
+    # 记录启动与总览日志到独立文件，便于排查启动配置/设备信息
+    logger.add(
+        "logs/startup.log",
+        level="INFO",
+        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {message}",
+        rotation="10 MB",
+        retention="30 days",
+        encoding="utf-8",
+    )
 
     _ws_logger = logger.bind(component="ws")
     _ws_logger.add(

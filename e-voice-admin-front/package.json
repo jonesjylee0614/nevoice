@@ -108,9 +108,7 @@
       "vue-demi",
       "vue-echarts"
     ],
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
+    "onlyBuiltDependencies": ["esbuild"]
   },
   "lint-staged": {
     "*": "eslint --fix"
