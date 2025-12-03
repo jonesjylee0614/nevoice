@@ -1,6 +1,15 @@
 import axios from "axios";
 import {useAuthStore} from "@/stores/auth";
 import {showFailToast} from "vant";
+import {debug} from "util";
+
+// 创建一个全局变量来存储token
+let limitedToken: string | null = null;
+
+// 提供一个方法来设置token
+export const setLimitedToken = (token: string | null) => {
+  limitedToken = token;
+};
 
 //创建axios实例
 const request = axios.create({
@@ -24,6 +33,12 @@ request.interceptors.request.use(
         //        基础地址,请求参数,头部, 请求方式, 超时,  请求地址  等
 
         config.headers.Authorization = auth.user?.token;
+        
+        // 如果存在limitedToken，则添加到请求头中
+        if (limitedToken) {
+            config.headers['x-limited-token'] = limitedToken;
+        }
+        
         return config;
     },
     //方法返回一个带有拒绝原因的 Promise 对象。
@@ -39,7 +54,20 @@ request.interceptors.response.use(
     error => {
         //可根据不同的状态去区分不同的错误，达到不同效果
         if (error.response.status) {
-            error.response.status === 404 ? showFailToast('请求接口不存在') : showFailToast('服务错误');
+            switch (error.response.status) {
+                case 401:
+                    showFailToast('请重新登陆');
+                    break;
+                case 403:
+                    showFailToast('请求接口403');
+                    break;
+                case 404:
+                    showFailToast('请求接口不存在');
+                    break;
+                default:
+                    showFailToast('服务错误');
+                    break;
+            }
         }
         return Promise.reject(error);
     }

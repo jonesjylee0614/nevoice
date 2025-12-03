@@ -6,6 +6,7 @@ import (
 	"gofly/internal/domain/dto"
 	"gofly/internal/domain/service"
 	"gofly/internal/model/base"
+	"gofly/internal/model/biz"
 	"gofly/internal/model/core"
 	"gofly/pkg/utils/anyx"
 	"gofly/pkg/utils/assert"
@@ -115,7 +116,7 @@ func (s *Print) H5url(c *gin.Context) {
 
 	token := idx.UuidStr()
 
-	s.RedisClient.Set(c, token, req.UserId.Int64(), 30*time.Minute)
+	s.RedisClient.Set(c, biz.X_Ltoken+":"+token, req.UserId.Int64(), 30*time.Minute)
 
 	results.ResObj(c, config.Inst.App.Micro[recordH5].Host+"?token="+token, nil)
 }

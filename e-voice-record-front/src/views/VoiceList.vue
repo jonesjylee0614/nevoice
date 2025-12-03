@@ -1,53 +1,72 @@
 <template>
-  <van-nav-bar
-      title="录音列表"
-      left-text="返回"
-      left-arrow
-      @click-left="onClickLeft"
-  />
+<!--    <van-nav-bar-->
+<!--            title="录音列表"-->
+<!--            left-text="返回"-->
+<!--            left-arrow-->
+<!--            @click-left="onClickLeft"-->
+<!--    />-->
+
+    <van-nav-bar
+            title="录音列表"
+    />
 
   <div class="voice-list">
     <van-cell-group inset class="list">
       <van-cell v-for="item in sentences"
                 :key="item.id"
                 class="list-item sentence"
-                @click="goToRecord(item.id)" :title="item.text" :value="item.id" is-link/>
+                 :title="item.txt" is-link/>
     </van-cell-group>
 
-    <van-button type="success" size="large">提交</van-button>
+    <van-button type="success" size="large" @click="goToRecord()">新增</van-button>
+
+<!--    <van-button type="success" size="large">提交</van-button>-->
   </div>
 
 </template>
 
 <script setup>
 
-import {getUserInfo} from "@/views/api/voice.js";
+import { setLimitedToken } from '@/service/request'
+import {getUserInfo, getUserPrints} from "@/views/api/voice.js";
 
 const router = useRouter()
-const sentences = ref([
-  {
-    id: 1,
-    text: '例句1'
-  },
-  {
-    id: 2,
-    text: '例句2'
-  },
-  // 更多示例句子...
-])
+const sentences = ref([])
 
 const goToRecord = (id) => {
-  router.push(`/voice-record/${id}`)
+  router.push(`/voice-record/rec`)
+}
+
+const loadSentences = async (userId) => {
+  const {data} = await getUserPrints(userId)
+    console.log(data)
+  sentences.value = data.data.items
 }
 
 const onClickLeft = () => history.back();
 
-// 判断url中是否有token参数，有的话就获取参数并请求用户信息
-if (router.currentRoute.value.query.token) {
+onMounted(async () => {
+    // 检查URL中是否有token参数
     const token = router.currentRoute.value.query.token
-    const data = await getUserInfo(token)
-    console.log(data)
-}
+    if (token) {
+        // 设置全局token
+        setLimitedToken(token)
+    }
+
+  // 获取用户信息
+    try {
+        const {data} = await getUserInfo()
+        console.log(data)
+        if  (data.data.userId){
+           await loadSentences(data.data.userId)
+        }
+
+    }catch(e){
+        console.log(e)
+    }
+
+
+})
 
 </script>
 

@@ -3,6 +3,7 @@ package middleware
 import (
 	"gofly/internal/config"
 	"gofly/internal/model/base"
+	"gofly/internal/model/biz"
 	"gofly/pkg/ioc"
 	"gofly/pkg/logx"
 	"gofly/pkg/utils/gf"
@@ -103,6 +104,13 @@ func JwtVerify(c *gin.Context) {
 	appKey := c.GetHeader(X_AK)
 	if appKey != "" {
 		AppKeyVerify(c, appKey)
+		return
+	}
+
+	// 带临时token x-limited-token
+	xlToken := c.GetHeader(biz.X_Ltoken)
+	if xlToken != "" {
+		LimitTokenVerify(c, xlToken)
 		return
 	}
 

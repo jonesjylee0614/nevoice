@@ -27,7 +27,7 @@ export default defineConfig(configEnv => {
         },
         server: {
             host: '0.0.0.0',
-            port: 9527,
+            port: 9599,
             open: true,
             proxy: {
                 '/api': {
@@ -81,7 +81,7 @@ export default defineConfig(configEnv => {
                 }
             },
             // 自定义底层的 Rollup 打包配置
-            rollupOptions: {
+            rolldownOptions: {
                 output: {
                     // 将静态文件进行分类存放 并添加时间戳 每次打包文件资源不同
                     chunkFileNames: `assets/js/[hash].${timeStamp}.js`,

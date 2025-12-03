@@ -50,7 +50,7 @@ app:
   #不需要api接口合法性验证-根模块md5加密
   noVerifyAPIRoot: resource,webbusiness,webadmin,openapi,print_voice
   #不需要验证token-具体请求路径
-  noVerifyToken: /common/uploadfile/get_image,/common/install/index,/common/install/save,/user/login,/user/logout,/user/refreshtoken,/user/get_code,/user/resetPassword,/user/get_logininfo,/user/get_Captcha
+  noVerifyToken: /common/uploadfile/get_image,/common/install/index,/common/install/save,/user/login,/user/logout,/user/refreshtoken,/user/get_code,/user/resetPassword,/user/get_logininfo,/user/get_Captcha,/user/get_userinfo
   #不需要接口合法性-具体请求路径
   noVerifyAPI: /common/install/index,/common/install/save,
   #是否允许跨域请求
@@ -61,7 +61,7 @@ app:
     py_voice:
       host: http://127.0.0.1:8210
     record_h5:
-      host: http://localhost:9527/#/voice-list
+      host: http://localhost:9599/#/voice-list
 log:
   level: error  # 日志等级 debug | info | warn | error ，默认 info
   enable-sql-log: false # 是否开启sql日志，报错的日志一直会有，开关不影响

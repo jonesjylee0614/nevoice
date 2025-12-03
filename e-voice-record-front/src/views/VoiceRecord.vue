@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import {register} from "@/views/api/voice";
+import {saveUserPrint} from "@/views/api/voice";
 import {showFailToast, showLoadingToast} from 'vant';
 
 const route = useRoute()
@@ -85,6 +85,8 @@ const toggleRecording = async () => {
 
     const audioBlob = new Blob(audioChunks.value, {type: mediaRecorder.mimeType})
     const formData = new FormData()
+    formData.append('userId', formData.value.userId);
+    formData.append('userName', formData.value.userName);
     formData.append('audio', audioBlob, 'recording.wav')
     const t1 = showLoadingToast({
       message: '解析中...',
@@ -92,7 +94,7 @@ const toggleRecording = async () => {
       loadingType: 'spinner',
     });
     try {
-      const res = await register(formData)
+      const res = await saveUserPrint(formData)
       recognitionResult.value = res.data
     } catch (error) {
       console.error('音频上传失败:', error)

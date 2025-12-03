@@ -13,6 +13,10 @@ type VoicePrint struct {
 	PrintId          int64  `gorm:"comment:声纹ID" json:"printId"`
 }
 
+var (
+	X_Ltoken = "x-limited-token"
+)
+
 func init() {
 	// 需要自动维护表结构
 	model.AddInitModel(&VoicePrint{})
