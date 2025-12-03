@@ -17,21 +17,25 @@
                 class="list-item sentence"
                  :title="item.txt" is-link/>
     </van-cell-group>
+  <van-button v-if="!valid" type="warning" size="large">链接失效</van-button>
 
-    <van-button type="success" size="large" @click="goToRecord()">新增</van-button>
+    <van-button v-if="valid" type="success" size="large" @click="goToRecord()">新增</van-button>
 
 <!--    <van-button type="success" size="large">提交</van-button>-->
   </div>
 
 </template>
 
-<script setup>
+<script setup lang="ts">
 
 import { setLimitedToken } from '@/service/request'
 import {getUserInfo, getUserPrints} from "@/views/api/voice.js";
+import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter()
 const sentences = ref([])
+const authStore = useAuthStore()
+const valid = ref(false)
 
 const goToRecord = (id) => {
   router.push(`/voice-record/rec`)
@@ -58,6 +62,9 @@ onMounted(async () => {
         const {data} = await getUserInfo()
         console.log(data)
         if  (data.data.userId){
+            // 将用户信息存储到Pinia store中
+            authStore.login(data.data)
+            valid.value = true
            await loadSentences(data.data.userId)
         }
 
@@ -141,4 +148,4 @@ onMounted(async () => {
     font-size: 1.25rem;
   }
 }
-</style> 
+</style>

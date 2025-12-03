@@ -25,9 +25,11 @@
 <script setup>
 import {saveUserPrint} from "@/views/api/voice";
 import {showFailToast, showLoadingToast} from 'vant';
+import {useAuthStore} from "@/stores/auth.ts";
 
 const route = useRoute()
-const currentSentence = ref('')
+const router = useRouter()
+
 const isParsing = ref(false)
 const isRecording = ref(false)
 const recognitionResult = ref('')
@@ -37,6 +39,8 @@ const onClickLeft = () => {
   history.back()
 }
 let mediaRecorder = null
+
+const authStore = useAuthStore()
 
 // 开始/停止录音
 const toggleRecording = async () => {
@@ -83,10 +87,12 @@ const toggleRecording = async () => {
     mediaRecorder?.stop()
     mediaRecorder.stream.getTracks().forEach(track => track.stop())
 
+// 访问用户信息
+
     const audioBlob = new Blob(audioChunks.value, {type: mediaRecorder.mimeType})
     const formData = new FormData()
-    formData.append('userId', formData.value.userId);
-    formData.append('userName', formData.value.userName);
+    formData.append('userId', authStore.getUser.userId);
+    formData.append('userName', authStore.getUser.userName);
     formData.append('audio', audioBlob, 'recording.wav')
     const t1 = showLoadingToast({
       message: '解析中...',
@@ -107,10 +113,12 @@ const toggleRecording = async () => {
 }
 
 onMounted(() => {
-  // 获取当前句子信息
-  const sentenceId = route.params.idg
-  // 这里应该调用API获取句子内容
-  currentSentence.value = `示例句子${sentenceId}`
+     let user = authStore.getUser
+    if (!user || !user.userId){
+        router.push(`/voice-list`)
+    }
+    console.log(user)
+
 })
 
 onUnmounted(() => {

@@ -1,10 +1,11 @@
 import {useRouter} from "vue-router";
 
 interface User {
-    id: number;
-    name: string;
-    email: string;
-    token: string;
+    userId?: string;
+    username?: string;
+    email?: string;
+    token?: string;
+    [key: string]: any; // 允许其他属性
 }
 
 
