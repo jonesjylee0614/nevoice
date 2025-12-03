@@ -10,15 +10,11 @@ librosa==0.11.0
 loguru==0.7.3
 matplotlib==3.10.3
 modelscope==1.22.3
-numpy==2.2.6
 protobuf==6.31.1
 pyaudio==0.2.14
 pycorrector==1.1.2
 pydub==0.25.1
 soundfile==0.13.1
-torch==2.7.1
-torchvision==0.22.1
-torchaudio==2.7.1
 orjson
 numba~=0.61.2
 addict==2.4.0
@@ -28,6 +24,9 @@ sortedcontainers==2.4.0
 Flask-Cors==6.0.1
 pymysql==1.1.1
 elasticsearch==8.12.1
-websockets~=15.0.1
 psutil==6.1.1
 edge_tts==7.2.3
+cn2an==0.5.22
+numpy==1.26.4
+# ITN (逆文本归一化) 功能使用 cn2an 实现（已包含在上面的依赖中）
+# cn2an==0.5.22

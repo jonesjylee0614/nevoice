@@ -3,14 +3,15 @@
     <ACard class="card">
       <template #title>
         <div class="card-title">
-          <icon-sound style="color:#1677ff" />
+          <icon-sound style="color: #1677ff" />
           <span>在线语音识别（单次请求）</span>
         </div>
       </template>
 
       <div class="form-row">
         <label for="onlineFile" class="label">
-          <icon-upload /> 选择音频文件
+          <icon-upload />
+          选择音频文件
         </label>
         <input id="onlineFile" class="file" type="file" accept="audio/*" @change="onFileChange" />
       </div>
@@ -35,7 +36,10 @@
 
       <ADivider />
 
-      <div v-if="loading" class="tips"><icon-loading spin /> 提交中，请稍候...</div>
+      <div v-if="loading" class="tips">
+        <icon-loading spin />
+        提交中，请稍候...
+      </div>
 
       <ACard v-if="result" class="result" title="识别结果">
         <pre>{{ result }}</pre>
@@ -44,7 +48,6 @@
       <AAlert v-if="error" type="error" show-icon>{{ error }}</AAlert>
     </ACard>
   </div>
-  
 </template>
 
 <script lang="ts" setup>
@@ -88,7 +91,10 @@ async function submit() {
     const base64Data = await fileToBase64(file.value);
     // 优先走网关
     try {
-      const data: any = await defHttp.post({ url: '/voice/gateway/voiceRecognizeOnline', params: { audio_data: base64Data, format: format.value, sample_rate: sampleRate.value } });
+      const data: any = await defHttp.post({
+        url: '/voice/gateway/voiceRecognizeOnline',
+        params: { audio_data: base64Data, format: format.value, sample_rate: sampleRate.value }
+      });
       result.value = JSON.stringify(data, null, 2);
     } catch (e) {
       // 回退直连 Python 服务
@@ -107,7 +113,7 @@ async function submit() {
     loading.value = false;
   }
 }
- </script>
+</script>
 
 <style scoped>
 .page-wrap {
@@ -118,16 +124,47 @@ async function submit() {
   justify-content: center;
   background: linear-gradient(135deg, #f6ffed, #e6f7ff);
 }
-.card { max-width: 820px; width: 100%; border-radius: 14px; }
-.card-title { display:flex; gap:10px; align-items:center; font-weight:600; }
-.form-row { margin: 12px 0; }
-.form-row.grid { display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:center; }
-.label { display:flex; gap:8px; color:#555; margin-bottom:6px; }
-.file { width: 100%; }
-.w { width: 100%; }
-.tips { color:#888; margin:10px 0; }
-.result pre { white-space: pre-wrap; word-break: break-word; }
-.err { color:#cf1322; }
+.card {
+  max-width: 820px;
+  width: 100%;
+  border-radius: 14px;
+}
+.card-title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 600;
+}
+.form-row {
+  margin: 12px 0;
+}
+.form-row.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.label {
+  display: flex;
+  gap: 8px;
+  color: #555;
+  margin-bottom: 6px;
+}
+.file {
+  width: 100%;
+}
+.w {
+  width: 100%;
+}
+.tips {
+  color: #888;
+  margin: 10px 0;
+}
+.result pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.err {
+  color: #cf1322;
+}
 </style>
-
-

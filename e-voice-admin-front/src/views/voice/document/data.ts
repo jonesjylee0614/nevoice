@@ -13,27 +13,27 @@ export const columns: TableColumnData[] = [
   {
     title: 'ID',
     dataIndex: 'id',
-    width: 80,
+    width: 80
   },
   {
     title: '标题',
     dataIndex: 'name',
-    minWidth: 150,
+    minWidth: 150
   },
   {
     title: '状态',
     dataIndex: 'status',
     width: 100,
-    align: 'center',
+    align: 'center'
   },
   {
     title: '创建时间',
     dataIndex: 'create_time',
-    width: 180,
+    width: 180
   },
   {
     title: '更新时间',
     dataIndex: 'update_time',
-    width: 180,
-  },
+    width: 180
+  }
 ];

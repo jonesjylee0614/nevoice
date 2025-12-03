@@ -20,7 +20,7 @@ class StreamingState:
     hotwords: Dict[str, Any]
     speaker_id: Optional[str] = None
     language: str = "zh-CN"
-    mode: str = "2pass"
+    mode: str = "2pass"  # 2pass, online, offline
     vad_state: Dict[str, Any] = field(default_factory=dict)
     online_cache: Dict[str, Any] = field(default_factory=dict)
     offline_cache: Dict[str, Any] = field(default_factory=dict)
@@ -34,6 +34,16 @@ class StreamingState:
     current_segment_id: Optional[str] = None
     last_final_segment_id: Optional[str] = None
     text_accumulator: "TextAccumulator | None" = None
+    
+    # FunASR 扩展字段
+    chunk_size: List[int] = field(default_factory=lambda: [5, 10, 5])
+    encoder_chunk_look_back: int = 5
+    decoder_chunk_look_back: int = 5
+    enable_itn: bool = True
+    wav_name: str = "microphone"
+    
+    # 内部状态标记
+    _config_logged: bool = False
 
     def next_segment_id(self) -> str:
         self.segment_seq += 1

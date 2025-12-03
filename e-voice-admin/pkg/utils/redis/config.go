@@ -25,11 +25,12 @@ func InitRedisClient(c *config.Config) {
 		DialTimeout: 1 * time.Second,                                  // 链接超时
 	})
 
-	id := t.ClientID(context.Background())
-	if id.Err() != nil {
-		logx.Error("redis连接接失败", id.Err())
+	// 使用 Ping 命令测试连接（兼容旧版Redis）
+	pong, err := t.Ping(context.Background()).Result()
+	if err != nil {
+		logx.Error("redis连接失败", err)
 	} else {
-		logx.Infof("redis连接成功")
+		logx.Infof("redis连接成功: %s", pong)
 	}
 
 	ioc.Register(&Client{t})

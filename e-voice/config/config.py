@@ -43,4 +43,4 @@ env = _resolve_env_name()
 
 conf = ConfigParser()
 BASE_DIR = Path(__file__).resolve().parent
-conf.read(f'{BASE_DIR}/{env}.ini')
+conf.read(f'{BASE_DIR}/{env}.ini', encoding='utf-8')  # 避免 Windows 默认编码导致解析失败

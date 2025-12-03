@@ -261,10 +261,31 @@ class SystemMonitor:
         """记录监控指标"""
         status_emoji = {"HEALTHY": "✅", "WARNING": "⚠️", "CRITICAL": "🚨"}.get(health_status, "❓")
         
+        # 构建 GPU 信息字符串
+        gpu_info = ""
+        if torch.cuda.is_available():
+            gpu_count = torch.cuda.device_count()
+            gpu_parts = []
+            for i in range(gpu_count):
+                gpu_name = metrics.get(f'gpu_{i}_name', f'GPU{i}')
+                allocated = metrics.get(f'gpu_{i}_memory_allocated_mb', 0)
+                total = metrics.get(f'gpu_{i}_memory_total_mb', 0)
+                utilization = metrics.get(f'gpu_{i}_utilization', 0)
+                if total > 0:
+                    mem_percent = (allocated / total) * 100
+                    gpu_parts.append(f"{gpu_name}: {allocated}MB/{total}MB ({mem_percent:.1f}%)")
+                else:
+                    gpu_parts.append(f"{gpu_name}: {allocated}MB")
+            gpu_info = f"\n🎮  GPU: {' | '.join(gpu_parts)}" if gpu_parts else ""
+        else:
+            gpu_info = "\n🎮  GPU: 不可用 (CPU模式)"
+        
         log_msg = (
             f"{status_emoji} 系统监控报告 [{health_status}]\n"
             f"⏱️  运行时间: {metrics.get('uptime_hours', 0):.1f}小时\n"
-            f"🖥️  CPU: {metrics.get('cpu_percent', 0):.1f}% | 内存: {metrics.get('memory_percent', 0):.1f}%\n"
+            f"🖥️  CPU: {metrics.get('cpu_percent', 0):.1f}% | 内存: {metrics.get('memory_percent', 0):.1f}%"
+            f"{gpu_info}\n"
+            f"💾  磁盘: {metrics.get('disk_percent', 0):.1f}% 已用 | {metrics.get('disk_free_gb', 0)}GB 可用\n"
             f"🎯  识别成功率: {metrics.get('success_rate_percent', 0):.1f}% ({metrics.get('total_recognitions', 0)}次)\n"
             f"⚡  平均延迟: {metrics.get('avg_recognition_time_ms', 0):.1f}ms\n"
             f"🔊  音频质量: RMS={metrics.get('avg_audio_rms', 0):.4f}\n"
