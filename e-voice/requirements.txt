@@ -27,6 +27,7 @@ elasticsearch==8.12.1
 psutil==6.1.1
 edge_tts==7.2.3
 cn2an==0.5.22
+requests==2.32.3
 numpy==1.26.4
 # ITN (逆文本归一化) 功能使用 cn2an 实现（已包含在上面的依赖中）
 # cn2an==0.5.22

@@ -295,54 +295,105 @@ def build_meeting_context(dialogs: list, meeting_info: dict) -> str:
 
 def call_llm_for_summary(context: str) -> str:
     """
-    调用LLM生成总结
+    调用阿里云百炼（DashScope）LLM生成总结
     
-    可以接入：
-    - OpenAI API
-    - 通义千问 API
-    - 百川 API
-    - 其他LLM服务
+    使用 OpenAI 兼容的 API 格式调用
     """
-    # TODO: 实际接入LLM API
-    # 这里返回模拟结果，实际需要替换为真实的LLM调用
+    import requests
     
-    prompt = f"""
-你是一位医院会议纪要专家。请根据以下会议记录生成总结：
+    # 获取配置
+    from config.config import conf
+    
+    try:
+        llm_conf = conf['llm']
+        api_url = llm_conf.get('api_url', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
+        api_key = llm_conf.get('api_key', '')
+        model = llm_conf.get('model', 'qwen-turbo')
+    except Exception as e:
+        print(f"读取LLM配置失败: {e}")
+        return "配置错误：请在配置文件中设置 [llm] 配置项"
+    
+    if not api_key or api_key == 'your-api-key-here':
+        return "未配置API Key：请在配置文件中设置 api_key"
+    
+    # 构建系统提示词
+    system_prompt = """你是一位专业的医院会议纪要专家，擅长整理和总结多学科团队(MDT)会议内容。
+请根据会议记录生成结构化的会议总结，要求：
+1. 语言简洁专业
+2. 突出关键决策和结论
+3. 明确后续跟进事项
+4. 如有提及，标注责任人分配"""
+    
+    # 构建用户提示词
+    user_prompt = f"""请根据以下会议记录生成总结：
 
 {context}
 
-请按以下格式输出总结：
-1. 会议主要议题
-2. 关键决策和结论
-3. 后续跟进事项
-4. 责任人分配（如有）
-"""
+请按以下格式输出：
+## 会议总结
+
+### 一、主要议题
+- [列出本次会议讨论的主要议题]
+
+### 二、关键决策
+- [列出会议达成的关键决策和结论]
+
+### 三、后续跟进事项
+- [列出需要跟进的事项]
+
+### 四、责任人分配
+- [如有明确提及，列出责任人分配情况]
+
+### 五、其他备注
+- [其他需要记录的内容]"""
     
-    # 模拟返回结果
-    # 实际应该调用 LLM API
     try:
-        # 尝试导入和调用LLM
-        # from some_llm_sdk import generate
-        # return generate(prompt)
+        # 构建请求
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
         
-        # 暂时返回模拟结果
-        return f"""## 会议总结
-
-### 1. 主要议题
-- 根据会议记录分析主要讨论内容
-
-### 2. 关键决策
-- 待补充具体决策内容
-
-### 3. 后续跟进
-- 待补充跟进事项
-
-### 4. 责任人分配
-- 待补充责任人
-
----
-*注：当前为模拟总结，请配置LLM服务后获取真实总结*
-"""
+        payload = {
+            'model': model,
+            'messages': [
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            'temperature': 0.7,
+            'max_tokens': 2000
+        }
+        
+        # 发送请求
+        response = requests.post(
+            f'{api_url}/chat/completions',
+            headers=headers,
+            json=payload,
+            timeout=60
+        )
+        
+        if response.status_code != 200:
+            error_msg = response.text
+            print(f"LLM API 请求失败: status={response.status_code}, error={error_msg}")
+            return f"AI服务请求失败 (HTTP {response.status_code})"
+        
+        result = response.json()
+        
+        # 解析响应
+        if 'choices' in result and len(result['choices']) > 0:
+            summary = result['choices'][0]['message']['content']
+            return summary.strip()
+        else:
+            print(f"LLM API 响应格式异常: {result}")
+            return "AI服务响应格式异常"
+            
+    except requests.exceptions.Timeout:
+        print("LLM API 请求超时")
+        return "AI服务请求超时，请稍后重试"
+    except requests.exceptions.RequestException as e:
+        print(f"LLM API 网络错误: {e}")
+        return f"网络错误: {str(e)}"
     except Exception as e:
+        print(f"LLM调用异常: {traceback.format_exc()}")
         return f"总结生成失败: {str(e)}"
 

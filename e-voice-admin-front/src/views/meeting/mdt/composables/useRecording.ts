@@ -131,18 +131,54 @@ export function useRecording(options: RecordingOptions) {
         committedText.value = corrected;
         liveText.value = '';
 
+        // 获取时间偏移和音频路径
+        const startOffsetMs = data.start_offset_ms || 0;
+        const endOffsetMs = data.end_offset_ms || 0;
+        const durationMs = data.duration_ms || 0;
+        const audioPath = data.audio_path || '';
+        const speakerInfo = data.speaker_info || null;
+        
+        // 构建完整的音频URL（如果有）
+        const pyHost = (import.meta as any).env.VITE_API_PY_HOST || 'http://localhost:8210';
+        const fullAudioPath = audioPath ? `${pyHost}${audioPath}` : '';
+        
+        // 处理声纹匹配结果
+        let speakerId: number | null = null;
+        let speakerName = '未知发言人';
+        let speakerRole = '';
+        let recognized: RecognizedStatus = 0;
+        let recognitionNote = '等待声纹匹配';
+        let recognitionScore: number | undefined = undefined;
+        
+        if (speakerInfo && speakerInfo.recognized) {
+          speakerId = speakerInfo.speaker_id;
+          speakerName = speakerInfo.speaker_name || '未知';
+          recognized = 1 as RecognizedStatus; // 声纹自动识别
+          recognitionNote = speakerInfo.recognition_note || '声纹匹配成功';
+          recognitionScore = speakerInfo.recognition_score;
+        } else if (speakerInfo) {
+          recognitionNote = speakerInfo.recognition_note || '声纹未匹配';
+        }
+
         // 保存对话到数据库
         currentSeq.value += 1;
         const dialog: Partial<MeetingDialog> = {
           meetingId: options.meetingId,
           seq: currentSeq.value,
-          speakerId: null,
-          speakerName: '未知发言人',
-          speakerRole: '',
-          recognized: 0 as RecognizedStatus, // 待声纹匹配
-          recognitionNote: '等待声纹匹配',
+          speakerId,
+          speakerName,
+          speakerRole,
+          recognized,
+          recognitionNote,
+          recognitionScore,
           speakTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
-          text: corrected
+          text: corrected,
+          // 时间信息
+          startOffset: startOffsetMs,
+          endOffset: endOffsetMs,
+          durationMs: durationMs,
+          // 音频路径
+          audioPath: fullAudioPath
         };
 
         // 通知父组件
