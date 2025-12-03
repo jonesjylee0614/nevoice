@@ -300,11 +300,12 @@ class StreamingEngine:
                 total_text_len = len(text.replace(" ", ""))  # 去空格的字符长度
                 
                 # 保存音频片段文件（如果有音频数据）
+                # 无论有多少句子，都保存一份音频，所有句子共享这一段音频
                 audio_path = None
                 speaker_info = None
                 
-                if event.audio_data and len(sentences) == 1:
-                    # 单句情况下保存音频
+                if event.audio_data:
+                    # 保存整个VAD段的音频
                     audio_path = self._save_audio_segment(
                         event.audio_data,
                         state.session_id,
@@ -337,22 +338,9 @@ class StreamingEngine:
                     sentence_end_ms = current_offset_ms + sentence_duration_ms
                     current_offset_ms = sentence_end_ms
                     
-                    # 多句情况下，最后一句保存完整音频
-                    sentence_audio_path = None
-                    sentence_speaker_info = None
-                    
-                    if len(sentences) == 1:
-                        sentence_audio_path = audio_path
-                        sentence_speaker_info = speaker_info
-                    elif is_last_sentence and event.audio_data:
-                        # 多句时将音频保存给最后一句
-                        sentence_audio_path = self._save_audio_segment(
-                            event.audio_data,
-                            state.session_id,
-                            segment_id
-                        )
-                        # 执行声纹匹配
-                        sentence_speaker_info = self._match_speaker(event.audio_data)
+                    # 所有句子共享同一个VAD段的音频和声纹匹配结果
+                    sentence_audio_path = audio_path
+                    sentence_speaker_info = speaker_info
                     
                     result_event = {
                         "type": "correction",

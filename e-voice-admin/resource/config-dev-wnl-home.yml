@@ -95,3 +95,4 @@ voice:
      model-test: /home/leozy/.cache/model/speech_test
   # 训练完成模型路径
      model-train: /home/leozy/.cache/model/speech_train
+
