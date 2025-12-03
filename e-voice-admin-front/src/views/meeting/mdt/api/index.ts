@@ -79,7 +79,7 @@ export function assignSpeaker(params: object) {
 
 // 生成AI总结
 export function generateSummary(id: number) {
-  return defHttp.get({ url: Api.generateSummary, params: { id } }, { errorMessageMode: 'message' });
+  return defHttp.post({ url: `${Api.generateSummary}?id=${id}`, params: {} }, { errorMessageMode: 'message' });
 }
 
 // 获取总结状态
