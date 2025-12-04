@@ -131,6 +131,7 @@ const toggleRecording = async () => {
       Message.error('音频上传失败');
     }
     // t1.close()
+    emit('success');
     audioChunks.value = [];
     parsing.value = false;
   }

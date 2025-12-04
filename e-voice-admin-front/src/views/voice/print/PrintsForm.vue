@@ -71,7 +71,7 @@
               :color="playingId === record.id ? 'rgb(var(--success-6))' : 'rgb(var(--primary-6))'"
               @click="playAudio(record.id)"
             />
-            <APopconfirm v-perm="[perms.del]" content="您确定要删除吗?" @ok="handleDel(record)">
+            <APopconfirm v-perm="[perms.del]" content="您确定要永久删除吗?" @ok="handleDel(record)">
               <Icon icon="icon-delete" :size="18" color="#ed6f6f" />
             </APopconfirm>
           </ASpace>

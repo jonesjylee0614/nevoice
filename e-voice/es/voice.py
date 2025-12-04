@@ -210,7 +210,7 @@ def list_by_userid(userid, page: int = 1, limit: int = 10):
         from_=(page - 1) * limit,
         size=limit,
         _source=_source,
-
+        sort=[{"create_time": {"order": "asc"}}]
     )
 
     result = {

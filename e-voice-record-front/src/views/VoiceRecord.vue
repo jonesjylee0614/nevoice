@@ -92,7 +92,7 @@ const toggleRecording = async () => {
     const audioBlob = new Blob(audioChunks.value, {type: mediaRecorder.mimeType})
     const formData = new FormData()
     formData.append('userId', authStore.getUser.userId);
-    formData.append('userName', authStore.getUser.userName);
+    formData.append('userName', authStore.getUser.username);
     formData.append('audio', audioBlob, 'recording.wav')
     const t1 = showLoadingToast({
       message: '解析中...',
