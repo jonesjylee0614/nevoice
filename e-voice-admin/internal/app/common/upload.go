@@ -61,30 +61,30 @@ func (s *Upload) Image(c *gin.Context) {
 			maxAtt.Weigh = maxAtt.Weigh + 1
 			_, _ = s.BusinessAttachmentSvc.Update(c, maxAtt)
 		}
-		attachment.URL = rootUrl + attachment.URL
 		results.Success(c, "文件已上传", attachment, nil)
 	} else {
-		filePath := fmt.Sprintf("%s%s%s", "resource/uploads/", time.Now().Format("20060102"), "/")
-		//如果没有filepath文件目录就创建一个
-		if _, err := os.Stat(filePath); err != nil {
-			if !os.IsExist(err) {
-				_ = os.MkdirAll(filePath, os.ModePerm)
-			}
-		}
 		//上传到的路径
 		filenameArr := strings.Split(file.Filename, ".")
 		//重新名片-lunix系统不支持中文
 		nameStr := md5Str(fmt.Sprintf("%v%s", nowTime, filenameArr[0]))                      //组装文件保存名字
 		fileFilename := fmt.Sprintf("%s%s%s", nameStr, ".", filenameArr[len(filenameArr)-1]) //文件加.后缀
-		path := "/common/uploadfile/get_image?url=" + filePath + fileFilename
+
+		filePath := filepath.Join("resource/uploads/", time.Now().Format("20060102"), fileFilename)
+		//如果没有filepath文件目录就创建一个
+		if _, err := os.Stat(filepath.Dir(filePath)); err != nil {
+			if !os.IsExist(err) {
+				_ = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
+			}
+		}
+
 		// 上传文件到指定的目录
-		err = c.SaveUploadedFile(file, path)
+		err = c.SaveUploadedFile(file, filePath)
 		if err != nil { //上传失败
 			c.JSON(200, gin.H{
 				"uid":      sha1Str,
 				"name":     file.Filename,
 				"status":   "error",
-				"response": "上传失败",
+				"response": "上传失败" + err.Error(),
 				"time":     nowTime,
 			})
 		} else { //上传成功
@@ -99,9 +99,9 @@ func (s *Upload) Image(c *gin.Context) {
 				Sha1:     sha1Str,
 				Title:    filenameArr[0],
 				Name:     file.Filename,
-				URL:      path,
+				URL:      rootUrl + filePath,
 				CoverURL: coverUrl,
-				Storage:  dir + "/" + path,
+				Storage:  filepath.Join(dir, filePath),
 				Filesize: file.Size,
 				Mimetype: file.Header["Content-Type"][0],
 			}
