@@ -7,13 +7,13 @@ conda activate evoice && nohup gunicorn --workers 4 --bind 0.0.0.0:8210 --preloa
 
 echo "The rest server is running..."
 
-
-gunicorn  --worker-class eventlet -w 2 \
-         -k uvicorn.workers.UvicornWorker \
-         --bind 0.0.0.0:8210 \
-         --timeout 120 \
-         --access-logfile - \
-         --error-logfile - \
-         --log-level warning \
-         --worker-connections 1000 \
- rest:app
+#
+#gunicorn  --worker-class eventlet -w 2 \
+#         -k uvicorn.workers.UvicornWorker \
+#         --bind 0.0.0.0:8210 \
+#         --timeout 120 \
+#         --access-logfile - \
+#         --error-logfile - \
+#         --log-level warning \
+#         --worker-connections 1000 \
+# rest:app
