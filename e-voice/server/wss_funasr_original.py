@@ -121,6 +121,7 @@ model_asr = AutoModel(
     device=args.device,
     disable_pbar=True,
     disable_log=True,
+    disable_update=True,
 )
 # asr
 model_asr_streaming = AutoModel(
@@ -131,6 +132,7 @@ model_asr_streaming = AutoModel(
     device=args.device,
     disable_pbar=True,
     disable_log=True,
+    disable_update=True,
 )
 # vad
 model_vad = AutoModel(
@@ -141,6 +143,7 @@ model_vad = AutoModel(
     device=args.device,
     disable_pbar=True,
     disable_log=True,
+    disable_update=True,
 )
 
 if args.punc_model != "":
@@ -152,6 +155,7 @@ if args.punc_model != "":
         device=args.device,
         disable_pbar=True,
         disable_log=True,
+        disable_update=True,
     )
 else:
     model_punc = None

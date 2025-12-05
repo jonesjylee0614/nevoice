@@ -16,9 +16,13 @@ def load_spk_model():
     global spk_pipeline
     spk_pipeline = AutoModel(
         model=model_dir,
+        model_revision="v2.0.5",
         vad_model="iic/speech_fsmn_vad_zh-cn-16k-common-pytorch",
+        vad_model_revision="v2.0.4",
         punc_model="iic/punc_ct-transformer_zh-cn-common-vocab272727-pytorch",
+        punc_model_revision="v2.0.4",
         spk_model="iic/speech_campplus_sv_zh-cn_16k-common",
+        spk_model_revision="v2.0.2",
         disable_update=True,
     )
     return spk_pipeline

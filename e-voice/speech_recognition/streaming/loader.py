@@ -206,6 +206,7 @@ class ModelLoader:
                 device=device,
                 disable_pbar=True,
                 disable_log=True,
+                disable_update=True,
             )
             elapsed = (time.time() - start) * 1000
             logger.info(f"{model_type} 模型加载成功，耗时 {elapsed:.0f}ms")
