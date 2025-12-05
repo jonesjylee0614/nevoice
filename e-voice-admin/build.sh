@@ -31,7 +31,7 @@ cd ./e-voice-admin
 go mod tidy
 rm -rf $BACKEND_NAME
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ../$BACKEND_NAME main.go
-upx --best --lzma $BACKEND_NAME
+upx --best --lzma ../$BACKEND_NAME
 
 # 打包多个压缩包为一个压缩包
 cd ..
