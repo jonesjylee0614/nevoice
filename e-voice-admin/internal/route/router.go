@@ -9,6 +9,7 @@ import (
 	"gofly/internal/config"
 	"gofly/internal/route/middleware"
 	"gofly/pkg/logx"
+	"gofly/pkg/utils/collx"
 	"net/http"
 
 	"strings"
@@ -69,13 +70,20 @@ func InitRouter() *gin.Engine {
 		AllowHeaders:     []string{"X-Requested-With", "Content-Type", "Authorization", "Businessid", "verify-encrypt", "ignoreCancelToken", "verify-time"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
+		AllowOriginFunc: func(origin string) bool {
+			if collx.ArrayContains(strArr, origin) {
+				return true
+			}
+			logx.Warnf("not allow origin: %s", origin)
+			return false
+		},
 	}))
 	//1.全局异常捕捉
 	R.Use(middleware.ErrorHandler())
 	//2.限流rate-limit 中间件
 	R.Use(middleware.LimitHandler())
 	//3.判断接口是否合法
-	R.Use(middleware.ValidityApi())
+	//R.Use(middleware.ValidityApi())
 	//4.验证token
 	R.Use(middleware.JwtVerify)
 	//5.跨域

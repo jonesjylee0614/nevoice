@@ -156,6 +156,7 @@ const { changeLocale, currentLocale } = useLocale();
 const { isFullscreen, toggle: toggleFullScreen } = useFullscreen();
 const locales = [...LOCALE_OPTIONS];
 const avatar = computed(() => {
+  console.log('avatar:', userStore.avatar);
   return userStore.avatar;
 });
 const username = computed(() => {

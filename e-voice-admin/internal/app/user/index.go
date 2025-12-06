@@ -5,7 +5,6 @@ import (
 	"gofly/internal/domain/core_service"
 	"gofly/internal/domain/dto"
 	"gofly/internal/model/base"
-	"gofly/internal/model/biz"
 	"gofly/internal/model/core"
 	"gofly/internal/route/middleware"
 	"gofly/pkg/captcha"
@@ -128,22 +127,14 @@ func (s *Index) Login(c *gin.Context) {
 // Get_userinfo 获取用户 /user/get_userinfo
 func (s *Index) Get_userinfo(c *gin.Context) {
 	sysUser := s.AccountService.GetSysUser(c)
-	var userId int64
-	if sysUser == nil {
-		// 获取临时用户id
-		xlToken := c.GetHeader(biz.X_Ltoken)
-		userId, _ = s.RedisClient.Get(c, biz.X_Ltoken+":"+xlToken).Int64()
-	} else {
-		userId = sysUser.Id
-	}
 
-	assert.IsTrue(userId > 0, "无效用户！")
+	assert.IsTrue(sysUser != nil, "无效用户！")
 
-	user, err := s.AccountService.GetById(c, userId)
+	user, err := s.AccountService.GetById(c, sysUser.Id)
 	assert.ErrIsNilAppendErr(err, "获取用户失败！")
 
 	//获取用户权限菜单
-	roleIds := s.BusinessAuthRoleAccessSvc.GetRoleAccessIdsByUId(c, userId)
+	roleIds := s.BusinessAuthRoleAccessSvc.GetRoleAccessIdsByUId(c, sysUser.Id)
 	assert.IsTrue(len(roleIds) > 0, "您没有使用权限")
 
 	menuIds := s.BusinessAuthRoleSvc.GetRulesByIds(c, roleIds...)

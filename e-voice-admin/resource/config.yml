@@ -58,7 +58,7 @@ app:
      #不需要验证token-具体请求路径
      noVerifyToken: /common/uploadfile/get_image,/common/install/index,/common/install/save,/user/login,/user/logout,/user/refreshtoken,/user/get_code,/user/resetPassword,/user/get_logininfo,/user/get_Captcha
      #不需要接口合法性-具体请求路径
-     noVerifyAPI: /common/install/index,/common/install/save,
+     noVerifyAPI: /common/install/index,/common/install/save,/voice/print/saveUserPrint
      #是否允许跨域请求
      allow-cros: false
      #允许跨域的域名，默认*

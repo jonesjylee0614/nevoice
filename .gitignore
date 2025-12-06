@@ -24,6 +24,7 @@ vite.config.ts.timestamp-*.mjs
 install.lock
 .DS_Store
 *.log
+*.tar.gz
 
 # 目录忽略
 temp
