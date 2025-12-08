@@ -17,6 +17,7 @@ export interface RecordingOptions {
 export function useRecording(options: RecordingOptions) {
   const recording = ref(false);
   const connecting = ref(false);
+  const paused = ref(false);  // 暂停状态
   const errorMsg = ref('');
   const currentSeq = ref(0);
 
@@ -24,6 +25,9 @@ export function useRecording(options: RecordingOptions) {
   const committedText = ref('');
   const liveText = ref('');
   const runningText = computed(() => {
+    if (paused.value) {
+      return '⏸️ 录音已暂停';
+    }
     if (committedText.value && liveText.value) {
       return `${committedText.value} ${liveText.value}`.trim();
     }
@@ -268,7 +272,8 @@ export function useRecording(options: RecordingOptions) {
       // 创建音频处理器
       scriptProcessor = audioContext.createScriptProcessor(PROCESSOR_BUFFER_SIZE, 1, 1);
       scriptProcessor.onaudioprocess = (event: AudioProcessingEvent) => {
-        if (!recording.value || !socket || socket.readyState !== WebSocket.OPEN) return;
+        // 如果未录音、WebSocket未连接或已暂停，则跳过
+        if (!recording.value || !socket || socket.readyState !== WebSocket.OPEN || paused.value) return;
         
         const input = event.inputBuffer.getChannelData(0);
 
@@ -301,7 +306,9 @@ export function useRecording(options: RecordingOptions) {
       scriptProcessor.connect(audioContext.destination);
 
       // 发送开始信号
-      socket.send(JSON.stringify({ type: 'start' }));
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'start' }));
+      }
       
       recording.value = true;
       connecting.value = false;
@@ -355,6 +362,7 @@ export function useRecording(options: RecordingOptions) {
     
     recording.value = false;
     connecting.value = false;
+    paused.value = false;  // 重置暂停状态
 
     if (socket && socket.readyState === WebSocket.OPEN) {
       try {
@@ -388,6 +396,35 @@ export function useRecording(options: RecordingOptions) {
     }
   };
 
+  // 暂停/恢复录音
+  const togglePause = () => {
+    if (!recording.value) return;
+    
+    paused.value = !paused.value;
+    
+    if (paused.value) {
+      // 暂停时发送暂停信号给后端
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.send(JSON.stringify({ type: 'pause', is_speaking: false }));
+        } catch (e) {
+          console.error('发送暂停信号失败:', e);
+        }
+      }
+      Message.info('录音已暂停');
+    } else {
+      // 恢复时发送恢复信号
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.send(JSON.stringify({ type: 'resume', is_speaking: true }));
+        } catch (e) {
+          console.error('发送恢复信号失败:', e);
+        }
+      }
+      Message.success('录音已恢复');
+    }
+  };
+
   // 清理
   const cleanup = () => {
     stopRecording();
@@ -398,17 +435,20 @@ export function useRecording(options: RecordingOptions) {
     currentSeq.value = 0;
     committedText.value = '';
     liveText.value = '';
+    paused.value = false;
   };
 
   return {
     recording,
     connecting,
+    paused,
     errorMsg,
     runningText,
     currentSeq,
     startRecording,
     stopRecording,
     toggleRecording,
+    togglePause,
     cleanup,
     resetSeq
   };

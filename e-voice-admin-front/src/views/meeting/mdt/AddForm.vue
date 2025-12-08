@@ -117,13 +117,19 @@ const handleSubmit = async () => {
     if (isUpdate.value && recordId.value) {
       await update({ id: recordId.value, ...params });
       Message.success('更新成功');
+      closeModal();
+      emit('success');
     } else {
-      await save(params);
+      const result = await save(params);
       Message.success('创建成功');
+      closeModal();
+      // 新建会议后询问是否进入会议详情
+      if (result?.id) {
+        emit('success', { newMeetingId: result.id });
+      } else {
+        emit('success');
+      }
     }
-
-    closeModal();
-    emit('success');
   } catch (error) {
     // 错误处理
   } finally {

@@ -78,7 +78,7 @@
 
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router';
-import { Message } from '@arco-design/web-vue';
+import { Message, Modal } from '@arco-design/web-vue';
 import useLoading from '@/hooks/loading';
 import { Icon } from '@/components/Icon';
 import type { Pagination } from '@/types/global';
@@ -190,8 +190,29 @@ const handleDetail = (record: any) => {
 };
 
 // 更新数据
-const handleData = () => {
-  setTimeout(fetchData, 1000);
+const handleData = (payload?: { newMeetingId?: number }) => {
+  if (payload?.newMeetingId) {
+    // 新建会议成功，询问是否进入会议
+    Modal.confirm({
+      title: '会议创建成功',
+      content: '是否立即进入会议详情页开始会议？',
+      okText: '进入会议',
+      cancelText: '稍后再说',
+      onOk: () => {
+        router.push({
+          path: '/meeting/mdt/detail',
+          query: { id: payload.newMeetingId }
+        });
+      },
+      onCancel: () => {
+        // 刷新列表
+        fetchData();
+      }
+    });
+  } else {
+    // 编辑操作，直接刷新
+    setTimeout(fetchData, 500);
+  }
 };
 
 // 分页

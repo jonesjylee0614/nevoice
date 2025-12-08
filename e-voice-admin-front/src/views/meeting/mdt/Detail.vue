@@ -20,6 +20,19 @@
           </template>
           清空记录
         </AButton>
+        <!-- 暂停/恢复录音按钮 -->
+        <AButton
+          v-if="meeting?.status === 1 && recording"
+          :type="paused ? 'primary' : 'outline'"
+          :status="paused ? 'warning' : 'normal'"
+          @click="handleTogglePause"
+        >
+          <template #icon>
+            <icon-play-arrow v-if="paused" />
+            <icon-pause v-else />
+          </template>
+          {{ paused ? '恢复录音' : '暂停录音' }}
+        </AButton>
         <!-- 实时录音按钮（整合了开始会议功能） -->
         <AButton
           v-if="meeting?.status !== 2"
@@ -96,11 +109,11 @@
           <div v-if="meeting?.dialogs?.length" class="dialog-list">
             <div v-for="dialog in meeting.dialogs" :key="dialog.id || dialog.seq" class="dialog-item">
               <div class="dialog-meta">
-                <span class="time">{{ formatTime(dialog.speakTime) }}</span>
-                <!-- 时间偏移显示 -->
-                <span v-if="dialog.startOffset || dialog.endOffset" class="time-offset">
-                  [{{ formatOffsetTime(dialog.startOffset) }} - {{ formatOffsetTime(dialog.endOffset) }}]
+                <!-- 优先显示时间偏移（音频中的实际时间） -->
+                <span v-if="dialog.startOffset !== undefined && dialog.startOffset !== null" class="time-offset primary">
+                  {{ formatOffsetTime(dialog.startOffset) }} - {{ formatOffsetTime(dialog.endOffset) }}
                 </span>
+                <span v-else class="time">{{ formatTime(dialog.speakTime) }}</span>
                 <ATag v-if="dialog.recognized" :color="recognizedStatusMap[dialog.recognized]?.color">
                   {{ dialog.speakerName }}
                 </ATag>
@@ -228,9 +241,11 @@ const meetingId = computed(() => Number(route.query.id) || 0);
 const {
   recording,
   connecting,
+  paused,
   errorMsg: recordingError,
   runningText,
   toggleRecording,
+  togglePause,
   cleanup: cleanupRecording,
   resetSeq
 } = useRecording({
@@ -243,6 +258,11 @@ const {
     }
   }
 });
+
+// 暂停/恢复录音
+const handleTogglePause = () => {
+  togglePause();
+};
 
 // 处理文件上传测试的对话
 const handleFileDialogReceived = (dialog: Partial<MeetingDialog>) => {
@@ -618,6 +638,13 @@ onUnmounted(() => {
     background: var(--color-fill-2);
     padding: 2px 6px;
     border-radius: 4px;
+
+    &.primary {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-2);
+      background: transparent;
+    }
   }
 }
 

@@ -744,12 +744,44 @@ class FunASRStreamer:
         
         return text
     
+    # 不应转换数字的常见中文词组（包含数字字符但不是数量表达）
+    # 格式：(前缀词组, 数字部分, 后缀词组)
+    _SKIP_NUMBER_PATTERNS = {
+        # "一"开头的常用词
+        '一会', '一会儿', '一下', '一下子', '一起', '一同', '一般', '一定', '一直',
+        '一样', '一边', '一面', '一旦', '一切', '一向', '一致', '一概', '一律',
+        '一贯', '一如', '一并', '一道', '一经', '一再', '一度', '一味', '一番',
+        '一时', '一刻', '一瞬', '一生', '一辈子', '一世', '一早', '一晚',
+        '一身', '一手', '一脚', '一口', '一眼', '一声', '一心', '一气',
+        '一路', '一行', '一点', '一些', '一部分', '一半', '一方面',
+        '一块', '一块儿', '一齐', '一同', '一共', '一起来', '一带',
+        # "二"相关
+        '二话', '二流',
+        # "三"相关
+        '三番五次', '三思', '三心二意',
+        # "五"相关
+        '五花八门',
+        # "七"相关
+        '七上八下', '七嘴八舌',
+        # "八"相关
+        '八成', '八卦',
+        # "十"相关
+        '十足', '十分',
+        # "百"相关
+        '百分之百', '百般',
+        # "千"相关
+        '千万',
+        # "万"相关
+        '万一', '万万',
+    }
+    
     @staticmethod
     def _postprocess_numbers(text: str) -> str:
         """
         将中文数字转换为阿拉伯数字。
         
         参考 funasr_wss_server.py 中的 postprocess_numbers 函数。
+        智能识别：跳过常见的非数量表达词组（如"一会"、"一下"等）。
         """
         if not text or cn2an is None:
             return text
@@ -779,8 +811,55 @@ class FunASRStreamer:
             except Exception:
                 return raw
         
-        def _conv_plain(match):
+        def _should_skip(text: str, match_start: int, match_end: int, matched_text: str) -> bool:
+            """检查是否应该跳过此数字转换（因为它是常见词组的一部分）"""
+            # 检查是否是常见词组的一部分
+            # 向前和向后各取几个字符来检查上下文
+            context_before = text[max(0, match_start - 3):match_start]
+            context_after = text[match_end:min(len(text), match_end + 4)]
+            
+            # 构建可能的词组
+            for pattern in FunASRStreamer._SKIP_NUMBER_PATTERNS:
+                # 检查匹配文本是否是词组的数字部分
+                if matched_text in pattern:
+                    # 检查上下文是否匹配
+                    full_context = context_before + matched_text + context_after
+                    if pattern in full_context:
+                        return True
+            return False
+        
+        def _conv_plain_smart(match):
+            """智能转换：跳过常见词组中的数字"""
             raw = match.group(0)
+            start = match.start()
+            end = match.end()
+            
+            # 检查是否应该跳过
+            if _should_skip(text, start, end, raw):
+                return raw
+            
+            # 单个"一"且不是"一百"、"一千"等数量表达，不转换
+            if raw == '一':
+                # 检查后面是否跟着数量单位或其他数字
+                after = text[end:end + 3] if end < len(text) else ''
+                # 检查"一"后面不是明确的数量表达时，保留原文
+                number_units = '〇零二两三四五六七八九十百千万亿兆个元块只条张把辆套件台部位名人次岁年月日时分秒米斤克升公里毫度倍番'
+                if not any(c in after for c in number_units):
+                    return raw
+            
+            # 单个"第"开头的序数词 - 保持原样，让正则处理
+            # 单个数字字符（二、三、四...）在特定上下文中也可能不需要转换
+            single_chars = {'二', '三', '四', '五', '六', '七', '八', '九', '十'}
+            if raw in single_chars:
+                # 检查前后上下文
+                before = text[max(0, start - 2):start]
+                after = text[end:min(len(text), end + 2)]
+                # 如果前面是"第"，后面是"方面"/"步"等，保持原样
+                if '第' in before:
+                    return raw
+                if after.startswith('方面') or after.startswith('来') or after.startswith('步'):
+                    return raw
+            
             try:
                 return _fmt(cn2an.cn2an(raw, "smart"))
             except Exception:
@@ -790,8 +869,8 @@ class FunASRStreamer:
         text = re.sub(r"百分之([〇零一二两三四五六七八九十百千万亿兆点]+)", _conv_percent, text)
         # X(万|亿|兆) 输出保留单位
         text = re.sub(r"([〇零一二两三四五六七八九十百千零点两]+)([万亿兆])", _conv_with_unit, text)
-        # 其他纯中文数字
-        text = re.sub(r"[〇零一二两三四五六七八九十百千万亿兆点]+", _conv_plain, text)
+        # 其他纯中文数字（使用智能转换）
+        text = re.sub(r"[〇零一二两三四五六七八九十百千万亿兆点]+", _conv_plain_smart, text)
         
         return text
 

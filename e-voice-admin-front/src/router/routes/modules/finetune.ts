@@ -29,6 +29,16 @@ const routes: AppRouteRecordRaw[] = [
           locale: '语料管理',
           requiresAuth: true
         }
+      },
+      {
+        // 兼容数据库中 /finetune/audio 的配置
+        path: 'audio',
+        name: 'finetuneAudio',
+        component: '/finetune/detail/index',
+        meta: {
+          locale: '语料管理',
+          requiresAuth: true
+        }
       }
     ]
   }

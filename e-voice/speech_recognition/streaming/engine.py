@@ -31,6 +31,8 @@ ENABLE_AUTO_VOICEPRINT = True
 
 # 中文句末标点正则 - 用于基于语义的二次分段
 SENTENCE_END_PATTERN = re.compile(r'([。！？!?])')
+# 检查是否只包含标点符号的正则
+PUNCTUATION_ONLY_PATTERN = re.compile(r'^[。！？!?，,、；;：:""''""\'\'()（）【】\[\]《》<>—\-…·\s]+$')
 
 
 def split_by_punctuation(text: str) -> List[str]:
@@ -58,8 +60,11 @@ def split_by_punctuation(text: str) -> List[str]:
         current += part
         # 如果当前部分是标点，则完成一个句子
         if SENTENCE_END_PATTERN.match(part):
-            if current.strip():
-                sentences.append(current.strip())
+            stripped = current.strip()
+            # 只保存有实际内容的句子（不能只是标点符号）
+            if stripped and not PUNCTUATION_ONLY_PATTERN.match(stripped):
+                sentences.append(stripped)
+            # 如果只是标点，直接丢弃，避免产生单独的标点句子
             current = ""
     
     # 处理剩余的没有句末标点的文本

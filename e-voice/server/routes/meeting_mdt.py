@@ -85,8 +85,28 @@ def match_speaker_from_audio(audio_base64: str, participant_user_ids: list = Non
         return {
             'recognized': False,
             'speaker_name': '未知发言人',
-            'recognition_note': f'匹配异常: {str(e)}'
+            'recognition_note': '声纹匹配服务异常'
         }
+
+
+def _friendly_error_note(error_msg: str) -> str:
+    """将技术性错误信息转换为用户友好的提示"""
+    # 常见技术错误映射
+    error_mappings = [
+        ('truth value of an array', '声纹处理异常'),
+        ('connection refused', '声纹服务连接失败'),
+        ('timeout', '声纹匹配超时'),
+        ('no such file', '音频文件处理异常'),
+        ('elasticsearch', '声纹库服务异常'),
+    ]
+    
+    error_lower = error_msg.lower()
+    for pattern, friendly_msg in error_mappings:
+        if pattern in error_lower:
+            return friendly_msg
+    
+    # 默认返回通用错误信息
+    return '声纹匹配服务异常'
 
 
 def match_speaker_from_wav_file(wav_path: str, participant_user_ids: list = None):
@@ -102,7 +122,7 @@ def match_speaker_from_wav_file(wav_path: str, participant_user_ids: list = None
         from pipeline.spk_v_pipeline import embeddings
         embedding_list = embeddings([wav_path])
         
-        if not embedding_list or len(embedding_list) == 0:
+        if embedding_list is None or len(embedding_list) == 0:
             return {
                 'recognized': False,
                 'speaker_name': '未知发言人',
@@ -159,7 +179,7 @@ def match_speaker_from_wav_file(wav_path: str, participant_user_ids: list = None
         return {
             'recognized': False,
             'speaker_name': '未知发言人',
-            'recognition_note': f'匹配异常: {str(e)}'
+            'recognition_note': _friendly_error_note(str(e))
         }
 
 
@@ -215,7 +235,7 @@ def match_speaker_from_pcm(pcm_bytes: bytes, sample_rate: int = 16000, participa
         return {
             'recognized': False,
             'speaker_name': '未知发言人',
-            'recognition_note': f'匹配异常: {str(e)}'
+            'recognition_note': _friendly_error_note(str(e))
         }
 
 

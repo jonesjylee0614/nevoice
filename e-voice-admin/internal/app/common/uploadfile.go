@@ -162,8 +162,20 @@ func getLastFrame(url string, path string, ffmpegPath string) string {
 // Get_image 显示图片 /common/uploadfile/get_image
 func (s *Uploadfile) Get_image(c *gin.Context) {
 	imageName := c.Query("url")
+	if imageName == "" {
+		c.JSON(400, gin.H{"code": 400, "message": "缺少url参数"})
+		return
+	}
 	imgrul := strings.Split(imageName, "?")
-	c.File(imgrul[0])
+	filePath := imgrul[0]
+	
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		c.JSON(404, gin.H{"code": 404, "message": "文件不存在"})
+		return
+	}
+	
+	c.File(filePath)
 }
 
 // 4.显示图片base64

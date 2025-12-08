@@ -32,7 +32,7 @@ app:
      #接口合法性验证
      apisecret: gofly@888
      #接口JWT验证、跨域域名-不添加请求时报403 (开发、部署必改),部署域名时：“https://en.goflys.cn”替换成您的域名
-     allowurl: http://localhost:9105,http://localhost:9106,https://en.goflys.cn,http://localhost:6020,http://localhost:5173,http://xnng.yfqwl.com:38626,http://xnng.yfqwl.com:38627,https://evoicefront.xnng.yfqwl.com
+     allowurl: http://localhost:9105,http://localhost:9106,https://en.goflys.cn,http://localhost:6020,http://localhost:5173,http://xnng.yfqwl.com:38626,http://xnng.yfqwl.com:38627,https://evoicefront.xnng.yfqwl.com,http://localhost:9527
      #token超时时间单位分钟 
      tokenouttime: 10 
      #调用cpu个数
@@ -60,7 +60,9 @@ app:
      micro:
          py_voice:
              host: http://localhost:8210
-          #    host: https://evoice.xnng.yfqwl.com
+             # host: https://evoice.xnng.yfqwl.com
+         record_h5:
+             host: "http://localhost:9527/#/voice-list"
 log:
      level: debug  # 日志等级 debug | info | warn | error ，默认 info
      enable-sql-log: true # 是否开启sql日志，报错的日志一直会有，开关不影响

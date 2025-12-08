@@ -120,8 +120,13 @@ func (s *Mdt) Save(c *gin.Context) {
 		meeting.Tags = string(tagsJson)
 	}
 
-	res, err := s.svc.Insert(c, meeting)
-	results.ResSave(c, res, err)
+	_, err := s.svc.Insert(c, meeting)
+	if err != nil {
+		results.Failed(c, "创建会议失败", err)
+		return
+	}
+	// 返回新创建会议的ID（GORM会自动回填ID到meeting结构体中）
+	results.Success(c, "创建成功", gin.H{"id": meeting.Id}, nil)
 }
 
 // Update 更新会议 /meeting/mdt/update
