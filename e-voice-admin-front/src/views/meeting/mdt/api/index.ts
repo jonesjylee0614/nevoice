@@ -13,7 +13,8 @@ export const Api = {
   updateDialog: '/meeting/mdt/update_dialog',
   assignSpeaker: '/meeting/mdt/assignSpeaker',
   generateSummary: '/meeting/mdt/generateSummary',
-  getSummaryStatus: '/meeting/mdt/getSummaryStatus'
+  getSummaryStatus: '/meeting/mdt/getSummaryStatus',
+  clearDialogs: '/meeting/mdt/clearDialogs'
 };
 
 // 获取会议列表
@@ -90,4 +91,9 @@ export function getSummaryStatus(id: number) {
 // 声纹匹配
 export function matchSpeaker(params: { audio_data: string; participant_user_ids?: number[] }) {
   return defHttp.post({ url: '/meeting/mdt/matchSpeaker', params }, { errorMessageMode: 'none' });
+}
+
+// 清空对话记录
+export function clearDialogs(meetingId: number) {
+  return defHttp.post({ url: `${Api.clearDialogs}?meetingId=${meetingId}`, params: {} }, { errorMessageMode: 'message' });
 }

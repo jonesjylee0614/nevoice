@@ -67,7 +67,7 @@ features:
   # 启用 ITN
   enable_itn: true
   # 启用 VAD
-  enable_vad: true
-  # 调试模式 - 输出更多日志
-  debug: false
+  enable_vad: false
+  # 调试模式 - 输出更多日志（排查延迟问题时建议开启）
+  debug: true
 

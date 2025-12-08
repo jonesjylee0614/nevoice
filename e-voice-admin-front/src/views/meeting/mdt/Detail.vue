@@ -9,21 +9,31 @@
         返回列表
       </AButton>
       <ASpace style="margin-left: auto">
-        <!-- 实时录音按钮 -->
+        <!-- 清空记录按钮 - 仅在会议进行中时显示 -->
+        <AButton
+          v-if="meeting?.status === 1 && meeting?.dialogCount > 0"
+          status="danger"
+          @click="handleClearDialogs"
+        >
+          <template #icon>
+            <icon-delete />
+          </template>
+          清空记录
+        </AButton>
+        <!-- 实时录音按钮（整合了开始会议功能） -->
         <AButton
           v-if="meeting?.status !== 2"
           :type="recording ? 'outline' : 'primary'"
           :status="recording ? 'danger' : 'normal'"
           :loading="connecting"
-          @click="toggleRecording"
+          @click="handleToggleRecording"
         >
           <template #icon>
             <icon-record v-if="!recording" />
             <icon-record-stop v-if="recording" />
           </template>
-          {{ recording ? '停止录音' : '开始录音' }}
+          {{ recording ? '停止录音' : (meeting?.status === 0 ? '开始会议并录音' : '开始录音') }}
         </AButton>
-        <AButton v-if="meeting?.status === 0" type="primary" @click="handleStartMeeting">开始会议</AButton>
         <AButton v-if="meeting?.status === 1" status="warning" @click="handleEndMeeting">结束会议</AButton>
       </ASpace>
     </div>
@@ -191,10 +201,10 @@
 
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router';
-import { Message } from '@arco-design/web-vue';
+import { Modal, Message } from '@arco-design/web-vue';
 import useLoading from '@/hooks/loading';
 import { meetingStatusMap, recognizedStatusMap, summaryStatusMap } from './data';
-import { assignSpeaker, endMeeting, generateSummary, getDetail, startMeeting, updateDialog } from './api';
+import { assignSpeaker, clearDialogs, endMeeting, generateSummary, getDetail, startMeeting, updateDialog } from './api';
 import type { MeetingDetail, MeetingDialog, Participant } from './api/types';
 import { useRecording } from './composables/useRecording';
 import AudioFileUpload from './components/AudioFileUpload.vue';
@@ -221,7 +231,8 @@ const {
   errorMsg: recordingError,
   runningText,
   toggleRecording,
-  cleanup: cleanupRecording
+  cleanup: cleanupRecording,
+  resetSeq
 } = useRecording({
   meetingId: meetingId.value,
   onDialogReceived: dialog => {
@@ -454,6 +465,30 @@ const handleStartMeeting = async () => {
   }
 };
 
+// 开始录音（整合开始会议逻辑）
+const handleToggleRecording = async () => {
+  if (!meeting.value?.id) return;
+  
+  // 如果是开始录音（当前未在录音）
+  if (!recording.value) {
+    // 如果会议状态是"待开始"，先自动开始会议
+    if (meeting.value.status === 0) {
+      try {
+        await startMeeting(meeting.value.id);
+        // 更新本地状态
+        meeting.value.status = 1;
+        Message.success('会议已自动开始');
+      } catch (error) {
+        Message.error('开始会议失败');
+        return;
+      }
+    }
+  }
+  
+  // 执行录音切换
+  toggleRecording();
+};
+
 // 结束会议
 const handleEndMeeting = async () => {
   if (!meeting.value?.id) return;
@@ -468,6 +503,44 @@ const handleEndMeeting = async () => {
   } catch (error) {
     Message.error('操作失败');
   }
+};
+
+// 清空对话记录
+const handleClearDialogs = () => {
+  if (!meeting.value?.id) return;
+  
+  Modal.warning({
+    title: '清空对话记录',
+    content: recording.value 
+      ? '将停止当前录音并清空所有语音识别记录，此操作不可恢复！' 
+      : '确定要清空所有语音识别记录吗？此操作不可恢复！',
+    okText: '确认清空',
+    cancelText: '取消',
+    hideCancel: false,
+    onOk: async () => {
+      try {
+        // 先停止录音（如果正在录音）
+        if (recording.value) {
+          toggleRecording();
+          // 等待WebSocket关闭
+          await new Promise(resolve => setTimeout(resolve, 600));
+        }
+        
+        const res = await clearDialogs(meeting.value!.id);
+        const count = res?.deletedCount || 0;
+        Message.success(`已清空 ${count} 条对话记录`);
+        // 清空前端状态
+        if (meeting.value) {
+          meeting.value.dialogs = [];
+          meeting.value.dialogCount = 0;
+        }
+        // 重置录音序号
+        resetSeq();
+      } catch (error) {
+        Message.error('清空失败');
+      }
+    }
+  });
 };
 
 // 初始化

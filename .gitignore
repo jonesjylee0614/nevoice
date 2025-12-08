@@ -52,3 +52,5 @@ data/voice/
 outputs
 tests/server/static
 tests/server/static/upload
+*.wav
+es_logs/

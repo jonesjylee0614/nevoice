@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
@@ -87,6 +88,7 @@ class FunASRStreamerState:
     wav_name: str = "microphone"
     is_speaking: bool = True
     hotwords: Dict[str, Any] = field(default_factory=dict)
+    session_id: str = ""  # 便于日志聚合
     
     # 时间追踪
     total_audio_ms: int = 0           # 总音频时长(ms) - 基于实际发送的音频计算
@@ -237,6 +239,7 @@ class FunASRStreamer:
             生成的事件列表
         """
         events: List[StreamingEvent] = []
+        t_chunk_start = time.time()
         
         # 计算音频时长（毫秒）
         # 16kHz, 16bit = 32 bytes/ms
@@ -245,14 +248,23 @@ class FunASRStreamer:
         # 更新总音频时长
         state.total_audio_ms += duration_ms
         
-        # 关键日志：记录 chunk 处理开始
+        session_tag = f"session={state.session_id or 'unknown'}"
+
+        # 关键日志：记录 chunk 处理开始（增加频率：前10个、每20个、或帧缓冲>30时）
         chunk_count = len(state.frames) + 1
-        if chunk_count <= 3 or chunk_count % 50 == 0:
+        frames_asr_count = len(state.frames_asr)
+        frames_online_count = len(state.frames_asr_online)
+        buffer_warning = frames_asr_count > 30 or chunk_count > 100
+        
+        # 更频繁的日志以便诊断延迟问题
+        if chunk_count <= 10 or chunk_count % 20 == 0 or buffer_warning:
             logger.info(
-                f"[FunASRStreamer] process_chunk #{chunk_count}: "
+                f"[FunASRStreamer] {session_tag} process_chunk #{chunk_count}: "
                 f"audio_len={len(audio_chunk)}, duration_ms={duration_ms}, "
                 f"total_ms={state.total_audio_ms}, "
-                f"is_speaking={state.is_speaking}, online_is_final={state.online_is_final}"
+                f"is_speaking={state.is_speaking}, online_is_final={state.online_is_final}, "
+                f"speech_start={state.speech_start}, "
+                f"frames={len(state.frames)}, frames_asr={frames_asr_count}, frames_online={frames_online_count}"
             )
         
         # 1. 更新帧缓冲
@@ -262,15 +274,44 @@ class FunASRStreamer:
         # 2. 收集在线 ASR 帧并执行（使用上一帧的 VAD 结果 - 通过 state.online_is_final）
         state.frames_asr_online.append(audio_chunk)
         # 注意：state.online_is_final 使用的是上一帧 VAD 检测的结果
-        if len(state.frames_asr_online) % self.config.chunk_interval == 0 or state.online_is_final:
+        online_trigger_interval = len(state.frames_asr_online) % self.config.chunk_interval == 0
+        online_trigger_final = state.online_is_final
+        should_run_online = online_trigger_interval or online_trigger_final
+        
+        # 【诊断日志】每10个chunk记录一次在线ASR触发状态
+        if chunk_count % 10 == 0 or should_run_online:
+            logger.debug(
+                f"[DIAG] {session_tag} chunk#{chunk_count} online_asr_check: "
+                f"frames_online={len(state.frames_asr_online)}, interval={self.config.chunk_interval}, "
+                f"trigger_interval={online_trigger_interval}, trigger_final={online_trigger_final}, "
+                f"will_run={should_run_online}, mode={self.config.mode}"
+            )
+        
+        if should_run_online:
             if self.config.mode in ("2pass", "online") and self.model_asr_online is not None:
+                t_online_start = time.time()
                 online_event = self._run_online_asr(state)
+                t_online_end = time.time()
+                online_ms = (t_online_end - t_online_start) * 1000
+                
                 if online_event:
                     events.append(online_event)
-                    if self.config.debug:
-                        logger.debug(
-                            f"[stream] online_event text_len={len(online_event.text)} final={online_event.is_final}"
-                        )
+                    logger.info(
+                        f"[TIMING] {session_tag} online_asr_triggered: "
+                        f"chunk#{chunk_count}, took={online_ms:.1f}ms, "
+                        f"text_len={len(online_event.text)}, final={online_event.is_final}"
+                    )
+                else:
+                    # 【诊断日志】在线ASR返回空结果
+                    logger.debug(
+                        f"[DIAG] {session_tag} chunk#{chunk_count} online_asr returned None, took={online_ms:.1f}ms"
+                    )
+            else:
+                # 【诊断日志】在线ASR被跳过的原因
+                logger.debug(
+                    f"[DIAG] {session_tag} chunk#{chunk_count} online_asr_skipped: "
+                    f"mode={self.config.mode}, model_online_available={self.model_asr_online is not None}"
+                )
             state.frames_asr_online = []
         
         # 3. 如果语音已开始，累积离线 ASR 帧
@@ -281,12 +322,25 @@ class FunASRStreamer:
         # 4. VAD 检测（在在线 ASR 之后执行，与 FunASR Demo 顺序一致）
         speech_start_i, speech_end_i = -1, -1
         if self.config.enable_vad and self.model_vad is not None:
+            t_vad_start = time.time()
             try:
                 speech_start_i, speech_end_i = self._run_vad(audio_chunk, state)
             except Exception as e:
                 logger.error(f"VAD 执行失败: {e}")
                 speech_start_i, speech_end_i = -1, -1
-            if self.config.debug and (speech_start_i != -1 or speech_end_i != -1):
+            vad_ms = (time.time() - t_vad_start) * 1000
+            
+            # 【诊断日志】增强VAD状态跟踪（每10个chunk或状态变化时）
+            vad_state_changed = speech_start_i != -1 or speech_end_i != -1
+            if vad_ms > 30 or vad_state_changed or chunk_count % 10 == 0:
+                logger.info(
+                    f"[VAD] {session_tag} chunk#{chunk_count}: "
+                    f"took={vad_ms:.1f}ms, start_i={speech_start_i}, end_i={speech_end_i}, "
+                    f"speech_start_flag={state.speech_start}, vad_pre_idx={state.vad_pre_idx}, "
+                    f"frames={len(state.frames)}, frames_asr={len(state.frames_asr)}"
+                )
+            
+            if self.config.debug and vad_state_changed:
                 logger.debug(
                     f"[stream] vad start={speech_start_i} end={speech_end_i} "
                     f"frames_asr={len(state.frames_asr)} frames_online={len(state.frames_asr_online)}"
@@ -314,7 +368,7 @@ class FunASRStreamer:
             # 关键日志
             if len(state.frames) > 0:
                 logger.info(
-                    f"[FunASRStreamer] speech_start: beg_bias={beg_bias}, "
+                    f"[FunASRStreamer] {session_tag} speech_start: beg_bias={beg_bias}, "
                     f"frames_pre={len(frames_pre)}, frames={len(state.frames)}"
                 )
         
@@ -325,7 +379,7 @@ class FunASRStreamer:
         if speech_end_i != -1 or not state.is_speaking:
             # 关键日志：记录语音结束触发条件
             logger.info(
-                f"[FunASRStreamer] speech_end triggered: "
+                f"[FunASRStreamer] {session_tag} speech_end triggered: "
                 f"speech_end_i={speech_end_i}, is_speaking={state.is_speaking}, "
                 f"frames_asr={len(state.frames_asr)}, mode={self.config.mode}"
             )
@@ -336,7 +390,7 @@ class FunASRStreamer:
                     events.append(offline_event)
                     # 关键日志：记录离线 ASR 结果
                     logger.info(
-                        f"[FunASRStreamer] offline_asr result: "
+                        f"[FunASRStreamer] {session_tag} offline_asr result: "
                         f"text_len={len(offline_event.text)}, mode={offline_event.mode}"
                     )
             
@@ -349,7 +403,7 @@ class FunASRStreamer:
             if not state.is_speaking:
                 # 关键日志：记录完全复位
                 logger.info(
-                    f"[FunASRStreamer] full reset: is_speaking=false, clearing all caches"
+                    f"[FunASRStreamer] {session_tag} full reset: is_speaking=false, clearing all caches"
                 )
                 state.vad_pre_idx = 0
                 state.frames = []
@@ -362,8 +416,36 @@ class FunASRStreamer:
                 if len(state.frames) > max_keep_frames:
                     state.frames = state.frames[-max_keep_frames:]
                     logger.debug(
-                        f"[FunASRStreamer] speech_end: truncated frames to {max_keep_frames}"
+                        f"[FunASRStreamer] {session_tag} speech_end: truncated frames to {max_keep_frames}"
                     )
+        
+        # 记录 chunk 处理总耗时
+        t_chunk_end = time.time()
+        chunk_time_ms = (t_chunk_end - t_chunk_start) * 1000
+        # 处理耗时显著高于音频时长时给出提示，便于定位堆积
+        audio_ms = max(duration_ms, 1)
+        rt_factor = chunk_time_ms / audio_ms
+        
+        # 【关键诊断】计算累积延迟估计
+        # 如果处理时间持续超过音频时长，延迟会累积
+        buffered_frames = len(state.frames)
+        buffered_ms_est = buffered_frames * duration_ms
+        
+        if rt_factor > 1.0:
+            # 处理速度跟不上实时，这是延迟的根本原因
+            logger.warning(
+                f"[PERF-SLOW] {session_tag} chunk#{chunk_count} RTF={rt_factor:.2f} (>1.0 means falling behind!) "
+                f"proc_ms={chunk_time_ms:.1f} audio_ms={duration_ms} "
+                f"buffered_frames={buffered_frames} buffered_ms~{buffered_ms_est} "
+                f"events={len(events)} speech_start={state.speech_start} is_speaking={state.is_speaking}"
+            )
+        elif rt_factor > 0.8 or len(events) > 0 or chunk_count % 20 == 0:
+            # 正常但接近阈值，或有事件，或定期记录
+            logger.info(
+                f"[PERF] {session_tag} chunk#{chunk_count} RTF={rt_factor:.2f} "
+                f"proc_ms={chunk_time_ms:.1f} audio_ms={duration_ms} "
+                f"buffered={buffered_frames} events={len(events)}"
+            )
         
         return events
     
@@ -386,10 +468,11 @@ class FunASRStreamer:
             生成的事件列表
         """
         events: List[StreamingEvent] = []
+        session_tag = f"session={state.session_id or 'unknown'}"
         
         # 关键日志：记录 flush 开始
         logger.info(
-            f"[FunASRStreamer] flush called: "
+            f"[FunASRStreamer] {session_tag} flush called: "
             f"frames={len(state.frames)}, frames_asr={len(state.frames_asr)}, "
             f"frames_asr_online={len(state.frames_asr_online)}, "
             f"speech_start={state.speech_start}, mode={self.config.mode}"
@@ -403,7 +486,7 @@ class FunASRStreamer:
         if state.frames_asr_online and self.model_asr_online is not None:
             if self.config.mode in ("2pass", "online"):
                 logger.info(
-                    f"[FunASRStreamer] flush: running online ASR with {len(state.frames_asr_online)} frames"
+                    f"[FunASRStreamer] {session_tag} flush: running online ASR with {len(state.frames_asr_online)} frames"
                 )
                 online_event = self._run_online_asr(state)
                 if online_event and self.config.mode == "online":
@@ -419,7 +502,7 @@ class FunASRStreamer:
             # 如果 frames_asr 为空，使用 frames 作为离线ASR输入
             if not state.frames_asr and state.frames:
                 logger.info(
-                    f"[FunASRStreamer] flush: frames_asr is empty but frames has {len(state.frames)} chunks, "
+                    f"[FunASRStreamer] {session_tag} flush: frames_asr is empty but frames has {len(state.frames)} chunks, "
                     f"using frames for offline ASR"
                 )
                 state.frames_asr = list(state.frames)
@@ -429,17 +512,17 @@ class FunASRStreamer:
                     state.current_segment_start_ms = state.last_segment_end_ms
             
             logger.info(
-                f"[FunASRStreamer] flush: running offline ASR with {len(state.frames_asr)} frames"
+                f"[FunASRStreamer] {session_tag} flush: running offline ASR with {len(state.frames_asr)} frames"
             )
             offline_event = self._run_offline_asr(state, force_final=True)
             if offline_event:
                 events.append(offline_event)
                 logger.info(
-                    f"[FunASRStreamer] flush: offline result text_len={len(offline_event.text)}"
+                    f"[FunASRStreamer] {session_tag} flush: offline result text_len={len(offline_event.text)}"
                 )
         
         # 与官方 demo 对齐：完全复位所有缓存
-        logger.info("[FunASRStreamer] flush: resetting all state")
+        logger.info(f"[FunASRStreamer] {session_tag} flush: resetting all state")
         state.reset()
         
         return events
@@ -493,6 +576,7 @@ class FunASRStreamer:
         if not audio_bytes:
             return None
         
+        t_start = time.time()
         try:
             asr_params = {
                 "cache": state.online_cache,
@@ -506,6 +590,14 @@ class FunASRStreamer:
                 asr_params["hotword"] = state.hotwords
             
             result = self.model_asr_online.generate(input=audio_bytes, **asr_params)[0]
+            t_end = time.time()
+            session_tag = f"session={state.session_id or 'unknown'}"
+            device_str = str(getattr(self.model_asr_online, "device", "unknown"))
+            logger.info(
+                f"[TIMING] {session_tag} online_asr took {(t_end-t_start)*1000:.1f}ms, "
+                f"audio_len={len(audio_bytes)} text_len={len(result.get('text',''))} "
+                f"device={device_str}"
+            )
             if self.config.debug:
                 logger.debug(
                     f"[stream] online_asr done len={len(audio_bytes)} text_len={len(result.get('text',''))}"
@@ -538,6 +630,12 @@ class FunASRStreamer:
     
     def _run_offline_asr(self, state: FunASRStreamerState, *, force_final: bool = False) -> Optional[StreamingEvent]:
         """执行离线 ASR 进行二次纠错。"""
+        t_start = time.time()
+        session_tag = f"session={state.session_id or 'unknown'}"
+        logger.info(
+            f"[TIMING] {session_tag} offline_asr START, frames_count={len(state.frames_asr)}"
+        )
+        
         audio_bytes = b"".join(state.frames_asr)
         # 获取当前片段的音频数据用于保存
         segment_audio_bytes = b"".join(state.current_segment_audio) if state.current_segment_audio else audio_bytes
@@ -558,6 +656,9 @@ class FunASRStreamer:
         if not audio_bytes:
             # 即使没有音频也要发送空结果
             mode = "2pass-offline" if self.config.mode == "2pass" else self.config.mode
+            logger.info(
+                f"[TIMING] {session_tag} offline_asr END (empty), took {(time.time()-t_start)*1000:.1f}ms"
+            )
             return StreamingEvent(
                 type="correction",
                 mode=mode,
@@ -575,7 +676,13 @@ class FunASRStreamer:
             if state.hotwords:
                 asr_params["hotword"] = state.hotwords
             
+            t_model_start = time.time()
             result = self.model_asr.generate(input=audio_bytes, **asr_params)[0]
+            t_model_end = time.time()
+            logger.info(
+                f"[TIMING] {session_tag} offline_asr MODEL took {(t_model_end-t_model_start)*1000:.1f}ms, "
+                f"audio_len={len(audio_bytes)}, audio_duration={segment_duration_ms}ms"
+            )
             if self.config.debug:
                 logger.debug(
                     f"[stream] offline_asr done len={len(audio_bytes)} text_len={len(result.get('text',''))}"
@@ -597,6 +704,12 @@ class FunASRStreamer:
                 text = self._apply_itn(text)
             
             mode = "2pass-offline" if self.config.mode == "2pass" else self.config.mode
+            total_ms = (time.time() - t_start) * 1000
+            logger.info(
+                f"[TIMING] {session_tag} offline_asr TOTAL took {total_ms:.1f}ms "
+                f"(model={t_model_end - t_model_start:.3f}s) text_len={len(text)} "
+                f"audio_ms={segment_duration_ms}"
+            )
             return StreamingEvent(
                 type="correction",
                 mode=mode,

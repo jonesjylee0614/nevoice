@@ -537,6 +537,49 @@ func (s *Mdt) Update_dialog(c *gin.Context) {
 	results.ResSave(c, res, err)
 }
 
+// ClearDialogs 清空会议对话记录 /meeting/mdt/clearDialogs [POST]
+// 用于会议开始后清除杂音等无效识别结果，重新开始记录
+func (s *Mdt) ClearDialogs(c *gin.Context) {
+	meetingIdStr := c.DefaultQuery("meetingId", "")
+	meetingId := anyx.ToInt64(meetingIdStr)
+
+	if meetingId == 0 {
+		results.ResError(c, fmt.Errorf("缺少会议ID"))
+		return
+	}
+
+	// 获取会议检查状态
+	meeting, err := s.svc.GetById(c, meetingId)
+	if err != nil {
+		results.ResError(c, err)
+		return
+	}
+
+	// 只允许在会议进行中时清空
+	if meeting.Status != biz.MeetingStatusInProgress {
+		results.ResError(c, fmt.Errorf("只有进行中的会议才能清空对话记录"))
+		return
+	}
+
+	// 删除该会议的所有对话记录
+	deletedCount, err := s.dialogSvc.DeleteByField(c, "meeting_id", meetingId)
+	if err != nil {
+		results.ResError(c, err)
+		return
+	}
+
+	// 更新会议对话数为0
+	updateMeeting := &biz.MeetingMdt{}
+	updateMeeting.Id = meetingId
+	updateMeeting.DialogCount = 0
+	_, _ = s.svc.Update(c, updateMeeting)
+
+	// 返回删除数量
+	results.ResObj(c, map[string]interface{}{
+		"deletedCount": deletedCount,
+	}, nil)
+}
+
 // Perms 权限配置
 func (s *Mdt) Perms() map[string][]gin.HandlerFunc {
 	return nil

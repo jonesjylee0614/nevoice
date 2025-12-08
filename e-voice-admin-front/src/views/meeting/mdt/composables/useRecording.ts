@@ -113,15 +113,19 @@ export function useRecording(options: RecordingOptions) {
     const text = data.text || '';
 
     if (data.type === 'partial' || mode.includes('online')) {
-      // 在线流式结果
+      // 在线流式结果 - 使用 text 字段（FunASR 增量模式）
       const state = data.text_state || {};
       const confirmed = (state.confirmed_text || '').trim();
-      const candidate = (state.candidate_text || text || '').trim();
+      // 优先使用 text 字段（增量文本），累加到 liveText
+      const newText = (text || state.candidate_text || '').trim();
 
       if (confirmed) {
         committedText.value = confirmed;
       }
-      liveText.value = candidate;
+      // 累加显示增量文本
+      if (newText) {
+        liveText.value += newText;
+      }
     } else if (data.type === 'correction' || mode.includes('offline')) {
       // 离线纠错结果（带标点和ITN）- 这是最终结果，需要保存
       const state = data.text_state || {};
@@ -389,6 +393,13 @@ export function useRecording(options: RecordingOptions) {
     stopRecording();
   };
 
+  // 重置序号（清空对话后调用）
+  const resetSeq = () => {
+    currentSeq.value = 0;
+    committedText.value = '';
+    liveText.value = '';
+  };
+
   return {
     recording,
     connecting,
@@ -398,6 +409,7 @@ export function useRecording(options: RecordingOptions) {
     startRecording,
     stopRecording,
     toggleRecording,
-    cleanup
+    cleanup,
+    resetSeq
   };
 }

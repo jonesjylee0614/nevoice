@@ -146,9 +146,15 @@ def _apply_control(
                 f"online_is_final={funasr_state.online_is_final}"
             )
     if payload.get("is_speaking") is False:
+        t_flush_start = time.time()
         events = engine.flush(state)
+        flush_ms = (time.time() - t_flush_start) * 1000
         state.mark_segment_final(state.current_segment_id)
         _send_events(ws, events, state, request_id)
+        ws_logger.info(
+            f"[ws] control flush: session={state.session_id} events={len(events)} "
+            f"chunk_count={state.metrics.get('chunk_count', 0)} took={flush_ms:.1f}ms"
+        )
 
 
 def _send_events(
@@ -289,6 +295,9 @@ def register_ws_routes(sock: Sock) -> None:
         state.metrics["started_ms"] = int(time.time() * 1000)
         state.metrics["is_speaking"] = True
         state.metrics["chunk_count"] = 0  # 统计接收的音频块数量
+        state.metrics["total_process_ms"] = 0  # 累计处理时间
+        state.metrics["total_audio_ms"] = 0  # 累计音频时长
+        state.metrics["max_rtf"] = 0  # 最大实时因子
         
         ws_logger.info(f"[ws] session={session_id} engine_ready={engine.is_ready}")
 
@@ -301,14 +310,68 @@ def register_ws_routes(sock: Sock) -> None:
 
                 # 优先处理二进制数据（FunASR Demo 风格）
                 if isinstance(message, (bytes, bytearray)):
+                    import time as _time
+                    t_recv = _time.time()
                     state.metrics["chunk_count"] += 1
-                    # 仅在前几个 chunk 和每 100 个 chunk 时打日志
-                    if state.metrics["chunk_count"] <= 3 or state.metrics["chunk_count"] % 100 == 0:
-                        ws_logger.debug(
-                            f"[ws] session={session_id} binary chunk #{state.metrics['chunk_count']} (len={len(message)})"
+                    chunk_num = state.metrics["chunk_count"]
+                    now_ms = int(t_recv * 1000)
+                    
+                    # 计算音频时长 (16kHz, 16bit = 32 bytes/ms)
+                    audio_chunk_ms = len(message) // 32
+                    state.metrics["total_audio_ms"] = state.metrics.get("total_audio_ms", 0) + audio_chunk_ms
+                    
+                    prev_ms = state.metrics.get("last_chunk_ms")
+                    if prev_ms and now_ms - prev_ms > 1500:
+                        ws_logger.warning(
+                            f"[WS-GAP] session={session_id} chunk#{chunk_num} gap={now_ms - prev_ms}ms "
+                            f"(expected ~{audio_chunk_ms}ms)"
                         )
+                    state.metrics["last_chunk_ms"] = now_ms
+                    
+                    # 更频繁的日志（前10个、每30个）
+                    if chunk_num <= 10 or chunk_num % 30 == 0:
+                        ws_logger.info(
+                            f"[WS-RECV] session={session_id} chunk#{chunk_num} len={len(message)} "
+                            f"audio_ms={audio_chunk_ms} total_audio_ms={state.metrics['total_audio_ms']}"
+                        )
+                    
                     events = engine.push(message, state)
+                    t_process = _time.time()
                     _send_events(ws, events, state, request_id)
+                    t_send = _time.time()
+                    
+                    # 记录每个 chunk 的处理时间
+                    process_ms = (t_process - t_recv) * 1000
+                    send_ms = (t_send - t_process) * 1000
+                    total_ms = (t_send - t_recv) * 1000
+                    
+                    # 更新累计统计
+                    state.metrics["total_process_ms"] = state.metrics.get("total_process_ms", 0) + total_ms
+                    rtf = total_ms / max(audio_chunk_ms, 1)
+                    state.metrics["max_rtf"] = max(state.metrics.get("max_rtf", 0), rtf)
+                    
+                    # 计算累积延迟估计
+                    cumulative_process_ms = state.metrics["total_process_ms"]
+                    cumulative_audio_ms = state.metrics["total_audio_ms"]
+                    estimated_lag_ms = cumulative_process_ms - cumulative_audio_ms
+                    avg_rtf = cumulative_process_ms / max(cumulative_audio_ms, 1)
+                    
+                    # 【关键诊断】检测延迟累积
+                    if rtf > 1.0:
+                        ws_logger.warning(
+                            f"[WS-SLOW] session={session_id} chunk#{chunk_num} "
+                            f"RTF={rtf:.2f} (>1.0 FALLING BEHIND!) "
+                            f"process={process_ms:.1f}ms audio={audio_chunk_ms}ms "
+                            f"estimated_lag={estimated_lag_ms:.0f}ms avg_RTF={avg_rtf:.2f} "
+                            f"events={len(events)}"
+                        )
+                    elif len(events) > 0 or total_ms > 80 or chunk_num % 30 == 0:
+                        ws_logger.info(
+                            f"[WS-TIMING] session={session_id} chunk#{chunk_num} "
+                            f"RTF={rtf:.2f} process={process_ms:.1f}ms send={send_ms:.1f}ms "
+                            f"total={total_ms:.1f}ms events={len(events)} "
+                            f"lag_est={estimated_lag_ms:.0f}ms"
+                        )
                     continue
 
                 # JSON 消息处理
@@ -342,9 +405,15 @@ def register_ws_routes(sock: Sock) -> None:
                         
                         if payload["is_speaking"] is False:
                             ws_logger.info(f"[ws] session={session_id} is_speaking=false, flushing")
+                            t_flush = time.time()
                             events = engine.flush(state)
+                            flush_ms = (time.time() - t_flush) * 1000
                             state.mark_segment_final(state.current_segment_id)
                             _send_events(ws, events, state, request_id)
+                            ws_logger.info(
+                                f"[ws] session={session_id} flush_on_is_speaking_false "
+                                f"events={len(events)} took={flush_ms:.1f}ms"
+                            )
                     continue
                 
                 # config/control 消息
@@ -408,11 +477,41 @@ def register_ws_routes(sock: Sock) -> None:
         finally:
             total_chunks = state.metrics.get("chunk_count", 0)
             duration_ms = int(time.time() * 1000) - state.metrics.get("started_ms", 0)
+            total_audio_ms = state.metrics.get("total_audio_ms", 0)
+            total_process_ms = state.metrics.get("total_process_ms", 0)
+            max_rtf = state.metrics.get("max_rtf", 0)
+            avg_rtf = total_process_ms / max(total_audio_ms, 1) if total_audio_ms > 0 else 0
+            
+            last_chunk_ms = state.metrics.get("last_chunk_ms")
+            if last_chunk_ms:
+                gap_ms = int(time.time() * 1000) - last_chunk_ms
+                ws_logger.info(
+                    f"[WS-END] session={session_id} gap_since_last_chunk={gap_ms}ms"
+                )
+            
+            # 【关键诊断】会话结束统计
             ws_logger.info(
-                f"[ws] session={session_id} ending: chunks={total_chunks}, duration={duration_ms}ms"
+                f"[WS-SUMMARY] session={session_id} "
+                f"chunks={total_chunks}, session_duration={duration_ms}ms, "
+                f"total_audio={total_audio_ms}ms, total_process={total_process_ms:.0f}ms, "
+                f"avg_RTF={avg_rtf:.2f}, max_RTF={max_rtf:.2f}, "
+                f"estimated_lag={(total_process_ms - total_audio_ms):.0f}ms"
             )
+            
+            if avg_rtf > 1.0:
+                ws_logger.warning(
+                    f"[WS-PERF-ISSUE] session={session_id} "
+                    f"avg_RTF={avg_rtf:.2f} > 1.0 indicates system cannot keep up with real-time! "
+                    f"Consider: 1) Check GPU utilization 2) Reduce chunk_interval 3) Check for blocking operations"
+                )
+            
+            t_final_flush = time.time()
             events = engine.flush(state)
+            flush_ms = (time.time() - t_final_flush) * 1000
             _send_events(ws, events, state, request_id)
+            ws_logger.info(
+                f"[WS-FLUSH] session={session_id} final_flush events={len(events)} took={flush_ms:.1f}ms"
+            )
             engine.cleanup_session(session_id)
             manager.close_session(session_id)
             ws_logger.info(f"[ws] 会话结束 session={session_id}")

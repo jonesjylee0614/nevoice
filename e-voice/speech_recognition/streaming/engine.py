@@ -14,6 +14,7 @@ import threading
 from typing import Iterable, List, Optional, Tuple
 
 from loguru import logger
+from server.logging import ws_logger
 
 from .loader import ModelLoader, FunASRModelBundle
 from .state import StreamingState
@@ -134,9 +135,13 @@ class StreamingEngine:
             return None
         if state.session_id not in self._funasr_state_map:
             funasr_state = self._funasr_streamer.create_state()
-            funasr_state.wav_name = state.session_id
+            funasr_state.session_id = state.session_id
+            funasr_state.wav_name = state.wav_name
             funasr_state.hotwords = state.hotwords
             self._funasr_state_map[state.session_id] = funasr_state
+        elif not getattr(self._funasr_state_map[state.session_id], "session_id", ""):
+            # 旧状态补上 session 便于日志聚合
+            self._funasr_state_map[state.session_id].session_id = state.session_id
         return self._funasr_state_map[state.session_id]
     
     # 向后兼容别名
@@ -160,6 +165,7 @@ class StreamingEngine:
             音频文件的相对路径，如果保存失败则返回None
         """
         try:
+            t0 = time.time()
             # 确保目录存在
             os.makedirs(AUDIO_SEGMENT_DIR, exist_ok=True)
             
@@ -175,16 +181,21 @@ class StreamingEngine:
                 wav_file.setframerate(16000)  # 16kHz
                 wav_file.writeframes(audio_data)
             
-            logger.info(f"音频片段已保存: {filepath} ({len(audio_data)} bytes)")
+            elapsed_ms = (time.time() - t0) * 1000
+            ws_logger.info(
+                f"[audio] session={session_id} segment={segment_id} "
+                f"saved bytes={len(audio_data)} path={filepath} took={elapsed_ms:.1f}ms"
+            )
             
             # 返回相对路径（用于前端访问）
             return f"/{filepath}"
             
         except Exception as e:
+            ws_logger.error(f"[audio] session={session_id} save failed: {e}")
             logger.error(f"保存音频片段失败: {e}")
             return None
     
-    def _match_speaker(self, audio_data: bytes) -> Optional[dict]:
+    def _match_speaker(self, audio_data: bytes, session_id: str) -> Optional[dict]:
         """
         执行声纹匹配。
         
@@ -198,19 +209,25 @@ class StreamingEngine:
             return None
         
         try:
+            t0 = time.time()
             from server.routes.meeting_mdt import match_speaker_from_pcm
             result = match_speaker_from_pcm(audio_data, sample_rate=16000)
+            elapsed_ms = (time.time() - t0) * 1000
             
             if result.get('recognized'):
-                logger.info(
-                    f"声纹匹配成功: speaker={result.get('speaker_name')}, "
-                    f"score={result.get('recognition_score')}"
+                ws_logger.info(
+                    f"[voiceprint] session={session_id} recognized={result.get('speaker_name')} "
+                    f"score={result.get('recognition_score')} took={elapsed_ms:.1f}ms"
                 )
             else:
-                logger.debug(f"声纹未匹配: {result.get('recognition_note')}")
+                ws_logger.info(
+                    f"[voiceprint] session={session_id} no_match note={result.get('recognition_note')} "
+                    f"took={elapsed_ms:.1f}ms"
+                )
             
             return result
         except Exception as e:
+            ws_logger.warning(f"[voiceprint] session={session_id} match failed: {e}")
             logger.warning(f"声纹匹配失败: {e}")
             return None
 
@@ -225,7 +242,11 @@ class StreamingEngine:
         Returns:
             生成的事件列表
         """
+        t_push_start = time.time()
         state.mark_activity(int(time.time() * 1000))
+        
+        # 计算音频时长用于延迟分析
+        audio_duration_ms = len(audio_chunk) // 32  # 16kHz 16bit = 32 bytes/ms
         
         if self._funasr_streamer is None:
             logger.warning("FunASR 流式引擎未初始化")
@@ -259,9 +280,34 @@ class StreamingEngine:
                 state._config_logged = True
         
         try:
+            t_process_start = time.time()
             events = self._funasr_streamer.process_chunk(audio_chunk, funasr_state)
+            t_process_end = time.time()
+            process_ms = (t_process_end - t_process_start) * 1000
+            
+            # 计算实时因子 RTF
+            rtf = process_ms / max(audio_duration_ms, 1)
+            chunk_count = state.metrics.get('chunk_count', 0)
+            
+            # 【关键诊断】详细的处理时间日志
+            if rtf > 1.0:
+                # RTF > 1 意味着处理速度跟不上实时，会产生延迟累积
+                ws_logger.warning(
+                    f"[ENGINE-SLOW] session={state.session_id} chunk#{chunk_count} "
+                    f"RTF={rtf:.2f} (FALLING BEHIND!) "
+                    f"process_ms={process_ms:.1f} audio_ms={audio_duration_ms} "
+                    f"events={len(events)} funasr_frames={len(funasr_state.frames)} "
+                    f"speech_start={funasr_state.speech_start}"
+                )
+            elif process_ms > 100 or len(events) > 0 or chunk_count % 30 == 0:
+                ws_logger.info(
+                    f"[ENGINE] session={state.session_id} chunk#{chunk_count} "
+                    f"RTF={rtf:.2f} process_ms={process_ms:.1f} audio_ms={audio_duration_ms} "
+                    f"events={len(events)} is_speaking={state.metrics.get('is_speaking')}"
+                )
         except Exception as e:
             logger.error(f"[engine] FunASR 处理失败: {e}")
+            ws_logger.error(f"[engine] session={state.session_id} FunASR 处理失败: {e}")
             return []
         
         # 转换事件格式
@@ -312,7 +358,7 @@ class StreamingEngine:
                         state.ensure_segment()
                     )
                     # 执行声纹匹配
-                    speaker_info = self._match_speaker(event.audio_data)
+                    speaker_info = self._match_speaker(event.audio_data, state.session_id)
                 
                 # 按字符比例分配时间
                 current_offset_ms = total_start_ms
@@ -372,6 +418,18 @@ class StreamingEngine:
                     if not is_last_sentence:
                         state.current_segment_id = None
         
+        # 【诊断日志】push方法总耗时
+        t_push_end = time.time()
+        push_total_ms = (t_push_end - t_push_start) * 1000
+        push_rtf = push_total_ms / max(audio_duration_ms, 1)
+        
+        if push_rtf > 1.0 or len(result_events) > 0:
+            ws_logger.info(
+                f"[ENGINE-PUSH] session={state.session_id} "
+                f"total_ms={push_total_ms:.1f} audio_ms={audio_duration_ms} RTF={push_rtf:.2f} "
+                f"result_events={len(result_events)}"
+            )
+        
         return result_events
 
     def flush(self, state: StreamingState) -> List[dict]:
@@ -393,9 +451,15 @@ class StreamingEngine:
         funasr_state = self._funasr_state_map[state.session_id]
         
         try:
+            t_flush_start = time.time()
             events = self._funasr_streamer.flush(funasr_state)
+            flush_ms = (time.time() - t_flush_start) * 1000
+            ws_logger.info(
+                f"[perf] session={state.session_id} engine.flush took={flush_ms:.1f}ms events={len(events)}"
+            )
         except Exception as e:
             logger.error(f"[engine] FunASR flush 失败: {e}")
+            ws_logger.error(f"[engine] session={state.session_id} FunASR flush 失败: {e}")
             events = []
         
         # 清理状态
@@ -412,7 +476,7 @@ class StreamingEngine:
                 continue
                 
             # 应用标点二次分段（与 push 方法一致）
-            sentences = self._split_by_punctuation(text)
+            sentences = split_by_punctuation(text)
             
             for i, sentence in enumerate(sentences):
                 if not sentence.strip():
