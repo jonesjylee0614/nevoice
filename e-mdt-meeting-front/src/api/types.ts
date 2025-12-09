@@ -28,19 +28,21 @@ export interface Meeting {
 }
 
 // 会议对话
+// recognized: 0-未识别, 1-声纹自动识别, 2-手动指定
 export interface MeetingDialog {
   id: number
   seq: number
   speakerId: number
   speakerName: string
   speakerRole: string
-  recognized: boolean
+  recognized: number  // 0-未识别, 1-声纹自动识别, 2-手动指定
   recognitionNote: string
   text: string
   audioPath: string
   speakTime: string
   startOffset?: number
   endOffset?: number
+  durationMs?: number  // 对话时长(毫秒)
 }
 
 // 会议详情

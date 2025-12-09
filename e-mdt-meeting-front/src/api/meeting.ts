@@ -101,3 +101,8 @@ export function clearDialogs(meetingId: number) {
 export function getStaffList() {
   return request.get<{ data: Participant[] }>(Api.getStaffList)
 }
+
+// 保存对话记录
+export function saveDialog(params: Partial<MeetingDialog> & { meetingId: number }) {
+  return request.post<{ data: { id: number } }>(Api.saveDialog, params)
+}

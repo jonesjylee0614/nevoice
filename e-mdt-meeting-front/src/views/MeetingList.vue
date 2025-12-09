@@ -92,6 +92,10 @@
             <van-icon name="close" />
             清除筛选
           </button>
+          <button class="btn-new-meeting" @click="goToNewMeeting">
+            <van-icon name="plus" />
+            <span>新建会议</span>
+          </button>
           <button class="btn-icon" title="刷新" @click="onRefresh">
             <van-icon name="replay" :class="{ spinning: refreshing }" />
           </button>
@@ -405,10 +409,6 @@
       />
     </van-popup>
 
-    <!-- 浮动新建按钮 -->
-    <button class="fab-create" @click="goToNewMeeting" title="新建会议">
-      <van-icon name="plus" />
-    </button>
   </div>
 </template>
 
@@ -1161,6 +1161,32 @@ onMounted(() => {
   margin-left: auto;
 }
 
+.btn-new-meeting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 18px;
+  height: 40px;
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+  }
+  
+  :deep(.van-icon) {
+    font-size: 16px;
+  }
+}
+
 .btn-icon {
   width: 40px;
   height: 40px;
@@ -1455,75 +1481,6 @@ onMounted(() => {
   }
 }
 
-// 浮动新建按钮（毛玻璃效果）
-.fab-create {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 24px 0 18px;
-  height: 52px;
-  border-radius: 26px;
-  background: rgba(99, 102, 241, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #fff;
-  cursor: pointer;
-  box-shadow: 
-    0 8px 32px rgba(99, 102, 241, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-  z-index: 100;
-  font-size: 15px;
-  font-weight: 600;
-  
-  &:hover {
-    transform: translateY(-3px);
-    background: rgba(99, 102, 241, 0.92);
-    box-shadow: 
-      0 12px 40px rgba(99, 102, 241, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  }
-  
-  &:active {
-    transform: translateY(0) scale(0.98);
-  }
-  
-  :deep(.van-icon) {
-    font-size: 22px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-  }
-  
-  &::after {
-    content: '新建会议';
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-}
-
-// 移动端简化为圆形按钮
-@media (max-width: 600px) {
-  .fab-create {
-    width: 52px;
-    height: 52px;
-    padding: 0;
-    border-radius: 50%;
-    justify-content: center;
-    bottom: 20px;
-    right: 20px;
-    
-    &::after {
-      content: none;
-    }
-    
-    :deep(.van-icon) {
-      font-size: 26px;
-    }
-  }
-}
-
 // 空状态
 .empty-state {
   display: flex;
@@ -1716,6 +1673,8 @@ onMounted(() => {
 
 .user-menu-content {
   padding: 20px;
+  background: #ffffff;
+  color: var(--text-main);
 }
 
 .menu-header {
@@ -1785,6 +1744,8 @@ onMounted(() => {
 
 .date-filter-content {
   padding: 24px;
+  background: #ffffff;
+  color: var(--text-main);
 }
 
 .filter-header {
@@ -1930,6 +1891,8 @@ onMounted(() => {
 .create-modal {
   .modal-content {
     padding: 24px;
+    background: #ffffff;
+    color: var(--text-main);
   }
   
   .modal-header {

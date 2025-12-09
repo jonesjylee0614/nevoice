@@ -66,8 +66,8 @@ features:
   enable_punc: true
   # 启用 ITN
   enable_itn: true
-  # 启用 VAD
-  enable_vad: false
+  # 启用 VAD - 必须启用才能正确分段和计算时间偏移
+  enable_vad: true
   # 调试模式 - 输出更多日志（排查延迟问题时建议开启）
   debug: true
 

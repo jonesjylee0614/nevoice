@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"gofly/internal/config"
+	"gofly/internal/domain/core_service"
 	"gofly/internal/domain/dto"
 	"gofly/internal/domain/service"
 	"gofly/internal/model/base"
 	"gofly/internal/model/biz"
+	"gofly/internal/model/core"
 	"gofly/pkg/utils/anyx"
+	"gofly/pkg/utils/collx"
 	"gofly/pkg/utils/gf"
 	"gofly/pkg/utils/httpclient"
 	"gofly/pkg/utils/jsonx"
@@ -22,8 +25,10 @@ import (
 
 // Mdt MDT会议控制器
 type Mdt struct {
-	svc       *service.MeetingMdt       `inject:""`
-	dialogSvc *service.MeetingMdtDialog `inject:""`
+	svc                     *service.MeetingMdt             `inject:""`
+	dialogSvc               *service.MeetingMdtDialog       `inject:""`
+	BusinessAuthRoleAccess  *core_service.BusinessAuthRoleAccess `inject:""`
+	BusinessAccount         *core_service.BusinessAccount        `inject:""`
 }
 
 func init() {
@@ -583,6 +588,50 @@ func (s *Mdt) ClearDialogs(c *gin.Context) {
 	results.ResObj(c, map[string]interface{}{
 		"deletedCount": deletedCount,
 	}, nil)
+}
+
+// GetStaffList 获取人员列表（用于发言人选择） /meeting/mdt/getStaffList
+// 复用声纹角色用户列表
+func (s *Mdt) GetStaffList(c *gin.Context) {
+	// 声纹角色ID，与 voice/print 保持一致
+	const PrintRoleId = 7
+
+	// 获取有声纹角色的用户ID列表
+	cond := base.NewCond()
+	cond.Where(true, "role_id", PrintRoleId)
+	rs, _ := s.BusinessAuthRoleAccess.List(c, cond)
+	uids := collx.ArrayMap(rs, func(v *core.BusinessAuthRoleAccess) int64 {
+		return v.Uid
+	})
+
+	if len(uids) == 0 {
+		results.Success(c, "获取成功", []dto.MeetingParticipant{}, nil)
+		return
+	}
+
+	// 查询用户信息
+	cond2 := base.NewCond()
+	cond2.Where(true, "id", uids)
+	cond2.Fields = "id,name,username,dept_id,company"
+	cond2.Order = "id asc"
+	list, err := s.BusinessAccount.List(c, cond2)
+	if err != nil {
+		results.ResError(c, err)
+		return
+	}
+
+	// 转换为参会人员格式
+	staffList := make([]dto.MeetingParticipant, 0, len(list))
+	for _, u := range list {
+		staffList = append(staffList, dto.MeetingParticipant{
+			UserId:     u.Id,
+			UserName:   u.Name,
+			Department: u.Company, // 使用公司字段作为部门
+			Role:       "",        // 角色由前端指定
+		})
+	}
+
+	results.Success(c, "获取成功", staffList, nil)
 }
 
 // Perms 权限配置

@@ -84,18 +84,13 @@
                     <span>{{ meeting.status === 0 ? '开始录音' : '继续录音' }}</span>
                   </button>
                   <!-- 上传音频测试按钮 -->
-                  <label class="btn-upload-mini" :class="{ disabled: uploading }">
-                    <van-loading v-if="uploading" size="14px" />
-                    <van-icon v-else name="upgrade" />
-                    <span>上传测试</span>
-                    <input 
-                      type="file" 
-                      accept="audio/*" 
-                      hidden 
-                      :disabled="uploading"
-                      @change="handleUploadAudio"
-                    />
-                  </label>
+                  <button 
+                    class="btn-upload-mini" 
+                    @click="showAudioUpload = !showAudioUpload"
+                  >
+                    <van-icon :name="showAudioUpload ? 'arrow-up' : 'upgrade'" />
+                    <span>{{ showAudioUpload ? '收起测试' : '上传测试' }}</span>
+                  </button>
                 </template>
                 <template v-else>
                   <div class="recording-indicator">
@@ -163,6 +158,13 @@
               <div class="preview-text">{{ runningText || '等待语音输入...' }}</div>
             </div>
           </div>
+
+          <!-- 音频文件上传测试 -->
+          <AudioFileUpload
+            v-if="showAudioUpload && meeting?.status !== 2"
+            :meeting-id="meetingId"
+            @dialog-received="handleFileDialogReceived"
+          />
 
           <!-- 对话记录 -->
           <div class="dialogs-card">
@@ -345,6 +347,7 @@ import {
 } from '@/api/meeting'
 import { useMeetingStore } from '@/stores/meeting'
 import { useUserStore } from '@/stores/user'
+import AudioFileUpload from '@/components/AudioFileUpload.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -389,7 +392,9 @@ const recording = ref(false)
 const connecting = ref(false)
 const paused = ref(false)
 const runningText = ref('')
-const uploading = ref(false)
+
+// 音频上传测试
+const showAudioUpload = ref(false)
 
 // 指定发言人相关
 const showAssignModal = ref(false)
@@ -519,79 +524,25 @@ const handleStopRecording = () => {
   showSuccessToast('录音已停止')
 }
 
-// 上传音频文件（测试用）
-const handleUploadAudio = async (e: Event) => {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  
-  // 检查文件类型
-  if (!file.type.startsWith('audio/')) {
-    showToast('请选择音频文件')
-    input.value = ''
-    return
-  }
-  
-  // 检查文件大小（限制 50MB）
-  if (file.size > 50 * 1024 * 1024) {
-    showToast('文件大小不能超过 50MB')
-    input.value = ''
-    return
-  }
-  
-  uploading.value = true
-  
-  try {
-    // 如果会议状态是待开始，先开始会议
-    if (meeting.value?.status === 0) {
+// 处理音频文件上传测试的对话回调
+const handleFileDialogReceived = async (dialog: Partial<MeetingDialog>) => {
+  // 如果会议状态是待开始，先开始会议
+  if (meeting.value?.status === 0) {
+    try {
       await startMeeting(meetingId.value)
       if (meeting.value) {
         meeting.value.status = 1
       }
+      showSuccessToast('会议已开始')
+    } catch (error) {
+      console.error('开始会议失败:', error)
     }
-    
-    // 上传到后端进行识别
-    const formData = new FormData()
-    formData.append('audio', file)
-    formData.append('meetingId', meetingId.value.toString())
-    
-    // 使用通用上传接口
-    const response = await fetch('/api/common/upload/file', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('mdt_token')}`
-      },
-      body: formData
-    })
-    
-    const result = await response.json()
-    
-    if (result.code === 0 || result.code === 200) {
-      showSuccessToast('上传成功')
-      // 模拟添加一条识别结果
-      if (meeting.value && meeting.value.dialogs) {
-        meeting.value.dialogs.push({
-          id: Date.now(),
-          meetingId: meetingId.value,
-          seq: meeting.value.dialogs.length + 1,
-          text: `[音频文件: ${file.name}] 识别结果将在后台处理...`,
-          speakTime: new Date().toLocaleString('zh-CN'),
-          speakerName: '',
-          recognized: false
-        })
-        if (meeting.value.dialogCount !== undefined) {
-          meeting.value.dialogCount += 1
-        }
-      }
-    } else {
-      showToast(result.msg || '上传失败')
-    }
-  } catch (error) {
-    console.error('上传音频失败:', error)
-    showToast('上传失败，请重试')
-  } finally {
-    uploading.value = false
-    input.value = ''
+  }
+  
+  // 将识别结果添加到对话列表
+  if (meeting.value) {
+    meeting.value.dialogs = [...(meeting.value.dialogs || []), dialog as MeetingDialog]
+    meeting.value.dialogCount = meeting.value.dialogs.length
   }
 }
 
@@ -702,7 +653,7 @@ const confirmAssign = async () => {
     // 更新本地数据
     currentDialog.value.speakerName = selectedStaff.value.userName
     currentDialog.value.speakerRole = `${selectedStaff.value.department} · ${selectedStaff.value.role}`
-    currentDialog.value.recognized = true
+    currentDialog.value.recognized = 2  // 2-手动指定
     
     showAssignModal.value = false
     showSuccessToast('指定成功')
@@ -896,6 +847,8 @@ onUnmounted(() => {
 
 .user-menu-content {
   padding: 20px;
+  background: #ffffff;
+  color: var(--text-main);
 }
 
 .menu-header {
@@ -1754,6 +1707,8 @@ onUnmounted(() => {
 .assign-modal,
 .edit-modal {
   padding: 28px;
+  background: #ffffff;
+  color: var(--text-main);
 }
 
 .modal-header {

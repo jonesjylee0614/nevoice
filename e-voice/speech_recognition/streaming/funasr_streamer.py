@@ -78,6 +78,7 @@ class FunASRStreamerState:
     
     # 标点状态
     punc_cache: Dict[str, Any] = field(default_factory=dict)
+    punc_online_cache: Dict[str, Any] = field(default_factory=dict)  # 在线标点缓存
     
     # 音频缓冲
     frames: List[bytes] = field(default_factory=list)  # 所有帧
@@ -107,6 +108,7 @@ class FunASRStreamerState:
         self.online_is_final = False
         self.offline_cache = {}
         self.punc_cache = {}
+        self.punc_online_cache = {}
         self.frames = []
         self.frames_asr = []
         self.frames_asr_online = []
@@ -571,6 +573,7 @@ class FunASRStreamer:
         """执行在线流式 ASR。
         
         与官方 FunASR Demo 对齐：使用配置的 encoder/decoder_chunk_look_back。
+        新增：为在线结果实时预测标点。
         """
         audio_bytes = b"".join(state.frames_asr_online)
         if not audio_bytes:
@@ -611,6 +614,19 @@ class FunASRStreamer:
             # 2pass 模式下，如果是 final 则跳过（等待离线结果）
             if self.config.mode == "2pass" and state.online_is_final:
                 return None
+            
+            # 为在线结果应用实时标点预测
+            if text and self.config.enable_punc and self.model_punc is not None:
+                try:
+                    punc_result = self.model_punc.generate(
+                        input=text, **state.punc_online_cache
+                    )[0]
+                    text = punc_result.get("text", text)
+                    # 更新在线标点缓存
+                    if "cache" in punc_result:
+                        state.punc_online_cache = punc_result["cache"]
+                except Exception as e:
+                    logger.debug(f"在线标点预测失败（忽略）: {e}")
             
             # 如果是 final，应用 ITN
             if state.online_is_final:

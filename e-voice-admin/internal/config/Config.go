@@ -81,11 +81,14 @@ func (c *Config) InitFlag() *StartParams {
 	Sp.EnvName = *envName
 
 	//获取项目的执行路径
-	if *configPath == "" && Sp.EnvName != "" && Sp.EnvName != "dev" {
-		Sp.ConfigPath = fmt.Sprintf("./resource/config-%s.yml", Sp.EnvName)
-	} else {
+	if *configPath != "" {
+		// 优先使用命令行指定的配置文件路径
 		Sp.ConfigPath = *configPath
+	} else if Sp.EnvName != "" && Sp.EnvName != "dev" {
+		// 非 dev 环境，使用环境对应的配置文件
+		Sp.ConfigPath = fmt.Sprintf("./resource/config-%s.yml", Sp.EnvName)
 	}
+	// dev 环境且未指定配置文件时，保持默认的 ./resource/config.yml
 	return Sp
 }
 

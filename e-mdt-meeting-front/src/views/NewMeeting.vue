@@ -781,6 +781,8 @@ const goBack = () => {
 
 .popup-content {
   padding: 32px;
+  background: #ffffff;
+  color: var(--text-main);
 
   h3 {
     font-size: 18px;

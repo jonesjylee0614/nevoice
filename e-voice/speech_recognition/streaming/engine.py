@@ -192,8 +192,9 @@ class StreamingEngine:
                 f"saved bytes={len(audio_data)} path={filepath} took={elapsed_ms:.1f}ms"
             )
             
-            # 返回相对路径（用于前端访问）
-            return f"/{filepath}"
+            # 返回 URL 友好的路径（使用正斜杠）
+            url_path = filepath.replace("\\", "/")
+            return f"/{url_path}"
             
         except Exception as e:
             ws_logger.error(f"[audio] session={session_id} save failed: {e}")
@@ -341,87 +342,58 @@ class StreamingEngine:
                     "text_state": snapshot,
                 }
                 result_events.append(result_event)
-            else:  # correction / final - 基于标点进行二次分段
-                # 将长文本按句末标点分成多个语义完整的句子
-                sentences = split_by_punctuation(text)
+            else:  # correction / final - 按说话人合并，不分句
+                # 按说话人合并：同一个 VAD 段内的所有内容作为一条记录
+                # 因为声纹匹配是对整个 VAD 段进行的，所以同一段内说话人相同
                 
                 # 获取原始时间信息
                 total_start_ms = event.start_offset_ms
                 total_duration_ms = event.duration_ms
-                total_text_len = len(text.replace(" ", ""))  # 去空格的字符长度
+                total_end_ms = total_start_ms + total_duration_ms
                 
-                # 保存音频片段文件（如果有音频数据）
-                # 无论有多少句子，都保存一份音频，所有句子共享这一段音频
-                audio_path = None
+                # 声纹匹配（使用整个 VAD 段的音频）
                 speaker_info = None
-                
                 if event.audio_data:
-                    # 保存整个VAD段的音频
+                    speaker_info = self._match_speaker(event.audio_data, state.session_id)
+                
+                revision = state.next_revision()
+                segment_id = state.ensure_segment()
+                snapshot = accumulator.apply_correction(text)
+                
+                # 保存整个 VAD 段的音频
+                audio_path = None
+                if event.audio_data:
                     audio_path = self._save_audio_segment(
                         event.audio_data,
                         state.session_id,
-                        state.ensure_segment()
+                        segment_id
                     )
-                    # 执行声纹匹配
-                    speaker_info = self._match_speaker(event.audio_data, state.session_id)
                 
-                # 按字符比例分配时间
-                current_offset_ms = total_start_ms
+                result_event = {
+                    "type": "correction",
+                    "mode": event.mode,
+                    "revision": revision,
+                    "text": text,  # 完整文本，带标点
+                    "is_final": event.is_final,
+                    "session_id": state.session_id,
+                    "segment_id": segment_id,
+                    "text_state": snapshot,
+                    # 时间信息
+                    "start_offset_ms": total_start_ms,
+                    "end_offset_ms": total_end_ms,
+                    "duration_ms": total_duration_ms,
+                    # 音频路径 - 整个 VAD 段的音频
+                    "audio_path": audio_path,
+                }
                 
-                for i, sentence in enumerate(sentences):
-                    if not sentence:
-                        continue
-                    
-                    revision = state.next_revision()
-                    segment_id = state.ensure_segment()
-                    
-                    is_last_sentence = (i == len(sentences) - 1)
-                    snapshot = accumulator.apply_correction(sentence)
-                    
-                    # 按字符比例计算该句子的时长
-                    sentence_len = len(sentence.replace(" ", ""))
-                    if total_text_len > 0:
-                        sentence_duration_ms = int(total_duration_ms * sentence_len / total_text_len)
-                    else:
-                        sentence_duration_ms = 0
-                    
-                    sentence_start_ms = current_offset_ms
-                    sentence_end_ms = current_offset_ms + sentence_duration_ms
-                    current_offset_ms = sentence_end_ms
-                    
-                    # 所有句子共享同一个VAD段的音频和声纹匹配结果
-                    sentence_audio_path = audio_path
-                    sentence_speaker_info = speaker_info
-                    
-                    result_event = {
-                        "type": "correction",
-                        "mode": event.mode,
-                        "revision": revision,
-                        "text": sentence,
-                        "is_final": event.is_final and is_last_sentence,
-                        "session_id": state.session_id,
-                        "segment_id": segment_id,
-                        "text_state": snapshot,
-                        # 时间信息
-                        "start_offset_ms": sentence_start_ms,
-                        "end_offset_ms": sentence_end_ms,
-                        "duration_ms": sentence_duration_ms,
-                        # 音频路径
-                        "audio_path": sentence_audio_path,
-                    }
-                    
-                    # 添加声纹匹配结果
-                    if sentence_speaker_info:
-                        result_event["speaker_info"] = sentence_speaker_info
-                    
-                    if event.is_final and is_last_sentence:
-                        state.mark_segment_final(segment_id)
-                    
-                    result_events.append(result_event)
-                    
-                    # 为下一个句子创建新的 segment
-                    if not is_last_sentence:
-                        state.current_segment_id = None
+                # 添加声纹匹配结果
+                if speaker_info:
+                    result_event["speaker_info"] = speaker_info
+                
+                if event.is_final:
+                    state.mark_segment_final(segment_id)
+                
+                result_events.append(result_event)
         
         # 【诊断日志】push方法总耗时
         t_push_end = time.time()
@@ -500,8 +472,8 @@ class StreamingEngine:
                     "session_id": state.session_id,
                     "segment_id": segment_id,
                     "text_state": snapshot,
-                    "start_offset": getattr(event, 'start_offset_ms', 0),
-                    "end_offset": getattr(event, 'end_offset_ms', 0),
+                    "start_offset_ms": getattr(event, 'start_offset_ms', 0),
+                    "end_offset_ms": getattr(event, 'end_offset_ms', 0),
                     "duration_ms": getattr(event, 'duration_ms', 0),
                 }
                 result_events.append(result_event)
