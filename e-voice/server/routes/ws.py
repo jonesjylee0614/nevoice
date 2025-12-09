@@ -358,15 +358,18 @@ def register_ws_routes(sock: Sock) -> None:
                     avg_rtf = cumulative_process_ms / max(cumulative_audio_ms, 1)
                     
                     # 【关键诊断】检测延迟累积
+                    # 短期优化：采样输出减少日志I/O
                     if rtf > 1.0:
-                        ws_logger.warning(
-                            f"[WS-SLOW] session={session_id} chunk#{chunk_num} "
-                            f"RTF={rtf:.2f} (>1.0 FALLING BEHIND!) "
-                            f"process={process_ms:.1f}ms audio={audio_chunk_ms}ms "
-                            f"estimated_lag={estimated_lag_ms:.0f}ms avg_RTF={avg_rtf:.2f} "
-                            f"events={len(events)}"
-                        )
-                    elif len(events) > 0 or total_ms > 80 or chunk_num % 30 == 0:
+                        # 每50个chunk输出一次，或RTF>2.0时始终输出
+                        if chunk_num % 50 == 0 or rtf > 2.0:
+                            ws_logger.warning(
+                                f"[WS-SLOW] session={session_id} chunk#{chunk_num} "
+                                f"RTF={rtf:.2f} (>1.0 FALLING BEHIND!) "
+                                f"process={process_ms:.1f}ms audio={audio_chunk_ms}ms "
+                                f"estimated_lag={estimated_lag_ms:.0f}ms avg_RTF={avg_rtf:.2f} "
+                                f"events={len(events)}"
+                            )
+                    elif len(events) > 0 or total_ms > 80 or chunk_num % 50 == 0:
                         ws_logger.info(
                             f"[WS-TIMING] session={session_id} chunk#{chunk_num} "
                             f"RTF={rtf:.2f} process={process_ms:.1f}ms send={send_ms:.1f}ms "

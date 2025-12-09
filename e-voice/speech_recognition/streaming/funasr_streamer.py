@@ -437,13 +437,15 @@ class FunASRStreamer:
         
         if rt_factor > 1.0:
             # 处理速度跟不上实时，这是延迟的根本原因
-            logger.warning(
-                f"[PERF-SLOW] {session_tag} chunk#{chunk_count} RTF={rt_factor:.2f} (>1.0 means falling behind!) "
-                f"proc_ms={chunk_time_ms:.1f} audio_ms={duration_ms} "
-                f"buffered_frames={buffered_frames} buffered_ms~{buffered_ms_est} "
-                f"events={len(events)} speech_start={state.speech_start} is_speaking={state.is_speaking}"
-            )
-        elif rt_factor > 0.8 or len(events) > 0 or chunk_count % 20 == 0:
+            # 短期优化：每50个chunk采样输出一次警告，减少日志I/O
+            if chunk_count % 50 == 0 or rt_factor > 2.0:
+                logger.warning(
+                    f"[PERF-SLOW] {session_tag} chunk#{chunk_count} RTF={rt_factor:.2f} (>1.0 means falling behind!) "
+                    f"proc_ms={chunk_time_ms:.1f} audio_ms={duration_ms} "
+                    f"buffered_frames={buffered_frames} buffered_ms~{buffered_ms_est} "
+                    f"events={len(events)} speech_start={state.speech_start} is_speaking={state.is_speaking}"
+                )
+        elif rt_factor > 0.8 or len(events) > 0 or chunk_count % 50 == 0:
             # 正常但接近阈值，或有事件，或定期记录
             logger.info(
                 f"[PERF] {session_tag} chunk#{chunk_count} RTF={rt_factor:.2f} "

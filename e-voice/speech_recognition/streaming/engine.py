@@ -326,16 +326,19 @@ class StreamingEngine:
             chunk_count = state.metrics.get('chunk_count', 0)
             
             # 【关键诊断】详细的处理时间日志
+            # 短期优化：采样输出减少日志I/O
             if rtf > 1.0:
                 # RTF > 1 意味着处理速度跟不上实时，会产生延迟累积
-                ws_logger.warning(
-                    f"[ENGINE-SLOW] session={state.session_id} chunk#{chunk_count} "
-                    f"RTF={rtf:.2f} (FALLING BEHIND!) "
-                    f"process_ms={process_ms:.1f} audio_ms={audio_duration_ms} "
-                    f"events={len(events)} funasr_frames={len(funasr_state.frames)} "
-                    f"speech_start={funasr_state.speech_start}"
-                )
-            elif process_ms > 100 or len(events) > 0 or chunk_count % 30 == 0:
+                # 每50个chunk输出一次，或RTF>2.0时始终输出
+                if chunk_count % 50 == 0 or rtf > 2.0:
+                    ws_logger.warning(
+                        f"[ENGINE-SLOW] session={state.session_id} chunk#{chunk_count} "
+                        f"RTF={rtf:.2f} (FALLING BEHIND!) "
+                        f"process_ms={process_ms:.1f} audio_ms={audio_duration_ms} "
+                        f"events={len(events)} funasr_frames={len(funasr_state.frames)} "
+                        f"speech_start={funasr_state.speech_start}"
+                    )
+            elif process_ms > 100 or len(events) > 0 or chunk_count % 50 == 0:
                 ws_logger.info(
                     f"[ENGINE] session={state.session_id} chunk#{chunk_count} "
                     f"RTF={rtf:.2f} process_ms={process_ms:.1f} audio_ms={audio_duration_ms} "

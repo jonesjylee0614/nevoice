@@ -6,7 +6,9 @@ mode:
 
 audio:
   sample_rate: 16000
-  chunk_interval: 10  # 每 chunk_interval 个 chunk 发送一次在线识别请求
+  # 短期优化：从10增加到15，减少在线ASR调用频率约33%
+  # 原来：每600ms调用一次在线ASR -> 现在：每900ms调用一次
+  chunk_interval: 15  # 每 chunk_interval 个 chunk 发送一次在线识别请求
   chunk_size: [5, 10, 5]  # encoder_chunk_look_back, chunk_size, decoder_chunk_look_back (FunASR官方默认)
 
 timeouts:
@@ -44,7 +46,8 @@ vad:
   
   # 句末静音时长阈值 (毫秒)，静音超过此时长则认为语音结束
   # 默认 800ms，调大让分段更稳定（避免中间停顿被误判为句末）
-  max_end_silence_time: 800  # 1.2秒
+  # 短期优化：增加到1000ms减少频繁分段，合并更多连续语音
+  max_end_silence_time: 1000  # 1秒
   
   # 语音vs噪声阈值，范围 (-1, 1)
   # 值越大越严格（需要更明显的语音才会识别为说话）
@@ -73,5 +76,6 @@ features:
   # 启用 VAD - 必须启用才能正确分段和计算时间偏移
   enable_vad: true
   # 调试模式 - 输出更多日志（排查延迟问题时建议开启）
-  debug: true
+  # 短期优化：关闭调试模式减少日志I/O开销
+  debug: false
 
