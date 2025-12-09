@@ -159,12 +159,28 @@
             </div>
           </div>
 
-          <!-- 音频文件上传测试 -->
-          <AudioFileUpload
-            v-if="showAudioUpload && meeting?.status !== 2"
-            :meeting-id="meetingId"
-            @dialog-received="handleFileDialogReceived"
-          />
+          <!-- 音频文件上传测试 - 浮动在右下角 -->
+          <Teleport to="body">
+            <div 
+              v-if="showAudioUpload && meeting?.status !== 2" 
+              class="audio-upload-floating-wrapper"
+            >
+              <AudioFileUpload
+                :meeting-id="meetingId"
+                @dialog-received="handleFileDialogReceived"
+                @live-text-update="handleLiveTextUpdate"
+              />
+            </div>
+          </Teleport>
+
+          <!-- 实时识别预览 - 独立显示在对话记录上方 -->
+          <div v-if="uploadLiveText" class="upload-live-preview-card">
+            <div class="preview-header">
+              <span class="preview-dot active"></span>
+              <span>🎯 实时识别</span>
+            </div>
+            <div class="preview-content">{{ uploadLiveText }}</div>
+          </div>
 
           <!-- 对话记录 -->
           <div class="dialogs-card">
@@ -173,7 +189,17 @@
                 <van-icon name="chat-o" />
                 对话记录
               </h3>
-              <span class="dialog-count">共 {{ meeting.dialogs?.length || 0 }} 条</span>
+              <div class="header-actions">
+                <span class="dialog-count">共 {{ meeting.dialogs?.length || 0 }} 条</span>
+                <button 
+                  v-if="meeting.dialogs?.length"
+                  class="btn-copy-dialogs"
+                  @click="copyAllDialogs"
+                >
+                  <van-icon name="description" />
+                  复制全部
+                </button>
+              </div>
             </div>
             <div class="dialogs-list" v-if="meeting.dialogs?.length">
               <div 
@@ -181,6 +207,23 @@
                 :key="dialog.id || dialog.seq" 
                 class="dialog-item"
               >
+                <!-- 右上角迷你音频播放器 -->
+                <div v-if="dialog.audioPath" class="dialog-audio-mini">
+                  <audio 
+                    :ref="el => setAudioRef(dialog.id || dialog.seq, el as HTMLAudioElement)"
+                    :src="dialog.audioPath" 
+                    preload="metadata"
+                    @ended="() => audioPlaying[dialog.id || dialog.seq] = false"
+                  />
+                  <button 
+                    class="audio-play-btn"
+                    @click.stop="toggleAudio(dialog.id || dialog.seq)"
+                  >
+                    <van-icon :name="audioPlaying[dialog.id || dialog.seq] ? 'pause-circle-o' : 'play-circle-o'" />
+                  </button>
+                  <span class="audio-time">{{ formatAudioTime(audioDurations[dialog.id || dialog.seq]) }}</span>
+                </div>
+                
                 <div class="dialog-meta">
                   <span class="dialog-time">{{ formatDialogTime(dialog) }}</span>
                   <span class="dialog-speaker" v-if="dialog.speakerName">
@@ -199,9 +242,6 @@
                 </div>
                 <div class="dialog-content" @click="startEditDialog(dialog)">
                   {{ dialog.text }}
-                </div>
-                <div v-if="dialog.audioPath" class="dialog-audio">
-                  <audio :src="dialog.audioPath" controls preload="metadata" />
                 </div>
               </div>
             </div>
@@ -395,6 +435,59 @@ const runningText = ref('')
 
 // 音频上传测试
 const showAudioUpload = ref(false)
+
+// 迷你音频播放器状态
+const audioRefs = ref<Record<string | number, HTMLAudioElement | null>>({})
+const audioPlaying = ref<Record<string | number, boolean>>({})
+const audioDurations = ref<Record<string | number, number>>({})
+
+function setAudioRef(id: string | number, el: HTMLAudioElement | null) {
+  if (el) {
+    audioRefs.value[id] = el
+    // 监听音频元数据加载完成，获取总时长
+    el.addEventListener('loadedmetadata', () => {
+      audioDurations.value[id] = el.duration
+    })
+    // 如果已经加载过了
+    if (el.duration) {
+      audioDurations.value[id] = el.duration
+    }
+  }
+}
+
+function toggleAudio(id: string | number) {
+  const audio = audioRefs.value[id]
+  if (!audio) return
+  
+  // 暂停其他正在播放的音频
+  Object.entries(audioRefs.value).forEach(([key, el]) => {
+    if (key !== String(id) && el && !el.paused) {
+      el.pause()
+      audioPlaying.value[key] = false
+    }
+  })
+  
+  if (audio.paused) {
+    audio.play()
+    audioPlaying.value[id] = true
+  } else {
+    audio.pause()
+    audioPlaying.value[id] = false
+  }
+}
+
+function formatAudioTime(seconds: number): string {
+  if (!seconds || isNaN(seconds)) return '--:--'
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+const uploadLiveText = ref('')
+
+// 处理实时识别文本更新
+function handleLiveTextUpdate(text: string) {
+  uploadLiveText.value = text
+}
 
 // 指定发言人相关
 const showAssignModal = ref(false)
@@ -619,6 +712,23 @@ const copySummary = () => {
   if (!meeting.value?.summary) return
   navigator.clipboard.writeText(meeting.value.summary)
   showSuccessToast('已复制到剪贴板')
+}
+
+// 复制所有对话记录
+const copyAllDialogs = () => {
+  if (!meeting.value?.dialogs?.length) {
+    showToast('暂无对话记录')
+    return
+  }
+  
+  const dialogText = meeting.value.dialogs.map((dialog, index) => {
+    const time = formatDialogTime(dialog)
+    const speaker = dialog.speakerName || '未知发言人'
+    return `[${time}] ${speaker}\n${dialog.text}`
+  }).join('\n\n')
+  
+  navigator.clipboard.writeText(dialogText)
+  showSuccessToast('对话记录已复制到剪贴板')
 }
 
 // 打开指定发言人弹窗
@@ -1422,6 +1532,41 @@ onUnmounted(() => {
       color: var(--primary);
     }
   }
+  
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+/* 复制对话按钮 */
+.btn-copy-dialogs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, var(--primary-light) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  :deep(.van-icon) {
+    font-size: 14px;
+  }
+  
+  &:hover {
+    background: var(--primary);
+    color: white;
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
 }
 
 .dialog-count {
@@ -1441,13 +1586,65 @@ onUnmounted(() => {
 }
 
 .dialog-item {
+  position: relative;
   padding: 14px 16px;
+  padding-right: 100px; // 为右上角播放器留空间
   background: var(--surface-muted);
   border-radius: 12px;
   transition: all 0.2s ease;
   
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+}
+
+// 迷你音频播放器 - 右上角透明白色风格
+.dialog-audio-mini {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  
+  audio {
+    display: none; // 隐藏原生控件
+  }
+  
+  .audio-play-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--primary);
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+    
+    :deep(.van-icon) {
+      font-size: 20px;
+    }
+  }
+  
+  .audio-time {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    min-width: 28px;
+    font-family: 'SF Mono', Monaco, monospace;
   }
 }
 
@@ -1525,15 +1722,7 @@ onUnmounted(() => {
   }
 }
 
-.dialog-audio {
-  margin-top: 10px;
-  
-  audio {
-    width: 100%;
-    height: 36px;
-    border-radius: 8px;
-  }
-}
+// 旧的 .dialog-audio 已移除，改用 .dialog-audio-mini
 
 .empty-dialogs {
   text-align: center;
@@ -1950,6 +2139,112 @@ onUnmounted(() => {
   .btn-record-mini {
     flex: 1;
     justify-content: center;
+  }
+}
+
+/* 音频上传浮动框 - 右侧固定定位（紧凑模式） */
+.audio-upload-floating-wrapper {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1000;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 12px;
+  
+  // 缩小内部组件
+  :deep(.card-header) {
+    padding: 8px 12px;
+    
+    .title {
+      font-size: 12px;
+    }
+  }
+  
+  :deep(.drop-zone) {
+    padding: 12px;
+    min-height: 60px;
+    
+    .drop-icon {
+      font-size: 20px;
+    }
+    
+    .drop-text {
+      font-size: 11px;
+    }
+    
+    .drop-hint {
+      font-size: 10px;
+    }
+  }
+  
+  :deep(.file-info) {
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+  
+  :deep(.progress-section) {
+    padding: 8px 12px;
+  }
+  
+  :deep(.controls) {
+    padding: 8px 12px;
+    gap: 6px;
+    
+    .van-button {
+      height: 28px;
+      font-size: 11px;
+      padding: 0 10px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .audio-upload-floating-wrapper {
+    width: 260px;
+    right: 12px;
+    top: 68px;
+  }
+}
+
+/* 实时识别预览卡片 - 独立显示在对话记录上方 */
+.upload-live-preview-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(99, 102, 241, 0.06) 100%);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  
+  .preview-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--success);
+    margin-bottom: 8px;
+    
+    .preview-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      
+      &.active {
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+    }
+  }
+  
+  .preview-content {
+    font-size: 14px;
+    color: var(--text-main);
+    line-height: 1.6;
+    word-break: break-all;
   }
 }
 </style>

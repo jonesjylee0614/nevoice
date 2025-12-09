@@ -5,8 +5,8 @@
         <van-icon name="music-o" />
         <span class="title">上传音频文件测试</span>
       </div>
-      <van-tag :type="isStreaming ? 'success' : 'default'" size="medium">
-        {{ isStreaming ? '发送中...' : '就绪' }}
+      <van-tag :type="isStreaming || progress >= 1 ? 'success' : 'default'" size="medium">
+        {{ isStreaming ? (progress >= 1 ? '处理中...' : '发送中...') : (progress >= 1 ? '已完成' : '就绪') }}
       </van-tag>
     </div>
 
@@ -86,11 +86,6 @@
       </van-button>
     </div>
 
-    <!-- 实时识别预览 -->
-    <div v-if="liveText" class="live-preview">
-      <div class="live-label">🎯 实时识别:</div>
-      <div class="live-text">{{ liveText }}</div>
-    </div>
   </div>
 </template>
 
@@ -110,6 +105,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'dialog-received', dialog: Partial<MeetingDialog>): void
+  (e: 'live-text-update', text: string): void
 }>()
 
 // WebSocket 配置 - 直接连接 Python 后端
@@ -307,17 +303,19 @@ function beginStreaming() {
       }
 
       // 兜底机制：等待后端处理完成
-      // RTF=1.67 意味着 2 分钟音频需要约 3.3 分钟处理
-      // 设置 120 秒超时（从发送完成开始计算）
+      // RTF=2.5 意味着处理 1 秒音频需要 2.5 秒
+      // 动态计算超时时间：音频时长 * 3 + 30秒缓冲
+      const estimatedProcessTime = Math.max(fileDuration.value * 3 + 30, 180) * 1000
+      console.log(`[AudioUpload] 发送完成，等待后端处理，预计耗时: ${(estimatedProcessTime/1000).toFixed(0)}秒`)
       setTimeout(() => {
         if (websocket && websocket.readyState === WebSocket.OPEN) {
-          console.log('兜底关闭：超时未收到最终结果')
+          console.log('[AudioUpload] 兜底关闭：超时未完成')
           websocket.close(1000, 'timeout')
         }
         if (isStreaming.value) {
           stopStreaming()
         }
-      }, 120000)
+      }, estimatedProcessTime)
       return
     }
 
@@ -359,9 +357,11 @@ async function handleMessage(data: any) {
   // 更新实时预览
   if (mode === '2pass-online' || mode === 'online') {
     liveText.value += text
+    emit('live-text-update', liveText.value)
   } else if (mode === '2pass-offline' || mode === 'offline') {
     // 离线纠错结果 - 保存到会议记录
     liveText.value = ''
+    emit('live-text-update', '')
 
     if (text) {
       currentSeq++
@@ -431,15 +431,11 @@ async function handleMessage(data: any) {
       }
     }
     
-    // 如果是最终结果且流式发送已停止，可以安全关闭连接
-    if (isFinal && progress.value >= 1) {
-      console.log('收到最终结果，准备关闭连接')
-      setTimeout(() => {
-        if (websocket && websocket.readyState === WebSocket.OPEN) {
-          websocket.close(1000, 'received final result')
-        }
-        stopStreaming()
-      }, 500)
+    // 注意：isFinal 只表示某个语音段的最终结果，不是整个 session 的结束
+    // 不在这里关闭连接，让超时机制来处理关闭
+    // 这样可以确保后端有足够时间处理完所有数据
+    if (isFinal) {
+      console.log(`[AudioUpload] 收到 final 结果 (progress: ${(progress.value * 100).toFixed(1)}%)，继续等待更多结果...`)
     }
   }
 }
@@ -477,10 +473,10 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .audio-upload-card {
   background: var(--surface);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--border-light);
 }
 
@@ -488,35 +484,42 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   
   .header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     
     :deep(.van-icon) {
-      font-size: 18px;
+      font-size: 14px;
       color: var(--primary);
     }
     
     .title {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-main);
     }
   }
+  
+  :deep(.van-tag) {
+    font-size: 10px;
+  }
 }
 
 .drop-zone {
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  padding: 24px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 10px;
   text-align: center;
   background: var(--surface-muted);
   transition: all 0.3s ease;
   cursor: pointer;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
   &:hover,
   &.dragover {
@@ -531,74 +534,58 @@ onBeforeUnmount(() => {
 }
 
 .drop-icon {
-  font-size: 2rem;
-  margin-bottom: 8px;
+  font-size: 1.2rem;
 }
 
 .drop-text {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text-secondary);
   font-weight: 500;
+  flex: 1;
+  text-align: left;
 }
 
 .drop-hint {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-tertiary);
-  margin-top: 6px;
 }
 
 .file-info {
   display: flex;
-  gap: 14px;
-  font-size: 12px;
+  gap: 10px;
+  font-size: 10px;
   color: var(--text-secondary);
-  margin-bottom: 12px;
-  padding: 10px 12px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
   background: var(--surface-muted);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .progress-section {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .progress-text {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-secondary);
-  margin-top: 6px;
+  margin-top: 4px;
   text-align: center;
 }
 
 .controls {
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
   
   .van-button {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
+    font-size: 11px;
+    padding: 0 8px;
+    height: 26px;
   }
 }
 
-.live-preview {
-  padding: 12px;
-  border-radius: 10px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid var(--success);
-}
-
-.live-label {
-  font-size: 12px;
-  color: var(--success);
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.live-text {
-  font-size: 13px;
-  color: var(--text-main);
-  line-height: 1.6;
-}
 </style>
 

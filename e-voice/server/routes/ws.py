@@ -19,6 +19,7 @@ from typing import Any, Dict, Iterable
 
 from flask import request
 from flask_sock import Sock
+from simple_websocket.errors import ConnectionClosed
 
 from server.logging import ws_logger, key_logger
 from server.services.streaming_session import SessionContext, StreamingSessionManager
@@ -469,6 +470,16 @@ def register_ws_routes(sock: Sock) -> None:
                     f"[ws] session={session_id} unsupported message: {payload}"
                 )
                 
+        except ConnectionClosed as exc:
+            # 正常关闭（code=1000）不记录为错误
+            if exc.reason == 1000:
+                ws_logger.info(
+                    f"[ws] session={session_id} connection closed normally: {exc.message}"
+                )
+            else:
+                ws_logger.warning(
+                    f"[ws] session={session_id} connection closed abnormally: code={exc.reason} message={exc.message}"
+                )
         except Exception as exc:  # pylint: disable=broad-except
             ws_logger.error(
                 f"[ws] session={session_id} exception: {exc}\n{traceback.format_exc()}"

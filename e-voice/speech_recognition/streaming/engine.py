@@ -33,6 +33,36 @@ ENABLE_AUTO_VOICEPRINT = True
 SENTENCE_END_PATTERN = re.compile(r'([。！？!?])')
 # 检查是否只包含标点符号的正则
 PUNCTUATION_ONLY_PATTERN = re.compile(r'^[。！？!?，,、；;：:""''""\'\'()（）【】\[\]《》<>—\-…·\s]+$')
+# 开头的标点符号正则（需要移除的）
+LEADING_PUNCTUATION_PATTERN = re.compile(r'^[。！？!?，,、；;：:""''""\'\'()（）【】\[\]《》<>—\-…·\s]+')
+
+
+def clean_sentence_text(text: str) -> str:
+    """
+    清理句子文本：
+    1. 移除开头的标点符号
+    2. 如果结尾没有句末标点，添加句号
+    
+    Args:
+        text: 待清理的文本
+        
+    Returns:
+        清理后的文本
+    """
+    if not text:
+        return text
+    
+    # 1. 移除开头的标点符号
+    text = LEADING_PUNCTUATION_PATTERN.sub('', text)
+    
+    if not text:
+        return text
+    
+    # 2. 检查结尾是否有句末标点，如果没有则添加句号
+    if text and not SENTENCE_END_PATTERN.search(text[-1]):
+        text = text + '。'
+    
+    return text
 
 
 def split_by_punctuation(text: str) -> List[str]:
@@ -369,11 +399,14 @@ class StreamingEngine:
                         segment_id
                     )
                 
+                # 清理文本：移除开头标点，确保结尾有标点
+                cleaned_text = clean_sentence_text(text)
+                
                 result_event = {
                     "type": "correction",
                     "mode": event.mode,
                     "revision": revision,
-                    "text": text,  # 完整文本，带标点
+                    "text": cleaned_text,  # 完整文本，带标点，已清理
                     "is_final": event.is_final,
                     "session_id": state.session_id,
                     "segment_id": segment_id,
@@ -459,15 +492,20 @@ class StreamingEngine:
                 if not sentence.strip():
                     continue
                 
+                # 清理句子文本：移除开头标点，确保结尾有标点
+                cleaned_sentence = clean_sentence_text(sentence)
+                if not cleaned_sentence:
+                    continue
+                
                 revision = state.next_revision()
                 segment_id = state.ensure_segment()
                 
-                snapshot = accumulator.apply_correction(sentence)
+                snapshot = accumulator.apply_correction(cleaned_sentence)
                 result_event = {
                     "type": "correction",
                     "mode": event.mode,
                     "revision": revision,
-                    "text": sentence,
+                    "text": cleaned_sentence,
                     "is_final": True,
                     "session_id": state.session_id,
                     "segment_id": segment_id,

@@ -152,7 +152,16 @@
               <div class="card-header">
                 <div class="title-row">
                   <h3 class="meeting-title">{{ meeting.title || '未命名会议' }}</h3>
-                  <span class="status-badge" :class="statusClass(meeting.status)">
+                  <!-- 优先显示总结状态，避免"进行中"和"已总结"同时显示 -->
+                  <span v-if="meeting.summaryStatus === 2" class="status-badge status-summarized">
+                    <span class="status-dot"></span>
+                    已总结
+                  </span>
+                  <span v-else-if="meeting.summaryStatus === 1" class="status-badge status-summarizing">
+                    <span class="status-dot"></span>
+                    生成中
+                  </span>
+                  <span v-else class="status-badge" :class="statusClass(meeting.status)">
                     <span class="status-dot"></span>
                     {{ statusText(meeting.status) }}
                   </span>
@@ -168,14 +177,6 @@
                 <span class="meta-item">
                   <van-icon name="chat-o" />
                   {{ meeting.dialogCount || 0 }} 条对话
-                </span>
-                <span v-if="meeting.summaryStatus === 2" class="meta-badge success">
-                  <van-icon name="checked" />
-                  已总结
-                </span>
-                <span v-else-if="meeting.summaryStatus === 1" class="meta-badge pending">
-                  <van-icon name="clock-o" />
-                  生成中
                 </span>
               </div>
 
@@ -1370,9 +1371,32 @@ onMounted(() => {
       background: var(--success);
     }
   }
+
+  // 已总结状态 - 青绿色调，与"已结束"区分
+  &.status-summarized {
+    background: linear-gradient(135deg, #e0f7f4 0%, #d1f5ef 100%);
+    color: #0d9488;
+    border: 1px solid rgba(13, 148, 136, 0.2);
+    
+    .status-dot {
+      background: #0d9488;
+    }
+  }
+
+  // 生成中状态 - 蓝色调，带动画
+  &.status-summarizing {
+    background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+    color: #0284c7;
+    border: 1px solid rgba(2, 132, 199, 0.2);
+    
+    .status-dot {
+      background: #0284c7;
+      animation: pulse 1.5s infinite;
+    }
+  }
 }
 
-// 卡片元信息（时间、对话数、总结状态）
+// 卡片元信息（时间、对话数）
 .card-meta {
   display: flex;
   align-items: center;

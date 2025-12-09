@@ -761,9 +761,9 @@ class FunASRStreamer:
         return text
     
     # 不应转换数字的常见中文词组（包含数字字符但不是数量表达）
-    # 格式：(前缀词组, 数字部分, 后缀词组)
+    # 注意：单个"一"的处理已在 _conv_plain_smart 中智能判断，只有大数表达才转换
     _SKIP_NUMBER_PATTERNS = {
-        # "一"开头的常用词
+        # "一"开头的固定词组（成语、副词等）
         '一会', '一会儿', '一下', '一下子', '一起', '一同', '一般', '一定', '一直',
         '一样', '一边', '一面', '一旦', '一切', '一向', '一致', '一概', '一律',
         '一贯', '一如', '一并', '一道', '一经', '一再', '一度', '一味', '一番',
@@ -854,27 +854,27 @@ class FunASRStreamer:
             if _should_skip(text, start, end, raw):
                 return raw
             
-            # 单个"一"且不是"一百"、"一千"等数量表达，不转换
+            # 单个"一"的转换策略：只有在明确的大数量表达时才转换
+            # "一个"、"一种"等口语表达保留原文
             if raw == '一':
-                # 检查后面是否跟着数量单位或其他数字
                 after = text[end:end + 3] if end < len(text) else ''
-                # 检查"一"后面不是明确的数量表达时，保留原文
-                number_units = '〇零二两三四五六七八九十百千万亿兆个元块只条张把辆套件台部位名人次岁年月日时分秒米斤克升公里毫度倍番'
-                if not any(c in after for c in number_units):
+                # 只有后面跟着大数单位（十、百、千、万、亿等）或其他数字字符时才转换
+                # "一个"、"一种"、"一年"等常见搭配保留原文
+                big_number_units = '〇零二两三四五六七八九十百千万亿兆'  # 大数单位
+                if not any(c in after for c in big_number_units):
+                    return raw
+                # 特殊情况："一十"通常是"十"的口语，也保留
+                if after.startswith('十') and not any(c in after[1:] for c in '百千万亿兆'):
                     return raw
             
             # 单个"第"开头的序数词 - 保持原样，让正则处理
-            # 单个数字字符（二、三、四...）在特定上下文中也可能不需要转换
-            single_chars = {'二', '三', '四', '五', '六', '七', '八', '九', '十'}
-            if raw in single_chars:
-                # 检查前后上下文
-                before = text[max(0, start - 2):start]
-                after = text[end:min(len(text), end + 2)]
-                # 如果前面是"第"，后面是"方面"/"步"等，保持原样
-                if '第' in before:
-                    return raw
-                if after.startswith('方面') or after.startswith('来') or after.startswith('步'):
-                    return raw
+            # 简化的数字转换规则：
+            # - 多位数（如"三十四"、"一百"）→ 转换
+            # - 单个数字字符（如"九"、"三"、"一"）→ 保留原文
+            # 这样可以自动保留成语（九牛一毛、三心二意）和口语（一个、一种）
+            if len(raw) == 1:
+                # 单个数字字符，保留原文
+                return raw
             
             try:
                 return _fmt(cn2an.cn2an(raw, "smart"))
