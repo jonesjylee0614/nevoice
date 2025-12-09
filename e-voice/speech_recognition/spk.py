@@ -1,14 +1,11 @@
 from funasr import AutoModel
-from modelscope import snapshot_download
+from loguru import logger
 
 from config.config import conf
 
-cache_dir = conf.get('model', 'cache_dir', fallback='')
-
-model_dir = snapshot_download(
-    model_id='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
-    local_dir=f'{cache_dir}/speech_train'
-)
+# 直接使用配置文件中的模型路径，不再通过 snapshot_download 下载
+model_dir = conf.get('model', 'speech_train', fallback='')
+logger.info(f"📁 SPK模型路径: {model_dir}")
 
 
 def load_spk_model():

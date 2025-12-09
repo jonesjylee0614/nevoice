@@ -106,6 +106,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'dialog-received', dialog: Partial<MeetingDialog>): void
   (e: 'live-text-update', text: string): void
+  (e: 'session-complete'): void
 }>()
 
 // WebSocket 配置 - 直接连接 Python 后端
@@ -345,6 +346,24 @@ function stopStreaming() {
 }
 
 async function handleMessage(data: any) {
+  // 处理会话完成信号
+  if (data.type === 'session_complete') {
+    console.log('[AudioUpload] 收到 session_complete 信号，处理已完成')
+    showSuccessToast('音频处理完成')
+    
+    // 关闭 WebSocket 连接
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      websocket.close(1000, 'session_complete')
+    }
+    
+    // 停止流式状态
+    stopStreaming()
+    
+    // 通知父组件处理已完成
+    emit('session-complete')
+    return
+  }
+  
   const mode = data.mode || ''
   const text = data.text || ''
   const isFinal = data.is_final || false
@@ -475,8 +494,6 @@ onBeforeUnmount(() => {
   background: var(--surface);
   border-radius: 10px;
   padding: 10px 12px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--border-light);
 }
 

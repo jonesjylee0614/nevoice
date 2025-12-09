@@ -3,7 +3,7 @@ import time
 
 import torch
 from loguru import logger
-from modelscope import pipeline, Tasks, snapshot_download
+from modelscope import pipeline, Tasks
 
 from config.config import conf
 
@@ -12,11 +12,9 @@ rec_logger = logger.bind(component="speech_recognition")
 
 speech_paraformer_test = None
 
-cache_dir = conf.get('model', 'cache_dir', fallback='')
-test_model_dir = snapshot_download(
-    model_id='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
-    local_dir=f'{cache_dir}/speech_test'
-)
+# 直接使用配置文件中的模型路径，不再通过 snapshot_download 下载
+test_model_dir = conf.get('model', 'speech_test', fallback='')
+rec_logger.info(f"📁 测试模型路径: {test_model_dir}")
 
 
 # 🔧 临时修复：使用最简单的配置

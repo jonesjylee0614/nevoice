@@ -3,19 +3,17 @@ import time
 
 import torch
 from loguru import logger
-from modelscope import pipeline, Tasks, snapshot_download
+from modelscope import pipeline, Tasks
 
 from config.config import conf
 
 # 创建专用的语音识别日志
 recognition_logger = logger.bind(component="speech_recognition")
 
-cache_dir = conf.get('model', 'cache_dir', fallback='')
-
-model_dir = snapshot_download(
-    model_id='iic/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch',
-    local_dir=f'{cache_dir}/speech_train'
-)
+# 直接使用配置文件中的模型路径，不再通过 snapshot_download 下载
+# 这样可以避免模型目录混乱的问题
+model_dir = conf.get('model', 'speech_train', fallback='')
+recognition_logger.info(f"📁 使用模型路径: {model_dir}")
 
 
 def reinst_test_model():

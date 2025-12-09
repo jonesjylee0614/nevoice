@@ -1,13 +1,11 @@
-from modelscope import snapshot_download, pipeline
+from modelscope import pipeline
+from loguru import logger
 
 from config.config import conf
 
-cache_dir = conf.get('model', 'cache_dir', fallback='')
-
-model_dir = snapshot_download(
-    model_id='iic/speech_campplus_sv_zh-cn_16k-common',
-    local_dir=f'{cache_dir}/speech_campplus'
-)
+# 直接使用配置文件中的声纹模型路径，不再通过 snapshot_download 下载
+model_dir = conf.get('model', 'speech_campplus', fallback='')
+logger.info(f"📁 声纹模型路径: {model_dir}")
 
 # 说话人确认模型
 sv_pipeline = pipeline(

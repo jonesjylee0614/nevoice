@@ -169,6 +169,7 @@
                 :meeting-id="meetingId"
                 @dialog-received="handleFileDialogReceived"
                 @live-text-update="handleLiveTextUpdate"
+                @session-complete="handleSessionComplete"
               />
             </div>
           </Teleport>
@@ -637,6 +638,16 @@ const handleFileDialogReceived = async (dialog: Partial<MeetingDialog>) => {
     meeting.value.dialogs = [...(meeting.value.dialogs || []), dialog as MeetingDialog]
     meeting.value.dialogCount = meeting.value.dialogs.length
   }
+}
+
+// 处理音频处理完成
+const handleSessionComplete = () => {
+  // 更新会议结束时间为当前时间
+  if (meeting.value) {
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+    meeting.value.endTime = now
+  }
+  console.log('[MeetingDetail] 音频处理完成，已更新结束时间')
 }
 
 // 暂停/恢复录音
@@ -2146,14 +2157,14 @@ onUnmounted(() => {
 .audio-upload-floating-wrapper {
   position: fixed;
   right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 20px;
   z-index: 1000;
-  width: 260px;
+  width: 320px;
   max-width: calc(100vw - 32px);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
-  border-radius: 10px;
-  overflow: hidden;
+  background: var(--surface, #fff);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  overflow: visible;
   font-size: 12px;
   
   // 缩小内部组件
@@ -2205,9 +2216,9 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .audio-upload-floating-wrapper {
-    width: 260px;
+    width: 300px;
     right: 12px;
-    top: 68px;
+    bottom: 12px;
   }
 }
 

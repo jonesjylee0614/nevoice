@@ -18,29 +18,33 @@ models:
   # 离线 ASR 模型（用于二次纠错）
   asr:
     model: "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
-    revision: "v2.0.4"
+    local_path: null  # 设置后将使用本地路径，跳过网络检查
+    revision: null
   # 在线流式 ASR 模型
   asr_online:
     model: "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online"
-    revision: "v2.0.4"
+    local_path: null
+    revision: null
   # VAD 模型
   vad:
     model: "damo/speech_fsmn_vad_zh-cn-16k-common-pytorch"
-    revision: "v2.0.4"
+    local_path: null
+    revision: null
   # 标点模型
   punc:
     model: "damo/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727"
-    revision: "v2.0.4"
+    local_path: null
+    revision: null
 
 # VAD 分段参数配置
 vad:
   # 单个语音段的最大时长 (毫秒)，超过此时长会强制分段
   # 默认 60000ms = 60秒，适当调小避免单段过长
-  max_single_segment_time: 45000  # 45秒
+  max_single_segment_time: 25000  # 45秒
   
   # 句末静音时长阈值 (毫秒)，静音超过此时长则认为语音结束
   # 默认 800ms，调大让分段更稳定（避免中间停顿被误判为句末）
-  max_end_silence_time: 1200  # 1.2秒
+  max_end_silence_time: 800  # 1.2秒
   
   # 语音vs噪声阈值，范围 (-1, 1)
   # 值越大越严格（需要更明显的语音才会识别为说话）

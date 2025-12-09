@@ -22,9 +22,22 @@ except ImportError:  # pragma: no cover
     AutoModel = None
     logger.warning("FunASR AutoModel 未安装，Streaming 模型将以占位模式运行")
 
+# 导入主配置
+try:
+    from config.config import conf as main_conf
+except ImportError:
+    main_conf = None
+
 
 # 配置文件路径
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
+
+
+def get_model_cache_dir() -> Optional[str]:
+    """从主配置获取模型缓存目录。"""
+    if main_conf and main_conf.has_option("model", "cache_dir"):
+        return main_conf.get("model", "cache_dir")
+    return None
 
 
 def load_funasr_config(filename: str = "realtime_funasr.yml") -> Dict[str, Any]:
@@ -110,6 +123,10 @@ class ModelLoader:
         # 获取模型配置
         models_config = config.get("models", {})
         features = config.get("features", {})
+        # 优先从主配置(ini)获取缓存目录，其次从 realtime_funasr.yml 获取
+        cache_dir = get_model_cache_dir() or models_config.get("cache_dir")
+        if cache_dir:
+            logger.info(f"模型缓存目录: {cache_dir}")
         
         logger.info("开始加载 FunASR 模型...")
         
@@ -122,6 +139,8 @@ class ModelLoader:
             ncpu=ncpu,
             device=device,
             model_type="离线 ASR",
+            local_path=asr_config.get("local_path"),
+            cache_dir=cache_dir,
         )
         
         # 加载在线流式 ASR 模型
@@ -133,6 +152,8 @@ class ModelLoader:
             ncpu=ncpu,
             device=device,
             model_type="在线流式 ASR",
+            local_path=asr_online_config.get("local_path"),
+            cache_dir=cache_dir,
         )
         
         # 加载 VAD 模型
@@ -146,6 +167,8 @@ class ModelLoader:
                 ncpu=ncpu,
                 device=device,
                 model_type="VAD",
+                local_path=vad_config.get("local_path"),
+                cache_dir=cache_dir,
             )
         
         # 加载标点模型
@@ -159,6 +182,8 @@ class ModelLoader:
                 ncpu=ncpu,
                 device=device,
                 model_type="标点",
+                local_path=punc_config.get("local_path"),
+                cache_dir=cache_dir,
             )
         
         load_time_ms = (time.time() - start_time) * 1000
@@ -183,24 +208,43 @@ class ModelLoader:
         ncpu: int,
         device: str,
         model_type: str = "",
+        local_path: Optional[str] = None,
+        cache_dir: Optional[str] = None,
     ) -> Any:
         """
         创建 FunASR 模型。
         
         与 funasr_wss_server.py 使用相同的参数。
+        支持本地路径加载（跳过网络检查）。
         """
         if not model or AutoModel is None:
             if model:
                 logger.warning(f"{model_type} 模型 {model} 无法加载：AutoModel 未安装")
             return None
         
-        logger.info(f"加载 {model_type} 模型: {model} (revision={revision})")
+        # 确定模型路径：优先使用 local_path，其次根据 cache_dir 构建
+        model_path = model
+        if local_path:
+            model_path = local_path
+            logger.info(f"加载 {model_type} 模型(本地): {model_path}")
+        elif cache_dir and "/" in model:
+            # 从 model ID (如 damo/xxx) 构建本地缓存路径
+            import os
+            local_cache_path = os.path.join(cache_dir, model.replace("/", os.sep))
+            if os.path.exists(local_cache_path):
+                model_path = local_cache_path
+                logger.info(f"加载 {model_type} 模型(缓存): {model_path}")
+            else:
+                logger.info(f"加载 {model_type} 模型: {model} (revision={revision})")
+        else:
+            logger.info(f"加载 {model_type} 模型: {model} (revision={revision})")
+        
         start = time.time()
         
         try:
             m = AutoModel(
-                model=model,
-                model_revision=revision,
+                model=model_path,
+                model_revision=revision if model_path == model else None,  # 本地路径不需要 revision
                 ngpu=ngpu,
                 ncpu=ncpu,
                 device=device,

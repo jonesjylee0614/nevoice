@@ -351,9 +351,11 @@ class FunASRStreamer:
         # 5. 处理语音开始
         if speech_start_i != -1:
             state.speech_start = True
-            # 记录当前段的起始时间 - 使用实际的音频位置而非 last_segment_end_ms
-            # 这样可以准确反映语音在整个音频文件中的位置
-            state.current_segment_start_ms = state.total_audio_ms - duration_ms
+            # 记录当前段的起始时间
+            # 使用 VAD 检测到的语音开始位置，但确保不早于上一段结束时间
+            estimated_start = state.total_audio_ms - duration_ms
+            # 确保时间不重叠：新段起始时间不能早于上一段结束时间
+            state.current_segment_start_ms = max(estimated_start, state.last_segment_end_ms)
             
             # 计算需要回溯的帧数
             # beg_bias 表示从当前帧往前数多少帧是语音开始点
@@ -512,6 +514,15 @@ class FunASRStreamer:
                 # 设置时间起点为上一段结束位置
                 if state.current_segment_start_ms == 0:
                     state.current_segment_start_ms = state.last_segment_end_ms
+            else:
+                # 确保 current_segment_audio 有数据用于音频保存
+                # 如果 current_segment_audio 为空但 frames_asr 有数据，从 frames_asr 复制
+                if not state.current_segment_audio and state.frames_asr:
+                    logger.info(
+                        f"[FunASRStreamer] {session_tag} flush: current_segment_audio is empty, "
+                        f"copying from frames_asr ({len(state.frames_asr)} chunks)"
+                    )
+                    state.current_segment_audio = list(state.frames_asr)
             
             logger.info(
                 f"[FunASRStreamer] {session_tag} flush: running offline ASR with {len(state.frames_asr)} frames"

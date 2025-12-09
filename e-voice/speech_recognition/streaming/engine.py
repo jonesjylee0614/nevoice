@@ -484,42 +484,61 @@ class StreamingEngine:
             text = event.text
             if not text:
                 continue
-                
-            # 应用标点二次分段（与 push 方法一致）
-            sentences = split_by_punctuation(text)
             
-            for i, sentence in enumerate(sentences):
-                if not sentence.strip():
-                    continue
-                
-                # 清理句子文本：移除开头标点，确保结尾有标点
-                cleaned_sentence = clean_sentence_text(sentence)
-                if not cleaned_sentence:
-                    continue
-                
-                revision = state.next_revision()
-                segment_id = state.ensure_segment()
-                
-                snapshot = accumulator.apply_correction(cleaned_sentence)
-                result_event = {
-                    "type": "correction",
-                    "mode": event.mode,
-                    "revision": revision,
-                    "text": cleaned_sentence,
-                    "is_final": True,
-                    "session_id": state.session_id,
-                    "segment_id": segment_id,
-                    "text_state": snapshot,
-                    "start_offset_ms": getattr(event, 'start_offset_ms', 0),
-                    "end_offset_ms": getattr(event, 'end_offset_ms', 0),
-                    "duration_ms": getattr(event, 'duration_ms', 0),
-                }
-                result_events.append(result_event)
-                state.mark_segment_final(segment_id)
-                
-                # 为下一个句子创建新的 segment
-                if i < len(sentences) - 1:
-                    state.current_segment_id = None
+            # 与 push 方法保持一致：按 VAD 段整体处理，不分割句子
+            # 因为分割句子会导致所有子句使用相同的时间戳，这是不正确的
+            
+            # 清理文本：移除开头标点，确保结尾有标点
+            cleaned_text = clean_sentence_text(text)
+            if not cleaned_text:
+                continue
+            
+            # 获取时间信息
+            start_offset_ms = getattr(event, 'start_offset_ms', 0)
+            duration_ms = getattr(event, 'duration_ms', 0)
+            end_offset_ms = start_offset_ms + duration_ms
+            
+            # 声纹匹配（使用整个 VAD 段的音频）
+            speaker_info = None
+            audio_data = getattr(event, 'audio_data', None)
+            if audio_data:
+                speaker_info = self._match_speaker(audio_data, state.session_id)
+            
+            revision = state.next_revision()
+            segment_id = state.ensure_segment()
+            
+            # 保存整个 VAD 段的音频
+            audio_path = None
+            if audio_data:
+                audio_path = self._save_audio_segment(
+                    audio_data,
+                    state.session_id,
+                    segment_id
+                )
+            
+            snapshot = accumulator.apply_correction(cleaned_text)
+            result_event = {
+                "type": "correction",
+                "mode": event.mode,
+                "revision": revision,
+                "text": cleaned_text,
+                "is_final": True,
+                "session_id": state.session_id,
+                "segment_id": segment_id,
+                "text_state": snapshot,
+                "start_offset_ms": start_offset_ms,
+                "end_offset_ms": end_offset_ms,
+                "duration_ms": duration_ms,
+                # 音频路径 - 整个 VAD 段的音频
+                "audio_path": audio_path,
+            }
+            
+            # 添加声纹匹配结果
+            if speaker_info:
+                result_event["speaker_info"] = speaker_info
+            
+            result_events.append(result_event)
+            state.mark_segment_final(segment_id)
         
         return result_events
 

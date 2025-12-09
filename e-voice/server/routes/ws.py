@@ -415,6 +415,19 @@ def register_ws_routes(sock: Sock) -> None:
                                 f"[ws] session={session_id} flush_on_is_speaking_false "
                                 f"events={len(events)} took={flush_ms:.1f}ms"
                             )
+                            
+                            # 发送处理完成信号，告诉前端可以关闭连接
+                            complete_msg = {
+                                "type": "session_complete",
+                                "session_id": session_id,
+                                "is_final": True,
+                                "is_speaking": False,
+                                "message": "all audio processed",
+                            }
+                            ws.send(json.dumps(complete_msg))
+                            ws_logger.info(
+                                f"[ws] session={session_id} sent session_complete signal"
+                            )
                     continue
                 
                 # config/control 消息
