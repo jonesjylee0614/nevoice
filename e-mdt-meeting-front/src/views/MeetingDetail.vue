@@ -1,0 +1,2000 @@
+<template>
+  <div class="meeting-detail-page">
+    <!-- 顶部导航栏 -->
+    <header class="top-header">
+      <div class="header-content">
+        <div class="header-left">
+          <button class="back-btn" @click="goBack">
+            <van-icon name="arrow-left" />
+            <span>返回列表</span>
+          </button>
+        </div>
+        <div class="header-center">
+          <h1 class="page-title">{{ meeting?.title || '会议详情' }}</h1>
+        </div>
+        <div class="header-right">
+          <button 
+            v-if="meeting?.status === 1" 
+            class="end-btn"
+            @click="handleEndMeeting"
+          >
+            <van-icon name="stop-circle-o" />
+            <span>结束会议</span>
+          </button>
+          <div class="user-info" @click="showUserMenu = true">
+            <div class="user-avatar">
+              {{ userStore.userName.charAt(0) }}
+            </div>
+            <van-icon name="arrow-down" />
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 用户菜单弹窗 -->
+    <van-popup v-model:show="showUserMenu" round position="center" class="user-menu-popup">
+      <div class="user-menu-content">
+        <div class="menu-header">
+          <span>用户菜单</span>
+          <van-icon name="cross" @click="showUserMenu = false" />
+        </div>
+        <div class="menu-list">
+          <div 
+            v-for="action in userMenuActions" 
+            :key="action.name" 
+            class="menu-item"
+            :style="{ color: action.color }"
+            @click="onUserMenuSelect(action); showUserMenu = false"
+          >
+            <van-icon :name="action.icon" />
+            <span>{{ action.name }}</span>
+          </div>
+        </div>
+      </div>
+    </van-popup>
+
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-container">
+      <van-loading size="40px" vertical>加载中...</van-loading>
+    </div>
+
+    <!-- 主内容区 -->
+    <main class="main-content" v-else-if="meeting">
+      <div class="content-grid">
+        <!-- 左侧：会议信息 + 对话记录 -->
+        <div class="left-panel">
+          <!-- 会议信息卡片（包含录音控制） -->
+          <div class="info-card">
+            <!-- 顶部：状态和录音控制 -->
+            <div class="card-top">
+              <div class="status-area">
+                <span class="status-badge" :class="statusClass(meeting.status)">
+                  <span class="status-dot"></span>
+                  {{ statusText(meeting.status) }}
+                </span>
+                <span class="meeting-id">#{{ meeting.id }}</span>
+              </div>
+              
+              <!-- 录音控制 -->
+              <div class="recording-area" v-if="meeting.status !== 2">
+                <template v-if="!recording">
+                  <button class="btn-record-mini" :disabled="connecting" @click="handleStartRecording">
+                    <van-loading v-if="connecting" size="16px" color="#fff" />
+                    <van-icon v-else name="play-circle-o" />
+                    <span>{{ meeting.status === 0 ? '开始录音' : '继续录音' }}</span>
+                  </button>
+                  <!-- 上传音频测试按钮 -->
+                  <label class="btn-upload-mini" :class="{ disabled: uploading }">
+                    <van-loading v-if="uploading" size="14px" />
+                    <van-icon v-else name="upgrade" />
+                    <span>上传测试</span>
+                    <input 
+                      type="file" 
+                      accept="audio/*" 
+                      hidden 
+                      :disabled="uploading"
+                      @change="handleUploadAudio"
+                    />
+                  </label>
+                </template>
+                <template v-else>
+                  <div class="recording-indicator">
+                    <span class="rec-dot" :class="{ active: !paused }"></span>
+                    <span class="rec-text">{{ paused ? '已暂停' : '录音中' }}</span>
+                  </div>
+                  <div class="recording-btns">
+                    <button class="btn-mini" :class="{ warning: !paused }" @click="handleTogglePause">
+                      <van-icon :name="paused ? 'play-circle-o' : 'pause-circle-o'" />
+                    </button>
+                    <button class="btn-mini danger" @click="handleStopRecording">
+                      <van-icon name="stop-circle-o" />
+                    </button>
+                  </div>
+                </template>
+              </div>
+              <div v-else class="completed-badge">
+                <van-icon name="success" />
+                <span>会议已结束</span>
+              </div>
+            </div>
+            
+            <!-- 会议信息 -->
+            <div class="info-grid">
+              <div class="info-item">
+                <van-icon name="manager-o" />
+                <span class="label">主持人</span>
+                <span class="value">{{ meeting.hostName || '未指定' }}</span>
+              </div>
+              <div class="info-item">
+                <van-icon name="clock-o" />
+                <span class="label">时间</span>
+                <span class="value">{{ formatTimeRange(meeting.startTime, meeting.endTime) }}</span>
+              </div>
+              <div class="info-item">
+                <van-icon name="chat-o" />
+                <span class="label">对话</span>
+                <span class="value">{{ meeting.dialogCount || 0 }} 条</span>
+              </div>
+              <div class="info-item">
+                <van-icon name="description" />
+                <span class="label">总结</span>
+                <span class="value" :class="summaryStatusClass(meeting.summaryStatus)">
+                  {{ summaryStatusText(meeting.summaryStatus) }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- 标签和说明 -->
+            <div class="info-extra" v-if="meeting.tagList?.length || meeting.description">
+              <div v-if="meeting.tagList?.length" class="info-tags">
+                <span v-for="tag in meeting.tagList" :key="tag" class="tag">{{ tag }}</span>
+              </div>
+              <div v-if="meeting.description" class="info-desc">
+                <span class="desc-text">{{ meeting.description }}</span>
+              </div>
+            </div>
+            
+            <!-- 实时识别预览（录音时显示） -->
+            <div v-if="recording || runningText" class="realtime-preview">
+              <div class="preview-header">
+                <span class="preview-dot" :class="{ active: recording && !paused }"></span>
+                <span>{{ recording ? (paused ? '已暂停' : '正在识别...') : '识别预览' }}</span>
+              </div>
+              <div class="preview-text">{{ runningText || '等待语音输入...' }}</div>
+            </div>
+          </div>
+
+          <!-- 对话记录 -->
+          <div class="dialogs-card">
+            <div class="card-header">
+              <h3>
+                <van-icon name="chat-o" />
+                对话记录
+              </h3>
+              <span class="dialog-count">共 {{ meeting.dialogs?.length || 0 }} 条</span>
+            </div>
+            <div class="dialogs-list" v-if="meeting.dialogs?.length">
+              <div 
+                v-for="dialog in meeting.dialogs" 
+                :key="dialog.id || dialog.seq" 
+                class="dialog-item"
+              >
+                <div class="dialog-meta">
+                  <span class="dialog-time">{{ formatDialogTime(dialog) }}</span>
+                  <span class="dialog-speaker" v-if="dialog.speakerName">
+                    <van-icon name="user-o" />
+                    {{ dialog.speakerName }}
+                  </span>
+                  <button 
+                    v-else 
+                    class="btn-assign"
+                    @click="openAssignModal(dialog)"
+                  >
+                    <van-icon name="add-o" />
+                    指定发言人
+                  </button>
+                  <span class="dialog-role" v-if="dialog.speakerRole">{{ dialog.speakerRole }}</span>
+                </div>
+                <div class="dialog-content" @click="startEditDialog(dialog)">
+                  {{ dialog.text }}
+                </div>
+                <div v-if="dialog.audioPath" class="dialog-audio">
+                  <audio :src="dialog.audioPath" controls preload="metadata" />
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-dialogs">
+              <van-icon name="chat-o" />
+              <p>暂无对话记录</p>
+              <span>开始录音后，识别结果将显示在这里</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧：AI 总结 -->
+        <div class="right-panel">
+          <div class="summary-card">
+            <div class="card-header">
+              <h3>
+                <van-icon name="magic-stick-o" />
+                AI 智能总结
+              </h3>
+            </div>
+            
+            <div class="summary-actions">
+              <button 
+                class="btn-generate"
+                :disabled="summaryLoading || meeting.summaryStatus === 1 || !meeting.dialogs?.length"
+                @click="handleGenerateSummary"
+              >
+                <van-loading v-if="summaryLoading" size="18px" color="#fff" />
+                <van-icon v-else name="magic-stick-o" />
+                <span>{{ 
+                  meeting.summaryStatus === 1 ? '正在生成...' : 
+                  !meeting.dialogs?.length ? '暂无对话' : 
+                  '一键生成总结' 
+                }}</span>
+              </button>
+              <span class="summary-status">
+                {{ !meeting.dialogs?.length ? '需要先录入对话' : summaryStatusText(meeting.summaryStatus) }}
+              </span>
+            </div>
+            
+            <div v-if="meeting.summary" class="summary-content">
+              <pre>{{ meeting.summary }}</pre>
+              <button class="btn-copy" @click="copySummary">
+                <van-icon name="share-o" />
+                复制总结
+              </button>
+            </div>
+            <div v-else class="empty-summary">
+              <div class="empty-icon">
+                <van-icon name="description" />
+              </div>
+              <p>暂无总结</p>
+              <span>点击上方按钮，AI 将自动分析对话内容并生成会议总结</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 指定发言人弹窗 -->
+    <van-popup
+      v-model:show="showAssignModal"
+      round
+      position="center"
+      class="assign-popup"
+    >
+      <div class="assign-modal">
+        <div class="modal-header">
+          <h3>指定发言人</h3>
+          <van-icon name="cross" @click="showAssignModal = false" />
+        </div>
+        <van-search
+          v-model="staffKeyword"
+          placeholder="搜索姓名或科室"
+          shape="round"
+        />
+        <div class="staff-list">
+          <div 
+            v-for="staff in filteredStaffList" 
+            :key="staff.userId"
+            class="staff-item"
+            :class="{ active: selectedStaff?.userId === staff.userId }"
+            @click="selectStaff(staff)"
+          >
+            <div class="staff-avatar">{{ staff.userName.charAt(0) }}</div>
+            <div class="staff-info">
+              <strong>{{ staff.userName }}</strong>
+              <span>{{ staff.role }} · {{ staff.department }}</span>
+            </div>
+            <van-icon v-if="selectedStaff?.userId === staff.userId" name="success" class="check-icon" />
+          </div>
+          <div v-if="!filteredStaffList.length" class="empty-staff">
+            <van-icon name="search" />
+            <p>未找到匹配人员</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showAssignModal = false">取消</button>
+          <button class="btn-confirm" :disabled="!selectedStaff" @click="confirmAssign">确认</button>
+        </div>
+      </div>
+    </van-popup>
+
+    <!-- 编辑对话文本弹窗 -->
+    <van-popup
+      v-model:show="showEditDialog"
+      round
+      position="center"
+      class="edit-popup"
+    >
+      <div class="edit-modal">
+        <div class="modal-header">
+          <h3>编辑识别文本</h3>
+          <van-icon name="cross" @click="showEditDialog = false" />
+        </div>
+        <textarea
+          v-model="editingText"
+          placeholder="请输入识别文本"
+          class="edit-textarea"
+          rows="6"
+        ></textarea>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showEditDialog = false">取消</button>
+          <button class="btn-confirm" @click="handleEditConfirm">保存</button>
+        </div>
+      </div>
+    </van-popup>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { showSuccessToast, showToast, showConfirmDialog } from 'vant'
+import { onBeforeRouteLeave } from 'vue-router'
+import type { MeetingDetail, MeetingDialog, Participant, MeetingStatus, SummaryStatus } from '@/api/types'
+import { 
+  getDetail, 
+  startMeeting, 
+  endMeeting, 
+  generateSummary, 
+  assignSpeaker, 
+  updateDialogText,
+  getStaffList 
+} from '@/api/meeting'
+import { useMeetingStore } from '@/stores/meeting'
+import { useUserStore } from '@/stores/user'
+
+const route = useRoute()
+const router = useRouter()
+const meetingStore = useMeetingStore()
+const userStore = useUserStore()
+
+// 用户菜单
+const showUserMenu = ref(false)
+const userMenuActions = [
+  { name: '返回首页', icon: 'wap-home-o' },
+  { name: '退出登录', icon: 'revoke', color: '#ee0a24' }
+]
+
+// 用户菜单选择
+const onUserMenuSelect = async (action: { name: string }) => {
+  if (action.name === '返回首页') {
+    router.push('/')
+  } else if (action.name === '退出登录') {
+    try {
+      await showConfirmDialog({
+        title: '退出登录',
+        message: '确定要退出登录吗？'
+      })
+      await userStore.logout()
+      router.replace('/login')
+    } catch {
+      // 用户取消
+    }
+  }
+}
+
+// 会议ID
+const meetingId = computed(() => Number(route.params.id) || 0)
+
+// 状态
+const loading = ref(true)
+const meeting = ref<MeetingDetail | null>(null)
+const summaryLoading = ref(false)
+
+// 录音相关状态
+const recording = ref(false)
+const connecting = ref(false)
+const paused = ref(false)
+const runningText = ref('')
+const uploading = ref(false)
+
+// 指定发言人相关
+const showAssignModal = ref(false)
+const currentDialog = ref<MeetingDialog | null>(null)
+const staffKeyword = ref('')
+const staffList = ref<Participant[]>([])
+const selectedStaff = ref<Participant | null>(null)
+
+// 编辑对话相关
+const showEditDialog = ref(false)
+const editingDialog = ref<MeetingDialog | null>(null)
+const editingText = ref('')
+
+// 过滤人员列表
+const filteredStaffList = computed(() => {
+  const keyword = staffKeyword.value.toLowerCase()
+  if (!keyword) return staffList.value
+  return staffList.value.filter(s =>
+    s.userName.toLowerCase().includes(keyword) ||
+    s.department.toLowerCase().includes(keyword) ||
+    s.role.toLowerCase().includes(keyword)
+  )
+})
+
+// 获取会议详情
+const fetchDetail = async () => {
+  loading.value = true
+  try {
+    const { data } = await getDetail(meetingId.value)
+    meeting.value = data.data
+    meetingStore.setCurrentMeeting(data.data)
+  } catch (error) {
+    console.error('获取会议详情失败:', error)
+    showToast('获取会议详情失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取人员列表
+const fetchStaffList = async () => {
+  try {
+    const { data } = await getStaffList()
+    staffList.value = data.data || []
+  } catch (error) {
+    // 使用模拟数据
+    staffList.value = [
+      { userId: 1, userName: '张主任', department: '呼吸与危重症医学科', role: '科室主任' },
+      { userId: 2, userName: '王专家', department: '影像科', role: '主任医师' },
+      { userId: 3, userName: '刘医生', department: '重症医学科', role: '主治医师' },
+      { userId: 4, userName: '李护士长', department: '呼吸治疗护理组', role: '护理组长' },
+      { userId: 5, userName: '陈教授', department: '胸外科', role: '特聘教授' }
+    ]
+  }
+}
+
+// 麦克风权限和媒体流
+let mediaStream: MediaStream | null = null
+
+// 请求麦克风权限
+const requestMicrophonePermission = async (): Promise<boolean> => {
+  try {
+    // 请求麦克风权限
+    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      } 
+    })
+    return true
+  } catch (error: any) {
+    console.error('麦克风权限请求失败:', error)
+    if (error.name === 'NotAllowedError') {
+      showToast('请允许使用麦克风')
+    } else if (error.name === 'NotFoundError') {
+      showToast('未检测到麦克风设备')
+    } else {
+      showToast('无法访问麦克风')
+    }
+    return false
+  }
+}
+
+// 开始录音
+const handleStartRecording = async () => {
+  if (!meeting.value) return
+  
+  connecting.value = true
+  
+  try {
+    // 请求麦克风权限
+    const hasPermission = await requestMicrophonePermission()
+    if (!hasPermission) {
+      connecting.value = false
+      return
+    }
+    
+    // 如果会议状态是待开始，先开始会议
+    if (meeting.value.status === 0) {
+      await startMeeting(meetingId.value)
+      meeting.value.status = 1
+      showSuccessToast('会议已开始')
+    }
+    
+    // TODO: 实际实现 WebSocket 录音连接，将 mediaStream 发送到后端
+    recording.value = true
+    showSuccessToast('录音已开始')
+  } catch (error) {
+    console.error('开始录音失败:', error)
+    showToast('开始录音失败')
+  } finally {
+    connecting.value = false
+  }
+}
+
+// 停止录音
+const handleStopRecording = () => {
+  // 释放媒体流资源
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(track => track.stop())
+    mediaStream = null
+  }
+  recording.value = false
+  paused.value = false
+  runningText.value = ''
+  showSuccessToast('录音已停止')
+}
+
+// 上传音频文件（测试用）
+const handleUploadAudio = async (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  
+  // 检查文件类型
+  if (!file.type.startsWith('audio/')) {
+    showToast('请选择音频文件')
+    input.value = ''
+    return
+  }
+  
+  // 检查文件大小（限制 50MB）
+  if (file.size > 50 * 1024 * 1024) {
+    showToast('文件大小不能超过 50MB')
+    input.value = ''
+    return
+  }
+  
+  uploading.value = true
+  
+  try {
+    // 如果会议状态是待开始，先开始会议
+    if (meeting.value?.status === 0) {
+      await startMeeting(meetingId.value)
+      if (meeting.value) {
+        meeting.value.status = 1
+      }
+    }
+    
+    // 上传到后端进行识别
+    const formData = new FormData()
+    formData.append('audio', file)
+    formData.append('meetingId', meetingId.value.toString())
+    
+    // 使用通用上传接口
+    const response = await fetch('/api/common/upload/file', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('mdt_token')}`
+      },
+      body: formData
+    })
+    
+    const result = await response.json()
+    
+    if (result.code === 0 || result.code === 200) {
+      showSuccessToast('上传成功')
+      // 模拟添加一条识别结果
+      if (meeting.value && meeting.value.dialogs) {
+        meeting.value.dialogs.push({
+          id: Date.now(),
+          meetingId: meetingId.value,
+          seq: meeting.value.dialogs.length + 1,
+          text: `[音频文件: ${file.name}] 识别结果将在后台处理...`,
+          speakTime: new Date().toLocaleString('zh-CN'),
+          speakerName: '',
+          recognized: false
+        })
+        if (meeting.value.dialogCount !== undefined) {
+          meeting.value.dialogCount += 1
+        }
+      }
+    } else {
+      showToast(result.msg || '上传失败')
+    }
+  } catch (error) {
+    console.error('上传音频失败:', error)
+    showToast('上传失败，请重试')
+  } finally {
+    uploading.value = false
+    input.value = ''
+  }
+}
+
+// 暂停/恢复录音
+const handleTogglePause = () => {
+  paused.value = !paused.value
+}
+
+// 结束会议
+const handleEndMeeting = async () => {
+  try {
+    await showConfirmDialog({
+      title: '结束会议',
+      message: '确定要结束会议吗？结束后将无法继续录音。'
+    })
+    
+    if (recording.value) {
+      handleStopRecording()
+    }
+    
+    await endMeeting(meetingId.value)
+    if (meeting.value) {
+      meeting.value.status = 2
+    }
+    showSuccessToast('会议已结束')
+  } catch {
+    // 用户取消
+  }
+}
+
+// 生成AI总结
+const handleGenerateSummary = async () => {
+  if (!meeting.value) return
+  
+  // 检查是否有对话记录
+  if (!meeting.value.dialogs || meeting.value.dialogs.length === 0) {
+    showToast('暂无对话记录，无法生成总结')
+    return
+  }
+  
+  summaryLoading.value = true
+  try {
+    await generateSummary(meetingId.value)
+    if (meeting.value) {
+      meeting.value.summaryStatus = 1
+    }
+    showToast('正在生成总结，请稍后刷新')
+    
+    // 轮询检查状态
+    pollSummaryStatus()
+  } catch (error) {
+    console.error('生成总结失败:', error)
+    showToast('生成总结失败')
+  } finally {
+    summaryLoading.value = false
+  }
+}
+
+// 轮询总结状态
+const pollSummaryStatus = () => {
+  const timer = setInterval(async () => {
+    await fetchDetail()
+    if (meeting.value?.summaryStatus !== 1) {
+      clearInterval(timer)
+      if (meeting.value?.summaryStatus === 2) {
+        showSuccessToast('总结生成完成')
+      }
+    }
+  }, 3000)
+}
+
+// 复制总结
+const copySummary = () => {
+  if (!meeting.value?.summary) return
+  navigator.clipboard.writeText(meeting.value.summary)
+  showSuccessToast('已复制到剪贴板')
+}
+
+// 打开指定发言人弹窗
+const openAssignModal = (dialog: MeetingDialog) => {
+  if (!dialog.id) {
+    showToast('对话记录尚未保存')
+    return
+  }
+  currentDialog.value = dialog
+  selectedStaff.value = null
+  staffKeyword.value = ''
+  showAssignModal.value = true
+}
+
+// 选择人员
+const selectStaff = (staff: Participant) => {
+  selectedStaff.value = staff
+}
+
+// 确认指定发言人
+const confirmAssign = async () => {
+  if (!currentDialog.value || !selectedStaff.value) return
+  
+  try {
+    await assignSpeaker({
+      dialogId: currentDialog.value.id,
+      speakerId: selectedStaff.value.userId,
+      speakerName: selectedStaff.value.userName,
+      speakerRole: `${selectedStaff.value.department} · ${selectedStaff.value.role}`
+    })
+    
+    // 更新本地数据
+    currentDialog.value.speakerName = selectedStaff.value.userName
+    currentDialog.value.speakerRole = `${selectedStaff.value.department} · ${selectedStaff.value.role}`
+    currentDialog.value.recognized = true
+    
+    showAssignModal.value = false
+    showSuccessToast('指定成功')
+  } catch (error) {
+    console.error('指定发言人失败:', error)
+    showToast('指定失败')
+  }
+}
+
+// 开始编辑对话
+const startEditDialog = (dialog: MeetingDialog) => {
+  if (!dialog.id) {
+    showToast('对话记录尚未保存')
+    return
+  }
+  editingDialog.value = dialog
+  editingText.value = dialog.text
+  showEditDialog.value = true
+}
+
+// 确认编辑
+const handleEditConfirm = async () => {
+  if (!editingDialog.value) return
+  
+  if (!editingText.value.trim()) {
+    showToast('文本不能为空')
+    return
+  }
+  
+  try {
+    await updateDialogText(editingDialog.value.id, editingText.value.trim())
+    editingDialog.value.text = editingText.value.trim()
+    showEditDialog.value = false
+    showSuccessToast('保存成功')
+  } catch (error) {
+    console.error('保存失败:', error)
+    showToast('保存失败')
+  }
+}
+
+// 格式化时间范围
+const formatTimeRange = (start: string, end: string) => {
+  if (!start) return '时间待定'
+  const startDate = new Date(start)
+  const dateStr = startDate.toLocaleDateString('zh-CN')
+  const startTime = startDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  
+  if (!end) return `${dateStr} ${startTime} - 待定`
+  
+  const endDate = new Date(end)
+  const endTime = endDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  return `${dateStr} ${startTime} - ${endTime}`
+}
+
+// 格式化对话时间
+const formatDialogTime = (dialog: MeetingDialog) => {
+  if (dialog.startOffset !== undefined && dialog.startOffset !== null) {
+    const start = formatOffsetTime(dialog.startOffset)
+    const end = formatOffsetTime(dialog.endOffset)
+    return `${start} - ${end}`
+  }
+  return dialog.speakTime ? dialog.speakTime.split(' ')[1] || dialog.speakTime : '-'
+}
+
+// 格式化时间偏移
+const formatOffsetTime = (offsetMs: number | undefined) => {
+  if (!offsetMs && offsetMs !== 0) return '--:--'
+  const totalSeconds = Math.floor(offsetMs / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+}
+
+// 状态文本
+const statusText = (status: MeetingStatus) => {
+  const map: Record<number, string> = {
+    0: '待开始',
+    1: '进行中',
+    2: '已结束'
+  }
+  return map[status] || '未知'
+}
+
+// 状态样式类
+const statusClass = (status: MeetingStatus) => {
+  const map: Record<number, string> = {
+    0: 'status-pending',
+    1: 'status-running',
+    2: 'status-completed'
+  }
+  return map[status] || ''
+}
+
+// 总结状态文本
+const summaryStatusText = (status: SummaryStatus) => {
+  const map: Record<number, string> = {
+    0: '未生成',
+    1: '生成中...',
+    2: '已完成'
+  }
+  return map[status] || '未知'
+}
+
+// 总结状态样式
+const summaryStatusClass = (status: SummaryStatus) => {
+  const map: Record<number, string> = {
+    0: 'text-muted',
+    1: 'text-warning',
+    2: 'text-success'
+  }
+  return map[status] || ''
+}
+
+// 返回（录音中需要确认）
+const goBack = async () => {
+  if (recording.value) {
+    try {
+      await showConfirmDialog({
+        title: '正在录音中',
+        message: '当前正在录音，离开页面将停止录音。确定要离开吗？',
+        confirmButtonText: '停止并离开',
+        confirmButtonColor: '#ee0a24'
+      })
+      // 用户确认，停止录音
+      handleStopRecording()
+      router.back()
+    } catch {
+      // 用户取消
+    }
+  } else {
+    router.back()
+  }
+}
+
+// 页面刷新/关闭保护
+const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (recording.value) {
+    e.preventDefault()
+    e.returnValue = '当前正在录音，离开页面将停止录音。确定要离开吗？'
+    return e.returnValue
+  }
+}
+
+// 路由离开守卫
+onBeforeRouteLeave(async (to, from, next) => {
+  if (recording.value) {
+    try {
+      await showConfirmDialog({
+        title: '正在录音中',
+        message: '当前正在录音，离开页面将停止录音。确定要离开吗？',
+        confirmButtonText: '停止并离开',
+        confirmButtonColor: '#ee0a24'
+      })
+      // 用户确认，停止录音
+      handleStopRecording()
+      next()
+    } catch {
+      // 用户取消，阻止导航
+      next(false)
+    }
+  } else {
+    next()
+  }
+})
+
+// 初始化
+onMounted(() => {
+  fetchDetail()
+  fetchStaffList()
+  // 添加页面刷新/关闭保护
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+// 清理
+onUnmounted(() => {
+  // 移除页面离开保护
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  // 如果正在录音，停止录音
+  if (recording.value) {
+    handleStopRecording()
+  }
+})
+</script>
+
+<style lang="scss" scoped>
+// 用户菜单弹框
+.user-menu-popup {
+  width: 320px;
+  max-width: 90vw;
+}
+
+.user-menu-content {
+  padding: 20px;
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  
+  span {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  
+  :deep(.van-icon) {
+    font-size: 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    
+    &:hover {
+      color: var(--text-main);
+    }
+  }
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-main);
+  
+  &:hover {
+    background: var(--surface-muted);
+  }
+  
+  :deep(.van-icon) {
+    font-size: 20px;
+  }
+  
+  span {
+    font-size: 15px;
+    font-weight: 500;
+  }
+}
+
+.meeting-detail-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f5f7ff 0%, #fafbff 50%, #ffffff 100%);
+}
+
+// 顶部导航栏
+.top-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.06);
+}
+
+.header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 72px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+.header-left {
+  justify-self: start;
+}
+
+.header-center {
+  .page-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main);
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.header-right {
+  justify-self: end;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  :deep(.van-icon) {
+    font-size: 16px;
+  }
+}
+
+.end-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--danger);
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+  }
+
+  :deep(.van-icon) {
+    font-size: 18px;
+  }
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  background: var(--surface-muted);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 加载状态
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+// 主内容区
+.main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 28px;
+}
+
+// 左侧面板
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// 会议信息卡片（整合录音控制）
+.info-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-light);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.status-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meeting-id {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  &.status-pending {
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+    .status-dot { background: var(--text-tertiary); }
+  }
+
+  &.status-running {
+    background: var(--warning-light);
+    color: var(--warning);
+    .status-dot { 
+      background: var(--warning);
+      animation: pulse 1.5s infinite;
+    }
+  }
+
+  &.status-completed {
+    background: var(--success-light);
+    color: var(--success);
+    .status-dot { background: var(--success); }
+  }
+}
+
+// 录音控制区域
+.recording-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-record-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  :deep(.van-icon) {
+    font-size: 16px;
+  }
+}
+
+.btn-upload-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(.disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  &.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  :deep(.van-icon) {
+    font-size: 14px;
+  }
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--danger-light);
+  border-radius: 20px;
+  
+  .rec-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    
+    &.active {
+      background: var(--danger);
+      animation: pulse 1s infinite;
+    }
+  }
+  
+  .rec-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--danger);
+  }
+}
+
+.recording-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-mini {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  
+  &.warning {
+    border-color: var(--warning);
+    color: var(--warning);
+    background: var(--warning-light);
+  }
+  
+  &.danger {
+    border-color: var(--danger);
+    color: var(--danger);
+    
+    &:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+  }
+
+  :deep(.van-icon) {
+    font-size: 16px;
+  }
+}
+
+.completed-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--success-light);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--success);
+  
+  :deep(.van-icon) {
+    font-size: 14px;
+  }
+}
+
+// 会议信息网格
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface-muted);
+  border-radius: 12px;
+  
+  :deep(.van-icon) {
+    font-size: 18px;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+  
+  .label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  
+  .value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+    
+    &.text-success { color: var(--success); }
+    &.text-warning { color: var(--warning); }
+    &.text-muted { color: var(--text-tertiary); }
+  }
+}
+
+// 标签和说明
+.info-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-light);
+}
+
+.info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  padding: 4px 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.info-desc {
+  flex: 1;
+  min-width: 200px;
+  
+  .desc-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+}
+
+// 实时识别预览
+.realtime-preview {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(52, 211, 153, 0.04) 100%);
+  border: 1px solid var(--success);
+  border-radius: 12px;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--success);
+  font-weight: 600;
+}
+
+.preview-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  
+  &.active {
+    background: var(--success);
+    animation: pulse 1.5s infinite;
+  }
+}
+
+.preview-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+// 对话记录卡片
+.dialogs-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-light);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+    
+    :deep(.van-icon) {
+      font-size: 18px;
+      color: var(--primary);
+    }
+  }
+}
+
+.dialog-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding: 3px 10px;
+  background: var(--surface-muted);
+  border-radius: 12px;
+}
+
+.dialogs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.dialog-item {
+  padding: 14px 16px;
+  background: var(--surface-muted);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+}
+
+.dialog-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dialog-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.dialog-speaker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-main);
+  font-weight: 500;
+  
+  :deep(.van-icon) {
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+}
+
+.dialog-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.btn-assign {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  background: var(--primary);
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  :deep(.van-icon) {
+    font-size: 12px;
+  }
+}
+
+.dialog-content {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-main);
+  padding: 10px 12px;
+  background: var(--surface);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.dialog-audio {
+  margin-top: 10px;
+  
+  audio {
+    width: 100%;
+    height: 36px;
+    border-radius: 8px;
+  }
+}
+
+.empty-dialogs {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-tertiary);
+  
+  :deep(.van-icon) {
+    font-size: 40px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+  
+  p {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 6px;
+  }
+  
+  span {
+    font-size: 12px;
+  }
+}
+
+// 右侧面板 - AI 总结
+.right-panel {
+  position: sticky;
+  top: 96px;
+  height: fit-content;
+}
+
+.summary-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-light);
+}
+
+.summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, var(--primary-light) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.btn-generate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  :deep(.van-icon) {
+    font-size: 16px;
+  }
+}
+
+.summary-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.summary-content {
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text-main);
+    padding: 16px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    max-height: 350px;
+    overflow-y: auto;
+  }
+}
+
+.btn-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  :deep(.van-icon) {
+    font-size: 14px;
+  }
+}
+
+.empty-summary {
+  text-align: center;
+  padding: 40px 16px;
+  
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-light) 0%, rgba(139, 92, 246, 0.1) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    :deep(.van-icon) {
+      font-size: 28px;
+      color: var(--primary);
+      opacity: 0.7;
+    }
+  }
+  
+  p {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 6px;
+  }
+  
+  span {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+  }
+}
+
+// 弹窗样式
+.assign-popup,
+.edit-popup {
+  width: 500px;
+  max-width: 90vw;
+}
+
+.assign-modal,
+.edit-modal {
+  padding: 28px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+  }
+  
+  :deep(.van-icon) {
+    font-size: 22px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    
+    &:hover {
+      color: var(--text-main);
+    }
+  }
+}
+
+.staff-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 20px 0;
+}
+
+.staff-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+  
+  &.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+}
+
+.staff-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.staff-info {
+  flex: 1;
+  min-width: 0;
+  
+  strong {
+    display: block;
+    font-size: 15px;
+    color: var(--text-main);
+    margin-bottom: 4px;
+  }
+  
+  span {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+}
+
+.check-icon {
+  font-size: 22px;
+  color: var(--primary);
+}
+
+.empty-staff {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-tertiary);
+  
+  :deep(.van-icon) {
+    font-size: 36px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.modal-footer {
+  display: flex;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+}
+
+.btn-cancel,
+.btn-confirm {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel {
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-main);
+  
+  &:hover {
+    background: var(--surface-muted);
+  }
+}
+
+.btn-confirm {
+  border: none;
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  
+  &:hover:not(:disabled) {
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.edit-textarea {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-main);
+  resize: none;
+  font-family: inherit;
+  margin-bottom: 20px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-light);
+  }
+}
+
+// 动画
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+// 响应式
+@media (max-width: 1200px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .right-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 900px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 16px;
+  }
+  
+  .header-content {
+    padding: 0 16px;
+    height: 60px;
+  }
+  
+  .header-center .page-title {
+    font-size: 15px;
+    text-align: center;
+  }
+  
+  .back-btn span,
+  .end-btn span {
+    display: none;
+  }
+  
+  .back-btn,
+  .end-btn {
+    padding: 8px 12px;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .info-item {
+    padding: 10px;
+  }
+  
+  .card-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .recording-area {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .btn-record-mini {
+    flex: 1;
+    justify-content: center;
+  }
+}
+</style>

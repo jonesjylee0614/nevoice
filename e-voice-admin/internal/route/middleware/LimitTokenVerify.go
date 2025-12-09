@@ -18,6 +18,7 @@ func LimitTokenVerify(c *gin.Context, xlToken string) {
 	redisClient := ioc.GetType[*redis.Client]()
 	id, err := redisClient.Get(c, biz.X_Ltoken+":"+xlToken).Int64()
 	if err != nil || id <= 0 {
+		abort(c, "临时token无效或已过期")
 		return
 	}
 
@@ -31,6 +32,7 @@ func LimitTokenVerify(c *gin.Context, xlToken string) {
 		Id:       account.Id,
 		Name:     account.Name,
 		Username: account.Username,
+		AllPerm:  true, // 临时token给予所有权限，用于声纹录制
 	}
 	c.Set("user", user)
 	c.Next()
