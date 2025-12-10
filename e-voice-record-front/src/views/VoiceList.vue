@@ -1,100 +1,77 @@
 <template>
   <div class="voice-list-page">
-    <!-- 背景装饰 -->
-    <div class="page-bg">
-      <div class="bg-circle bg-circle-1"></div>
-      <div class="bg-circle bg-circle-2"></div>
-    </div>
-
     <!-- 顶部导航 -->
-    <van-nav-bar title="声纹管理" class="glass-nav" />
+    <van-nav-bar title="声纹管理" class="top-nav" />
 
-    <!-- 页面内容 -->
-    <div class="page-content">
-      <!-- 页面头部 -->
-      <header class="page-header">
-        <div class="header-icon">
-          <van-icon name="audio" />
-        </div>
-        <div class="header-text">
-          <h1>声纹录制中心</h1>
-          <p>录制您的声纹样本，用于语音识别和身份认证</p>
-        </div>
-      </header>
-
-      <!-- 用户信息卡片 -->
-      <div class="user-card" v-if="authStore.getUser">
-        <div class="user-avatar">
-          <van-icon name="user-circle-o" />
-        </div>
-        <div class="user-info">
-          <div class="user-name">{{ authStore.getUser.username || authStore.getUser.name || '用户' }}</div>
-          <div class="user-id">ID: {{ authStore.getUser.userId }}</div>
-        </div>
-        <div class="user-status" :class="{ active: valid }">
-          <span class="status-dot"></span>
-          {{ valid ? '已认证' : '未认证' }}
-        </div>
-      </div>
-
+    <!-- 页面主体 -->
+    <div class="page-body">
       <!-- 链接失效提示 -->
       <div class="invalid-card" v-if="!valid && !loading">
-        <van-icon name="warning-o" class="invalid-icon" />
+        <div class="invalid-icon-wrap">
+          <van-icon name="warning-o" />
+        </div>
         <h3>链接已失效</h3>
         <p>请从管理后台重新获取录音链接</p>
       </div>
 
-      <!-- 录音记录列表 -->
-      <div class="records-section" v-if="valid">
-        <div class="section-header">
-          <h2>
-            <van-icon name="records" />
-            录音记录
-          </h2>
-          <span class="record-count">共 {{ sentences.length }} 条</span>
+      <!-- 正常内容 -->
+      <template v-if="valid">
+        <!-- 用户信息卡片 -->
+        <div class="user-card" v-if="authStore.getUser">
+          <div class="user-avatar">
+            <van-icon name="user-o" />
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ authStore.getUser.username || authStore.getUser.name || '用户' }}</div>
+            <div class="user-id">用户ID: {{ authStore.getUser.userId }}</div>
+          </div>
         </div>
 
-        <div class="records-list" v-if="sentences.length > 0">
-          <div 
-            v-for="(item, index) in sentences" 
-            :key="item.id"
-            class="record-item"
-            :style="{ animationDelay: `${index * 0.05}s` }"
-          >
-            <div class="record-icon">
-              <van-icon name="volume-o" />
-            </div>
-            <div class="record-content">
-              <div class="record-text">{{ item.txt || '语音片段 ' + (index + 1) }}</div>
-              <div class="record-meta">
-                <span v-if="item.create_time">{{ formatTime(item.create_time) }}</span>
+        <!-- 录音记录区域 -->
+        <div class="records-section">
+          <div class="section-title">
+            <span>我的声纹录音</span>
+            <span class="record-count">{{ sentences.length }} 条</span>
+          </div>
+
+          <!-- 有记录时显示列表 -->
+          <div class="records-list" v-if="sentences.length > 0">
+            <div 
+              v-for="(item, index) in sentences" 
+              :key="item.id"
+              class="record-item"
+            >
+              <div class="record-num">{{ index + 1 }}</div>
+              <div class="record-content">
+                <div class="record-text">{{ item.txt || '语音片段 ' + (index + 1) }}</div>
+                <div class="record-time" v-if="item.create_time">{{ formatTime(item.create_time) }}</div>
               </div>
             </div>
-            <van-icon name="arrow" class="record-arrow" />
+          </div>
+
+          <!-- 空状态 -->
+          <div class="empty-state" v-else>
+            <div class="empty-icon">
+              <van-icon name="audio" />
+            </div>
+            <div class="empty-text">暂无录音记录</div>
+            <div class="empty-hint">点击下方按钮开始录制</div>
           </div>
         </div>
+      </template>
+    </div>
 
-        <div class="empty-state" v-else>
-          <div class="empty-icon">
-            <van-icon name="audio" />
-          </div>
-          <p>暂无录音记录</p>
-          <span>点击下方按钮开始录制您的第一条声纹</span>
-        </div>
-      </div>
-
-      <!-- 新增录音按钮 -->
-      <div class="action-bar" v-if="valid">
-        <button class="add-record-btn" @click="goToRecord()">
-          <van-icon name="plus" />
-          <span>新增录音</span>
-        </button>
-      </div>
+    <!-- 底部操作栏 -->
+    <div class="bottom-bar" v-if="valid">
+      <button class="record-btn" @click="goToRecord()">
+        <van-icon name="plus" />
+        新增录音
+      </button>
     </div>
 
     <!-- 加载状态 -->
-    <div class="loading-overlay" v-if="loading">
-      <van-loading size="32px" vertical>验证中...</van-loading>
+    <div class="loading-mask" v-if="loading">
+      <van-loading size="32px" vertical color="#4f46e5">验证中...</van-loading>
     </div>
   </div>
 </template>
@@ -166,124 +143,50 @@ onMounted(async () => {
 <style scoped>
 .voice-list-page {
   min-height: 100vh;
-  position: relative;
-  overflow-x: hidden;
-  padding-bottom: 100px;
-}
-
-/* 背景装饰 */
-.page-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100vh;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.bg-circle {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-}
-
-.bg-circle-1 {
-  width: 300px;
-  height: 300px;
-  background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
-  top: -100px;
-  right: -80px;
-  opacity: 0.5;
-}
-
-.bg-circle-2 {
-  width: 250px;
-  height: 250px;
-  background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%);
-  top: 30%;
-  left: -100px;
-  opacity: 0.4;
-}
-
-/* 玻璃导航 */
-.glass-nav {
-  position: relative;
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-/* 页面内容 */
-.page-content {
-  position: relative;
-  z-index: 1;
-  padding: 20px;
-  max-width: 480px;
-  margin: 0 auto;
-}
-
-/* 页面头部 */
-.page-header {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 24px;
-  animation: fadeInUp 0.5s ease forwards;
+  flex-direction: column;
+  background: #f5f5f5;
 }
 
-.header-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  background: var(--primary-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* 顶部导航 */
+.top-nav {
+  background: #4f46e5 !important;
   flex-shrink: 0;
-  box-shadow: var(--shadow-primary);
 }
 
-.header-icon :deep(.van-icon) {
-  font-size: 28px;
-  color: white;
+.top-nav :deep(.van-nav-bar__title) {
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 18px;
 }
 
-.header-text h1 {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 6px;
-}
-
-.header-text p {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.5;
+/* 页面主体 */
+.page-body {
+  flex: 1;
+  padding: 16px;
+  padding-bottom: 100px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* 用户卡片 */
 .user-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: var(--surface);
-  border-radius: 20px;
-  padding: 18px 20px;
-  margin-bottom: 24px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-light);
-  animation: fadeInUp 0.5s ease 0.1s forwards;
-  opacity: 0;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .user-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: var(--primary-light);
+  background: #ede9fe;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,8 +194,8 @@ onMounted(async () => {
 }
 
 .user-avatar :deep(.van-icon) {
-  font-size: 28px;
-  color: var(--primary);
+  font-size: 24px;
+  color: #4f46e5;
 }
 
 .user-info {
@@ -302,37 +205,13 @@ onMounted(async () => {
 .user-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 4px;
+  color: #1f2937;
+  margin-bottom: 2px;
 }
 
 .user-id {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.user-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-}
-
-.user-status.active {
-  background: var(--success-light);
-  color: var(--success);
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 /* 链接失效提示 */
@@ -342,104 +221,102 @@ onMounted(async () => {
   align-items: center;
   text-align: center;
   padding: 60px 20px;
-  background: var(--surface);
-  border-radius: 20px;
-  box-shadow: var(--shadow-md);
-  animation: fadeInUp 0.5s ease forwards;
+  background: #ffffff;
+  border-radius: 12px;
+  margin-top: 40px;
 }
 
-.invalid-icon {
-  font-size: 64px;
-  color: var(--warning);
+.invalid-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 20px;
+}
+
+.invalid-icon-wrap :deep(.van-icon) {
+  font-size: 36px;
+  color: #f59e0b;
 }
 
 .invalid-card h3 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-main);
+  color: #1f2937;
   margin-bottom: 8px;
 }
 
 .invalid-card p {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: #6b7280;
 }
 
 /* 录音记录区域 */
 .records-section {
-  animation: fadeInUp 0.5s ease 0.2s forwards;
-  opacity: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.section-header {
+.section-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.section-header h2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text-main);
-}
-
-.section-header h2 :deep(.van-icon) {
-  font-size: 18px;
-  color: var(--primary);
+  color: #1f2937;
 }
 
 .record-count {
   font-size: 13px;
-  color: var(--text-tertiary);
+  font-weight: 500;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 12px;
 }
 
 /* 录音列表 */
 .records-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .record-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: var(--surface);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  animation: fadeInUp 0.4s ease forwards;
-  opacity: 0;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s;
 }
 
-.record-item:hover {
-  transform: translateX(4px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--primary-light);
+.record-item:last-child {
+  border-bottom: none;
 }
 
-.record-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--primary-light);
+.record-item:active {
+  background: #f9fafb;
+}
+
+.record-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ede9fe;
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.record-icon :deep(.van-icon) {
-  font-size: 20px;
-  color: var(--primary);
 }
 
 .record-content {
@@ -449,23 +326,16 @@ onMounted(async () => {
 
 .record-text {
   font-size: 14px;
-  font-weight: 500;
-  color: var(--text-main);
-  margin-bottom: 4px;
+  color: #1f2937;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 2px;
 }
 
-.record-meta {
+.record-time {
   font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.record-arrow {
-  font-size: 16px;
-  color: var(--text-tertiary);
-  flex-shrink: 0;
+  color: #9ca3af;
 }
 
 /* 空状态 */
@@ -473,102 +343,90 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  padding: 40px 20px;
+  padding: 48px 20px;
 }
 
 .empty-icon {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: var(--primary-light);
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .empty-icon :deep(.van-icon) {
-  font-size: 36px;
-  color: var(--primary);
-  opacity: 0.6;
+  font-size: 28px;
+  color: #9ca3af;
 }
 
-.empty-state p {
+.empty-text {
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-main);
-  margin-bottom: 6px;
+  color: #4b5563;
+  margin-bottom: 4px;
 }
 
-.empty-state span {
+.empty-hint {
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: #9ca3af;
 }
 
-/* 操作栏 */
-.action-bar {
+/* 底部操作栏 */
+.bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 16px 20px;
-  background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.9) 20%, #fff 100%);
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   z-index: 100;
 }
 
-.add-record-btn {
+.record-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  max-width: 440px;
+  max-width: 500px;
   margin: 0 auto;
-  height: 54px;
-  border-radius: 16px;
+  height: 52px;
+  border-radius: 12px;
   border: none;
-  background: var(--primary-gradient);
-  color: white;
+  background: #4f46e5;
+  color: #ffffff;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow-primary);
-  transition: all 0.3s ease;
+  transition: all 0.2s;
 }
 
-.add-record-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 40px -10px rgba(99, 102, 241, 0.6);
+.record-btn:active {
+  background: #4338ca;
+  transform: scale(0.98);
 }
 
-.add-record-btn :deep(.van-icon) {
+.record-btn :deep(.van-icon) {
   font-size: 20px;
 }
 
-/* 加载状态 */
-.loading-overlay {
+/* 加载遮罩 */
+.loading-mask {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-}
-
-/* 动画 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 </style>
