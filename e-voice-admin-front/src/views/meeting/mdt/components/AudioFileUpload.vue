@@ -34,8 +34,7 @@
     <div v-if="isStreaming || progress > 0" class="progress-section">
       <AProgress :percent="Math.round(progress * 100)" :show-text="false" />
       <div class="progress-text">
-        {{ formatTime(currentTime) }} / {{ formatTime(fileDuration) }}
-        ({{ Math.round(progress * 100) }}%)
+        {{ formatTime(currentTime) }} / {{ formatTime(fileDuration) }} ({{ Math.round(progress * 100) }}%)
       </div>
     </div>
 
@@ -64,7 +63,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onBeforeUnmount } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 import { Message } from '@arco-design/web-vue';
 import { saveDialog } from '../api';
 import type { MeetingDialog, RecognizedStatus } from '../api/types';
@@ -328,19 +327,19 @@ async function handleMessage(data: any) {
 
     if (text) {
       currentSeq++;
-      
+
       // 构建完整的音频URL（如果有）
       const pyHost = (import.meta as any).env.VITE_API_PY_HOST || 'http://localhost:8210';
       const fullAudioPath = audioPath ? `${pyHost}${audioPath}` : '';
-      
+
       // 处理声纹匹配结果
       let speakerId: number | null = null;
       let speakerName = '未知发言人';
-      let speakerRole = '';
+      const speakerRole = '';
       let recognized: RecognizedStatus = 0;
       let recognitionNote = '等待声纹匹配';
-      let recognitionScore: number | undefined = undefined;
-      
+      let recognitionScore: number | undefined;
+
       if (speakerInfo && speakerInfo.recognized) {
         speakerId = speakerInfo.speaker_id;
         speakerName = speakerInfo.speaker_name || '未知';
@@ -350,7 +349,7 @@ async function handleMessage(data: any) {
       } else if (speakerInfo) {
         recognitionNote = speakerInfo.recognition_note || '声纹未匹配';
       }
-      
+
       const dialog: Partial<MeetingDialog> = {
         meetingId: props.meetingId,
         seq: currentSeq,
@@ -365,7 +364,7 @@ async function handleMessage(data: any) {
         // 时间信息
         startOffset: startOffsetMs,
         endOffset: endOffsetMs,
-        durationMs: durationMs,
+        durationMs,
         // 音频路径
         audioPath: fullAudioPath
       };
@@ -380,7 +379,7 @@ async function handleMessage(data: any) {
         console.error('保存对话失败:', e);
       }
     }
-    
+
     // 如果是最终结果且流式发送已停止，可以安全关闭连接
     if (isFinal && progress.value >= 1) {
       console.log('收到最终结果，准备关闭连接');
@@ -515,4 +514,3 @@ onBeforeUnmount(() => {
   line-height: 1.6;
 }
 </style>
-

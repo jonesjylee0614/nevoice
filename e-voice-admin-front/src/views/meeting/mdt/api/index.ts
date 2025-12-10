@@ -95,5 +95,8 @@ export function matchSpeaker(params: { audio_data: string; participant_user_ids?
 
 // 清空对话记录
 export function clearDialogs(meetingId: number) {
-  return defHttp.post({ url: `${Api.clearDialogs}?meetingId=${meetingId}`, params: {} }, { errorMessageMode: 'message' });
+  return defHttp.post(
+    { url: `${Api.clearDialogs}?meetingId=${meetingId}`, params: {} },
+    { errorMessageMode: 'message' }
+  );
 }

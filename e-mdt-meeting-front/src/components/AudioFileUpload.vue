@@ -109,11 +109,31 @@ const emit = defineEmits<{
   (e: 'session-complete'): void
 }>()
 
-// WebSocket 配置 - 直接连接 Python 后端
+// WebSocket 配置 - 根据当前访问域名动态选择
 const getWsHost = () => {
   if (props.wsHost) return props.wsHost
-  // 默认开发环境地址
-  return 'ws://localhost:8210'
+  
+  // 根据当前页面 URL 判断环境
+  const hostname = window.location.hostname
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // 本地开发环境 - 直接连接 Python 后端
+    return 'ws://localhost:8210'
+  } else {
+    // 外网环境 - 使用 Python API 域名
+    return 'wss://pyapi.xnng.yfqwl.com'
+  }
+}
+
+// 获取 Python HTTP 服务地址（用于音频文件等）
+const getPyHttpHost = () => {
+  const hostname = window.location.hostname
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8210'
+  } else {
+    return 'https://pyapi.xnng.yfqwl.com'
+  }
 }
 
 // Refs
@@ -385,9 +405,9 @@ async function handleMessage(data: any) {
     if (text) {
       currentSeq++
       
-      // 构建完整的音频URL（如果有）
-      const pyHost = getWsHost().replace('ws://', 'http://').replace('wss://', 'https://')
-      const fullAudioPath = audioPath ? `${pyHost}${audioPath}` : ''
+      // audioPath 是 Python 后端返回的相对路径，如 /data/meeting/audio_segments/xxx.wav
+      // 前端显示时拼接完整 URL，保存到数据库时只存相对路径
+      const fullAudioUrl = audioPath ? `${getPyHttpHost()}${audioPath}` : ''
       
       // 处理声纹匹配结果
       // recognized: 0-未识别, 1-声纹自动识别, 2-手动指定
@@ -422,14 +442,14 @@ async function handleMessage(data: any) {
         startOffset: startOffsetMs,
         endOffset: endOffsetMs,
         durationMs: durationMs,
-        // 音频路径
-        audioPath: fullAudioPath
+        // 音频路径 - 前端显示用完整 URL
+        audioPath: fullAudioUrl
       }
 
       // 通知父组件
       emit('dialog-received', dialog)
 
-      // 保存到后端
+      // 保存到后端 - 只存相对路径，便于在不同环境下使用
       try {
         await saveDialog({
           meetingId: props.meetingId,
@@ -443,7 +463,7 @@ async function handleMessage(data: any) {
           startOffset: startOffsetMs,
           endOffset: endOffsetMs,
           durationMs: durationMs,
-          audioPath: fullAudioPath
+          audioPath: audioPath  // 只存相对路径，如 /data/meeting/audio_segments/xxx.wav
         } as any)
       } catch (e) {
         console.error('保存对话失败:', e)

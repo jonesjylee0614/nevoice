@@ -38,7 +38,8 @@ export default defineConfig(configEnv => {
             },
             fs: {
                 cachedChecks: false
-            }
+            },
+            allowedHosts: ['localhost', 'evoice.xnng.yfqwl.com', 'record.xnng.yfqwl.com', 'xnng.yfqwl.com'] // 允许外网域名访问
         },
         preview: {
             port: 9725

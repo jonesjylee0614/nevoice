@@ -35,6 +35,7 @@ export default defineConfig({
         target: 'http://localhost:8210',
         changeOrigin: true
       }
-    }
+    },
+    allowedHosts: ['localhost', 'mdt.xnng.yfqwl.com', 'xnng.yfqwl.com'] // 允许外网域名访问
   }
 })

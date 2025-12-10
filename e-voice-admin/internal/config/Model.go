@@ -191,4 +191,6 @@ type Voice struct {
 	FunAsrOutputDir    string `yaml:"fun-asr-output-dir" default:"/data/voice/finetune/output"`
 	ModelTest          string `yaml:"model-test" default:"/home/leozy/.cache/model/speech_test"`
 	ModelTrain         string `yaml:"model-train" default:"/home/leozy/.cache/model/speech_train"`
+	// 热词文件路径（用于同步到Python语音识别服务）
+	HotwordFilePath string `yaml:"hotword-file-path" default:""`
 }

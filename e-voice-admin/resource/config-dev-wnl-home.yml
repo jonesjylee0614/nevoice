@@ -31,8 +31,8 @@ app:
      port: 8108
      #接口合法性验证
      apisecret: gofly@888
-     #接口JWT验证、跨域域名-不添加请求时报403 (开发、部署必改),部署域名时：“https://en.goflys.cn”替换成您的域名
-     allowurl: http://localhost:9105,http://localhost:9106,https://en.goflys.cn,http://localhost:6020,http://localhost:5173,http://xnng.yfqwl.com:38626,http://xnng.yfqwl.com:38627,https://evoicefront.xnng.yfqwl.com,http://localhost:9527,http://localhost:9598,http://localhost:9599,http://localhost:9600
+     #接口JWT验证、跨域域名-不添加请求时报403 (开发、部署必改),部署域名时："https://en.goflys.cn"替换成您的域名
+     allowurl: http://localhost:9105,http://localhost:9106,https://en.goflys.cn,http://localhost:6020,http://localhost:5173,http://xnng.yfqwl.com:38626,http://xnng.yfqwl.com:38627,https://evoicexnng.yfqwl.com,http://localhost:9527,http://localhost:9598,http://localhost:9599,http://localhost:9600,https://evoice.xnng.yfqwl.com,https://record.xnng.yfqwl.com,https://mdt.xnng.yfqwl.com,https://api.xnng.yfqwl.com,https://pyapi.xnng.yfqwl.com
      #token超时时间单位分钟 
      tokenouttime: 10 
      #调用cpu个数
@@ -59,10 +59,11 @@ app:
      allow-origin: '*'
      micro:
          py_voice:
-             host: http://localhost:8210
-             # host: https://evoice.xnng.yfqwl.com
+             host: https://pyapi.xnng.yfqwl.com
+             # host: https://pyapi.xnng.yfqwl.com
          record_h5:
-             host: "http://localhost:9599/#/voice-list"
+             # host: "http://localhost:9599/#/voice-list"  # 本地开发
+             host: "https://record.xnng.yfqwl.com/#/voice-list"  # 外网访问（独立子域名）
 log:
      level: debug  # 日志等级 debug | info | warn | error ，默认 info
      enable-sql-log: true # 是否开启sql日志，报错的日志一直会有，开关不影响
@@ -93,8 +94,9 @@ voice:
      cuda-devices: GPU-e19ee01b-e44c-bd7e-f03f-545fc58b0daf
      # 指定模型输出文件夹
      fun-asr-output-dir: /mnt/d/WorkSpace/code/2025/smartvoice/data/outputs
-  # 测试模型路径
+     # 测试模型路径
      model-test: /home/leozy/.cache/model/speech_test
-  # 训练完成模型路径
+     # 训练完成模型路径
      model-train: /home/leozy/.cache/model/speech_train
-
+     # 热词文件路径（同步到Python服务使用）
+     hotword-file-path: /mnt/d/WorkSpace/code/2025/evoice/nevoice/e-voice/zh_correct/custom_word_freq.txt

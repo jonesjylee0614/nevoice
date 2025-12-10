@@ -212,7 +212,7 @@
                 <div v-if="dialog.audioPath" class="dialog-audio-mini">
                   <audio 
                     :ref="el => setAudioRef(dialog.id || dialog.seq, el as HTMLAudioElement)"
-                    :src="dialog.audioPath" 
+                    :src="getFullAudioUrl(dialog.audioPath)" 
                     preload="metadata"
                     @ended="() => audioPlaying[dialog.id || dialog.seq] = false"
                   />
@@ -441,6 +441,31 @@ const showAudioUpload = ref(false)
 const audioRefs = ref<Record<string | number, HTMLAudioElement | null>>({})
 const audioPlaying = ref<Record<string | number, boolean>>({})
 const audioDurations = ref<Record<string | number, number>>({})
+
+// 获取 Python HTTP 服务地址（用于音频文件）
+const getPyHttpHost = () => {
+  const hostname = window.location.hostname
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8210'
+  } else {
+    return 'https://pyapi.xnng.yfqwl.com'
+  }
+}
+
+// 获取完整的音频 URL
+const getFullAudioUrl = (audioPath: string | undefined): string => {
+  if (!audioPath) return ''
+  // 如果已经是完整 URL（兼容旧数据）
+  if (audioPath.startsWith('http://') || audioPath.startsWith('https://')) {
+    // 替换旧的 localhost URL 为新的域名
+    if (audioPath.includes('localhost:8210')) {
+      return audioPath.replace('http://localhost:8210', getPyHttpHost())
+    }
+    return audioPath
+  }
+  // 相对路径，拼接完整 URL
+  return `${getPyHttpHost()}${audioPath}`
+}
 
 function setAudioRef(id: string | number, el: HTMLAudioElement | null) {
   if (el) {

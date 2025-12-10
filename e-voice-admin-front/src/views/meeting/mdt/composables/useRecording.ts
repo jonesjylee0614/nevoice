@@ -17,7 +17,7 @@ export interface RecordingOptions {
 export function useRecording(options: RecordingOptions) {
   const recording = ref(false);
   const connecting = ref(false);
-  const paused = ref(false);  // 暂停状态
+  const paused = ref(false); // 暂停状态
   const errorMsg = ref('');
   const currentSeq = ref(0);
 
@@ -47,7 +47,7 @@ export function useRecording(options: RecordingOptions) {
 
   // 建立WebSocket连接
   const connect = (): Promise<boolean> => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       try {
         socket = new WebSocket(`${wsHost}/ws/recognize`);
         socket.binaryType = 'arraybuffer';
@@ -82,7 +82,7 @@ export function useRecording(options: RecordingOptions) {
           console.log('WebSocket 已关闭');
         };
 
-        socket.onerror = (error) => {
+        socket.onerror = error => {
           console.error('WebSocket 错误:', error);
           errorMsg.value = '连接失败，请检查服务是否启动';
           connecting.value = false;
@@ -145,19 +145,19 @@ export function useRecording(options: RecordingOptions) {
         const durationMs = data.duration_ms || 0;
         const audioPath = data.audio_path || '';
         const speakerInfo = data.speaker_info || null;
-        
+
         // 构建完整的音频URL（如果有）
         const pyHost = (import.meta as any).env.VITE_API_PY_HOST || 'http://localhost:8210';
         const fullAudioPath = audioPath ? `${pyHost}${audioPath}` : '';
-        
+
         // 处理声纹匹配结果
         let speakerId: number | null = null;
         let speakerName = '未知发言人';
-        let speakerRole = '';
+        const speakerRole = '';
         let recognized: RecognizedStatus = 0;
         let recognitionNote = '等待声纹匹配';
-        let recognitionScore: number | undefined = undefined;
-        
+        let recognitionScore: number | undefined;
+
         if (speakerInfo && speakerInfo.recognized) {
           speakerId = speakerInfo.speaker_id;
           speakerName = speakerInfo.speaker_name || '未知';
@@ -184,7 +184,7 @@ export function useRecording(options: RecordingOptions) {
           // 时间信息
           startOffset: startOffsetMs,
           endOffset: endOffsetMs,
-          durationMs: durationMs,
+          durationMs,
           // 音频路径
           audioPath: fullAudioPath
         };
@@ -237,7 +237,7 @@ export function useRecording(options: RecordingOptions) {
     if (recording.value) return;
 
     connecting.value = true;
-    
+
     // 先连接WebSocket
     const connected = await connect();
     if (!connected) {
@@ -274,7 +274,7 @@ export function useRecording(options: RecordingOptions) {
       scriptProcessor.onaudioprocess = (event: AudioProcessingEvent) => {
         // 如果未录音、WebSocket未连接或已暂停，则跳过
         if (!recording.value || !socket || socket.readyState !== WebSocket.OPEN || paused.value) return;
-        
+
         const input = event.inputBuffer.getChannelData(0);
 
         // 转换为16位PCM
@@ -309,7 +309,7 @@ export function useRecording(options: RecordingOptions) {
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'start' }));
       }
-      
+
       recording.value = true;
       connecting.value = false;
       Message.success('录音已开始');
@@ -317,7 +317,7 @@ export function useRecording(options: RecordingOptions) {
       console.error('启动录音失败:', e);
       connecting.value = false;
       cleanupAudio();
-      
+
       if (e.name === 'NotFoundError') {
         Message.error('未找到麦克风设备');
         errorMsg.value = '未找到麦克风设备，请检查设备连接';
@@ -359,10 +359,10 @@ export function useRecording(options: RecordingOptions) {
   // 停止录音
   const stopRecording = () => {
     if (!recording.value) return;
-    
+
     recording.value = false;
     connecting.value = false;
-    paused.value = false;  // 重置暂停状态
+    paused.value = false; // 重置暂停状态
 
     if (socket && socket.readyState === WebSocket.OPEN) {
       try {
@@ -399,9 +399,9 @@ export function useRecording(options: RecordingOptions) {
   // 暂停/恢复录音
   const togglePause = () => {
     if (!recording.value) return;
-    
+
     paused.value = !paused.value;
-    
+
     if (paused.value) {
       // 暂停时发送暂停信号给后端
       if (socket && socket.readyState === WebSocket.OPEN) {

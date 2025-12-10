@@ -25,10 +25,11 @@ import (
 
 // Mdt MDT会议控制器
 type Mdt struct {
-	svc                     *service.MeetingMdt             `inject:""`
-	dialogSvc               *service.MeetingMdtDialog       `inject:""`
-	BusinessAuthRoleAccess  *core_service.BusinessAuthRoleAccess `inject:""`
-	BusinessAccount         *core_service.BusinessAccount        `inject:""`
+	svc                    *service.MeetingMdt                  `inject:""`
+	dialogSvc              *service.MeetingMdtDialog            `inject:""`
+	finetuneDetailSvc      *service.FinetuneVoiceDetail         `inject:""` // 语料管理服务
+	BusinessAuthRoleAccess *core_service.BusinessAuthRoleAccess `inject:""`
+	BusinessAccount        *core_service.BusinessAccount        `inject:""`
 }
 
 func init() {
@@ -227,7 +228,54 @@ func (s *Mdt) EndMeeting(c *gin.Context) {
 	updateMeeting.Status = biz.MeetingStatusEnded
 
 	res, err := s.svc.Update(c, updateMeeting)
-	results.ResSave(c, res, err)
+	if err != nil {
+		results.ResError(c, err)
+		return
+	}
+
+	// 异步将会议对话导入到语料管理
+	go s.importDialogsToFinetune(id)
+
+	results.ResSave(c, res, nil)
+}
+
+// importDialogsToFinetune 将会议对话导入到语料管理
+func (s *Mdt) importDialogsToFinetune(meetingId int64) {
+	ctx := context.Background()
+
+	// 获取会议的所有对话
+	dialogs, err := s.dialogSvc.ListByField(ctx, "meeting_id", meetingId)
+	if err != nil {
+		return
+	}
+
+	// 遍历对话，将有音频的对话导入为语料
+	importCount := 0
+	for _, dialog := range dialogs {
+		// 跳过没有音频或文字的对话
+		if dialog.AudioPath == "" || dialog.Text == "" {
+			continue
+		}
+
+		// 检查是否已导入过（通过 MeetingDetailId 判断）
+		existing, _ := s.finetuneDetailSvc.GetByField(ctx, "meeting_detail_id", dialog.Id)
+		if existing != nil {
+			continue
+		}
+
+		// 创建语料记录
+		detail := &biz.FinetuneVoiceDetail{
+			MeetingId:       meetingId,
+			MeetingDetailId: dialog.Id,
+			VoicePath:       dialog.AudioPath, // 使用对话的音频路径
+			Text:            dialog.Text,
+		}
+
+		_, err := s.finetuneDetailSvc.Insert(ctx, detail)
+		if err == nil {
+			importCount++
+		}
+	}
 }
 
 // GetDialogs 获取对话列表 /meeting/mdt/getDialogs

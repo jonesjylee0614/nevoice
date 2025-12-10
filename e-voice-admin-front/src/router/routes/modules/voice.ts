@@ -56,6 +56,15 @@ const routes: AppRouteRecordRaw[] = [
           locale: '语料管理',
           requiresAuth: true
         }
+      },
+      {
+        path: 'hotword',
+        name: 'voiceHotword',
+        component: '/voice/hotword/index',
+        meta: {
+          locale: '热词管理',
+          requiresAuth: true
+        }
       }
     ]
   }

@@ -86,7 +86,14 @@ export default defineConfig(config => {
           rewrite: path => path.replace(/^\/api/, '') // 这里的/需要转义
         }
       },
-      allowedHosts: ['xnng.yfqwl.com', 'evoicefront.xnng.yfqwl.com'] // 允许 xnng.yfqwl.com 主机
+      allowedHosts: [
+        'xnng.yfqwl.com',
+        'evoicefront.xnng.yfqwl.com',
+        'evoice.xnng.yfqwl.com',
+        'record.xnng.yfqwl.com',
+        'mdt.xnng.yfqwl.com',
+        'api.xnng.yfqwl.com'
+      ] // 允许外网域名访问
     },
     build: {
       reportCompressedSize: false,

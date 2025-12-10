@@ -1,5 +1,12 @@
 <template>
-  <BasicModal v-bind="$attrs" :title="getTitle" :width="700" :min-height="500" @register="registerModal" @ok="handleSubmit">
+  <BasicModal
+    v-bind="$attrs"
+    :title="getTitle"
+    :width="700"
+    :min-height="500"
+    @register="registerModal"
+    @ok="handleSubmit"
+  >
     <AForm ref="formRef" :model="formModel" :rules="rules" auto-label-width>
       <AFormItem field="title" label="会议标题">
         <AInput v-model="formModel.title" placeholder="请输入会议标题（选填）" allow-clear />

@@ -10,11 +10,7 @@
       </AButton>
       <ASpace style="margin-left: auto">
         <!-- 清空记录按钮 - 仅在会议进行中时显示 -->
-        <AButton
-          v-if="meeting?.status === 1 && meeting?.dialogCount > 0"
-          status="danger"
-          @click="handleClearDialogs"
-        >
+        <AButton v-if="meeting?.status === 1 && meeting?.dialogCount > 0" status="danger" @click="handleClearDialogs">
           <template #icon>
             <icon-delete />
           </template>
@@ -45,7 +41,7 @@
             <icon-record v-if="!recording" />
             <icon-record-stop v-if="recording" />
           </template>
-          {{ recording ? '停止录音' : (meeting?.status === 0 ? '开始会议并录音' : '开始录音') }}
+          {{ recording ? '停止录音' : meeting?.status === 0 ? '开始会议并录音' : '开始录音' }}
         </AButton>
         <AButton v-if="meeting?.status === 1" status="warning" @click="handleEndMeeting">结束会议</AButton>
       </ASpace>
@@ -77,10 +73,7 @@
     </ACard>
 
     <!-- 音频文件上传测试 -->
-    <AudioFileUpload
-      :meeting-id="meetingId"
-      @dialog-received="handleFileDialogReceived"
-    />
+    <AudioFileUpload :meeting-id="meetingId" @dialog-received="handleFileDialogReceived" />
 
     <!-- 内容区域 -->
     <ARow :gutter="16" style="margin-top: 16px">
@@ -110,7 +103,10 @@
             <div v-for="dialog in meeting.dialogs" :key="dialog.id || dialog.seq" class="dialog-item">
               <div class="dialog-meta">
                 <!-- 优先显示时间偏移（音频中的实际时间） -->
-                <span v-if="dialog.startOffset !== undefined && dialog.startOffset !== null" class="time-offset primary">
+                <span
+                  v-if="dialog.startOffset !== undefined && dialog.startOffset !== null"
+                  class="time-offset primary"
+                >
                   {{ formatOffsetTime(dialog.startOffset) }} - {{ formatOffsetTime(dialog.endOffset) }}
                 </span>
                 <span v-else class="time">{{ formatTime(dialog.speakTime) }}</span>
@@ -214,7 +210,7 @@
 
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router';
-import { Modal, Message } from '@arco-design/web-vue';
+import { Message, Modal } from '@arco-design/web-vue';
 import useLoading from '@/hooks/loading';
 import { meetingStatusMap, recognizedStatusMap, summaryStatusMap } from './data';
 import { assignSpeaker, clearDialogs, endMeeting, generateSummary, getDetail, startMeeting, updateDialog } from './api';
@@ -362,7 +358,7 @@ const saveDialogText = async (dialog: MeetingDialog) => {
     Message.warning('文本不能为空');
     return;
   }
-  
+
   try {
     await updateDialog(dialog.id, editingText.value.trim());
     Message.success('保存成功');
@@ -488,7 +484,7 @@ const handleStartMeeting = async () => {
 // 开始录音（整合开始会议逻辑）
 const handleToggleRecording = async () => {
   if (!meeting.value?.id) return;
-  
+
   // 如果是开始录音（当前未在录音）
   if (!recording.value) {
     // 如果会议状态是"待开始"，先自动开始会议
@@ -504,7 +500,7 @@ const handleToggleRecording = async () => {
       }
     }
   }
-  
+
   // 执行录音切换
   toggleRecording();
 };
@@ -528,11 +524,11 @@ const handleEndMeeting = async () => {
 // 清空对话记录
 const handleClearDialogs = () => {
   if (!meeting.value?.id) return;
-  
+
   Modal.warning({
     title: '清空对话记录',
-    content: recording.value 
-      ? '将停止当前录音并清空所有语音识别记录，此操作不可恢复！' 
+    content: recording.value
+      ? '将停止当前录音并清空所有语音识别记录，此操作不可恢复！'
       : '确定要清空所有语音识别记录吗？此操作不可恢复！',
     okText: '确认清空',
     cancelText: '取消',
@@ -545,7 +541,7 @@ const handleClearDialogs = () => {
           // 等待WebSocket关闭
           await new Promise(resolve => setTimeout(resolve, 600));
         }
-        
+
         const res = await clearDialogs(meeting.value!.id);
         const count = res?.deletedCount || 0;
         Message.success(`已清空 ${count} 条对话记录`);
