@@ -21,6 +21,14 @@ from .state import StreamingState
 from .text_accumulator import TextAccumulator
 from .funasr_streamer import FunASRStreamer, FunASRStreamerConfig, FunASRStreamerState
 
+# 导入同音词修正器
+try:
+    from zh_correct.homophone_corrector import correct_homophones
+    HOMOPHONE_CORRECTION_AVAILABLE = True
+except ImportError:
+    HOMOPHONE_CORRECTION_AVAILABLE = False
+    logger.warning("同音词修正模块不可用")
+
 
 # 音频片段保存目录
 AUDIO_SEGMENT_DIR = "data/meeting/audio_segments"
@@ -404,6 +412,16 @@ class StreamingEngine:
                 
                 # 清理文本：移除开头标点，确保结尾有标点
                 cleaned_text = clean_sentence_text(text)
+                
+                # 同音词修正（热词替换）
+                if HOMOPHONE_CORRECTION_AVAILABLE:
+                    try:
+                        corrected_text = correct_homophones(cleaned_text)
+                        if corrected_text != cleaned_text:
+                            ws_logger.debug(f"[同音修正] '{cleaned_text}' → '{corrected_text}'")
+                            cleaned_text = corrected_text
+                    except Exception as e:
+                        ws_logger.warning(f"同音词修正失败: {e}")
                 
                 result_event = {
                     "type": "correction",

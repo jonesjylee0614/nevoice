@@ -20,7 +20,7 @@ from pipeline.spk_v_pipeline import embedding
 from rest_prints import NumpyEncoder
 from speech_recognition.spk import reload_spk_pipeline
 from speech_recognition.test_recognize import reinst_test_model, test_recognize
-from zh_correct.correct import correct
+from zh_correct.correct import correct, correct_with_homophones
 
 
 def create_model_blueprint() -> Blueprint:
@@ -79,9 +79,10 @@ def create_model_blueprint() -> Blueprint:
                 txt_res = txt_res[:100]
 
             # 这里可以添加其他音频处理逻辑
+            # 使用同音词修正 + 语法纠错
             data = {
                 'data': search_res,
-                'txt': correct(txt_res)['target']
+                'txt': correct_with_homophones(txt_res)
             }
             return json.dumps(data, cls=NumpyEncoder), 200
 

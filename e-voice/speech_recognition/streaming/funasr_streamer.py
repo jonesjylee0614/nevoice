@@ -360,10 +360,17 @@ class FunASRStreamer:
             # 计算需要回溯的帧数
             # beg_bias 表示从当前帧往前数多少帧是语音开始点
             beg_bias = (state.vad_pre_idx - speech_start_i) // duration_ms if duration_ms > 0 else 0
+            
+            # 限制最大回溯帧数，避免包含上一段的内容
+            # 15帧 ≈ 0.9秒，足够覆盖语音开始前的静音，但不会包含太多历史音频
+            max_beg_bias = 15
             if beg_bias > 0 and beg_bias <= len(state.frames):
-                frames_pre = state.frames[-beg_bias:]
+                # 限制回溯量
+                actual_bias = min(beg_bias, max_beg_bias)
+                frames_pre = state.frames[-actual_bias:]
             else:
-                frames_pre = state.frames[:]  # 使用所有缓存的帧
+                # 即使使用全部缓存帧，也要限制数量
+                frames_pre = state.frames[-max_beg_bias:] if len(state.frames) > max_beg_bias else state.frames[:]
             
             state.frames_asr = list(frames_pre)
             # 同时开始收集音频片段
@@ -413,10 +420,10 @@ class FunASRStreamer:
                 state.frames = []
                 state.vad_cache = {}
             else:
-                # 保留最近帧用于下一段
-                # 增大保留帧数以避免丢失语音开始部分
-                # 原先是20帧(~1.2s)，现在改为50帧(~3s)以容纳较长的静音间隔
-                max_keep_frames = 50
+                # 保留最近帧用于下一段 VAD 检测
+                # 改为 20 帧（约 1.2 秒），避免保留太多历史音频导致识别重叠
+                # 注意：这个值应该略大于语音开始时的最大回溯量(15帧)
+                max_keep_frames = 20
                 if len(state.frames) > max_keep_frames:
                     state.frames = state.frames[-max_keep_frames:]
                     logger.debug(

@@ -155,7 +155,7 @@
                 <span class="preview-dot" :class="{ active: recording && !paused }"></span>
                 <span>{{ recording ? (paused ? '已暂停' : '正在识别...') : '识别预览' }}</span>
               </div>
-              <div class="preview-text">{{ runningText || '等待语音输入...' }}</div>
+              <div class="preview-text">{{ runningText }}</div>
             </div>
           </div>
 
@@ -384,7 +384,8 @@ import {
   generateSummary, 
   assignSpeaker, 
   updateDialogText,
-  getStaffList 
+  getStaffList,
+  saveDialog
 } from '@/api/meeting'
 import { useMeetingStore } from '@/stores/meeting'
 import { useUserStore } from '@/stores/user'
@@ -433,6 +434,26 @@ const recording = ref(false)
 const connecting = ref(false)
 const paused = ref(false)
 const runningText = ref('')
+
+// WebSocket 实时录音相关
+const SAMPLE_RATE = 16000
+const CHUNK_SIZE = 960 // 60ms @ 16kHz
+let websocket: WebSocket | null = null
+let audioContext: AudioContext | null = null
+let audioWorkletNode: AudioWorkletNode | null = null
+let scriptProcessorNode: ScriptProcessorNode | null = null
+let currentSeq = 0
+let currentSegmentId = '' // 用于跟踪当前语音段，避免预览重叠
+
+// 获取 WebSocket 地址
+const getWsHost = () => {
+  const hostname = window.location.hostname
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'ws://localhost:8210'
+  } else {
+    return 'wss://pyapi.xnng.yfqwl.com'
+  }
+}
 
 // 音频上传测试
 const showAudioUpload = ref(false)
@@ -619,27 +640,352 @@ const handleStartRecording = async () => {
       showSuccessToast('会议已开始')
     }
     
-    // TODO: 实际实现 WebSocket 录音连接，将 mediaStream 发送到后端
-    recording.value = true
-    showSuccessToast('录音已开始')
+    // 建立 WebSocket 连接
+    const wsUrl = `${getWsHost()}/ws/recognize`
+    console.log('[Recording] 连接到:', wsUrl)
+    
+    websocket = new WebSocket(wsUrl)
+    websocket.binaryType = 'arraybuffer'
+    
+    websocket.onopen = () => {
+      console.log('[Recording] WebSocket 连接成功')
+      // 发送配置
+      const config = {
+        chunk_size: [5, 10, 5],
+        chunk_interval: 10,
+        wav_name: `meeting_realtime_${meetingId.value}`,
+        is_speaking: true,
+        mode: '2pass',
+        itn: true,
+        sample_rate: SAMPLE_RATE
+      }
+      websocket?.send(JSON.stringify(config))
+      
+      // 开始捕获音频
+      startAudioCapture()
+      
+      recording.value = true
+      showSuccessToast('录音已开始')
+      connecting.value = false
+    }
+    
+    websocket.onmessage = event => {
+      handleRecognitionMessage(JSON.parse(event.data))
+    }
+    
+    websocket.onerror = (error) => {
+      console.error('[Recording] WebSocket 错误:', error)
+      showToast('WebSocket 连接错误')
+      handleStopRecording()
+    }
+    
+    websocket.onclose = () => {
+      console.log('[Recording] WebSocket 关闭')
+      if (recording.value) {
+        handleStopRecording()
+      }
+    }
   } catch (error) {
     console.error('开始录音失败:', error)
     showToast('开始录音失败')
-  } finally {
     connecting.value = false
+  }
+}
+
+// 开始音频捕获
+const startAudioCapture = async () => {
+  if (!mediaStream) return
+  
+  try {
+    // 创建 AudioContext - 不指定采样率，让浏览器使用默认值
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    console.log('[Recording] AudioContext 采样率:', audioContext.sampleRate)
+    
+    const source = audioContext.createMediaStreamSource(mediaStream)
+    
+    // 添加增益节点放大音频信号
+    const gainNode = audioContext.createGain()
+    gainNode.gain.value = 5.0 // 放大 5 倍（提高灵敏度）
+    
+    // 使用 ScriptProcessorNode（兼容性更好）
+    const bufferSize = 4096
+    scriptProcessorNode = audioContext.createScriptProcessor(bufferSize, 1, 1)
+    
+    // 连接：source -> gainNode -> scriptProcessor -> destination
+    source.connect(gainNode)
+    gainNode.connect(scriptProcessorNode)
+    
+    // 用于累积音频数据
+    let audioBuffer: Float32Array[] = []
+    let samplesCount = 0
+    const samplesPerChunk = CHUNK_SIZE // 60ms @ 16kHz = 960 samples
+    let chunksSent = 0
+    
+    // 客户端 VAD 参数
+    const VAD_THRESHOLD = 0.01 // 音量阈值（降低，更敏感）
+    const SILENCE_TIMEOUT = 2000 // 静音超时（毫秒），增加到 2 秒
+    let isSpeaking = false // 是否正在说话
+    let silenceStart = 0 // 静音开始时间
+    let speechStartSent = false // 是否已发送过语音开始的数据
+    let lastSendTime = Date.now() // 上次发送时间
+    
+    scriptProcessorNode.onaudioprocess = (event) => {
+      if (!recording.value || paused.value || !websocket || websocket.readyState !== WebSocket.OPEN) {
+        return
+      }
+      
+      const inputData = event.inputBuffer.getChannelData(0)
+      
+      // 计算当前块的 RMS 音量
+      let sumSquares = 0
+      for (let i = 0; i < inputData.length; i++) {
+        sumSquares += inputData[i] * inputData[i]
+      }
+      const rms = Math.sqrt(sumSquares / inputData.length)
+      
+      // 客户端 VAD：检测是否在说话
+      const now = Date.now()
+      if (rms > VAD_THRESHOLD) {
+        // 检测到语音
+        if (!isSpeaking) {
+          console.log(`[Recording] 语音开始，RMS: ${rms.toFixed(4)}`)
+        }
+        isSpeaking = true
+        silenceStart = 0
+        speechStartSent = true
+      } else {
+        // 静音
+        if (isSpeaking) {
+          if (silenceStart === 0) {
+            silenceStart = now
+          } else if (now - silenceStart > SILENCE_TIMEOUT) {
+            // 静音超时，停止发送
+            isSpeaking = false
+            speechStartSent = false
+            console.log(`[Recording] 静音超时，暂停发送`)
+          }
+        }
+      }
+      
+      // 客户端 VAD：只在说话时发送音频
+      // speechStartSent 保证语音开始后的短暂静音也会发送
+      // lastSendTime 保证即使长时间静音，也间隔发送一些数据保持连接
+      const shouldSend = isSpeaking || speechStartSent || (now - lastSendTime > 5000) // 最多 5 秒发送一次心跳
+      if (!shouldSend) {
+        return // 不发送静音数据，减少后端积压
+      }
+      
+      // 调试日志
+      if (chunksSent % 50 === 0) {
+        console.log(`[Recording] chunk#${chunksSent} RMS: ${rms.toFixed(4)}, 说话中: ${isSpeaking}`)
+      }
+      lastSendTime = now
+      
+      // 重采样到 16kHz（如果需要）
+      let resampled = inputData
+      if (audioContext!.sampleRate !== SAMPLE_RATE) {
+        const ratio = SAMPLE_RATE / audioContext!.sampleRate
+        const newLength = Math.floor(inputData.length * ratio)
+        resampled = new Float32Array(newLength)
+        for (let i = 0; i < newLength; i++) {
+          const srcIndex = i / ratio
+          const srcIndexFloor = Math.floor(srcIndex)
+          const srcIndexCeil = Math.min(srcIndexFloor + 1, inputData.length - 1)
+          const t = srcIndex - srcIndexFloor
+          resampled[i] = inputData[srcIndexFloor] * (1 - t) + inputData[srcIndexCeil] * t
+        }
+      }
+      
+      // 累积数据
+      audioBuffer.push(new Float32Array(resampled))
+      samplesCount += resampled.length
+      
+      // 当累积足够数据时发送
+      while (samplesCount >= samplesPerChunk) {
+        // 合并缓冲区
+        const totalBuffer = new Float32Array(samplesCount)
+        let offset = 0
+        for (const buf of audioBuffer) {
+          totalBuffer.set(buf, offset)
+          offset += buf.length
+        }
+        
+        // 提取一个 chunk
+        const chunk = totalBuffer.slice(0, samplesPerChunk)
+        
+        // 转换为 Int16 PCM
+        const pcm = new Int16Array(samplesPerChunk)
+        for (let i = 0; i < samplesPerChunk; i++) {
+          const s = Math.max(-1, Math.min(1, chunk[i]))
+          pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+        }
+        
+        // 发送到 WebSocket
+        websocket?.send(pcm.buffer)
+        chunksSent++
+        
+        // 保留剩余数据
+        const remaining = totalBuffer.slice(samplesPerChunk)
+        audioBuffer = remaining.length > 0 ? [remaining] : []
+        samplesCount = remaining.length
+      }
+    }
+    
+    // 连接到目标（否则音频处理不会触发）
+    scriptProcessorNode.connect(audioContext.destination)
+    
+    console.log('[Recording] 音频捕获已启动, 目标采样率:', SAMPLE_RATE, ', 增益:', gainNode.gain.value)
+  } catch (error) {
+    console.error('[Recording] 启动音频捕获失败:', error)
+    showToast('音频捕获失败')
+    handleStopRecording()
+  }
+}
+
+// 处理识别消息
+const handleRecognitionMessage = async (data: any) => {
+  console.log('[Recording] 收到消息:', JSON.stringify(data).substring(0, 200))
+  
+  // 处理会话完成信号
+  if (data.type === 'session_complete') {
+    console.log('[Recording] 收到 session_complete 信号')
+    return
+  }
+  
+  const mode = data.mode || ''
+  const text = data.text || ''
+  const startOffsetMs = data.start_offset_ms || 0
+  const endOffsetMs = data.end_offset_ms || 0
+  const durationMs = data.duration_ms || (endOffsetMs - startOffsetMs)
+  const audioPath = data.audio_path || ''
+  const speakerInfo = data.speaker_info || null
+  const segmentId = data.segment_id || '' // 语音段 ID
+  
+  // 处理实时预览（online 模式）
+  if (mode === '2pass-online' || mode === 'online') {
+    // 检查是否是新的语音段，如果是则清空预览
+    if (segmentId && segmentId !== currentSegmentId) {
+      console.log('[Recording] 新语音段开始:', segmentId, '清空预览')
+      runningText.value = ''
+      currentSegmentId = segmentId
+    }
+    console.log('[Recording] online 结果:', text)
+    runningText.value += text
+  } 
+  // 处理最终结果（offline 模式）
+  else if (mode === '2pass-offline' || mode === 'offline') {
+    // 清空实时预览
+    runningText.value = ''
+    // 重置 segment ID，准备接收下一个语音段
+    currentSegmentId = ''
+    
+    if (text) {
+      currentSeq++
+      
+      // 处理声纹匹配结果
+      let speakerId: number | null = null
+      let speakerName = '未知发言人'
+      let speakerRole = ''
+      let recognized = 0
+      let recognitionNote = '等待声纹匹配'
+      
+      if (speakerInfo && speakerInfo.recognized) {
+        speakerId = speakerInfo.speaker_id
+        speakerName = speakerInfo.speaker_name || '未知'
+        recognized = 1
+        recognitionNote = speakerInfo.recognition_note || '声纹匹配成功'
+      } else if (speakerInfo) {
+        recognitionNote = speakerInfo.recognition_note || '声纹未匹配'
+      }
+      
+      // 构建完整的音频 URL
+      const fullAudioUrl = audioPath ? `${getPyHttpHost()}${audioPath}` : ''
+      
+      const dialog: MeetingDialog = {
+        id: 0, // 临时 ID，保存后会更新
+        seq: currentSeq,
+        speakerId: speakerId || 0,
+        speakerName,
+        speakerRole,
+        recognized,
+        recognitionNote,
+        speakTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        text,
+        startOffset: startOffsetMs,
+        endOffset: endOffsetMs,
+        durationMs: durationMs,
+        audioPath: fullAudioUrl
+      }
+      
+      // 添加到本地对话列表
+      if (meeting.value) {
+        meeting.value.dialogs = [...(meeting.value.dialogs || []), dialog]
+        meeting.value.dialogCount = meeting.value.dialogs.length
+      }
+      
+      // 保存到后端
+      try {
+        await saveDialog({
+          meetingId: meetingId.value,
+          seq: currentSeq,
+          speakerId: speakerId || 0,
+          speakerName,
+          speakerRole,
+          recognized,
+          recognitionNote,
+          text,
+          startOffset: startOffsetMs,
+          endOffset: endOffsetMs,
+          durationMs: durationMs,
+          audioPath: audioPath // 只存相对路径
+        } as any)
+      } catch (e) {
+        console.error('[Recording] 保存对话失败:', e)
+      }
+    }
   }
 }
 
 // 停止录音
 const handleStopRecording = () => {
+  // 发送停止信号
+  if (websocket && websocket.readyState === WebSocket.OPEN) {
+    websocket.send(JSON.stringify({ is_speaking: false, mode: '2pass' }))
+    console.log('[Recording] 发送停止信号')
+    // 延迟关闭 WebSocket，等待最后的识别结果
+    setTimeout(() => {
+      if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.close(1000, 'stop_recording')
+      }
+      websocket = null
+    }, 3000)
+  }
+  
+  // 停止音频处理节点
+  if (scriptProcessorNode) {
+    scriptProcessorNode.disconnect()
+    scriptProcessorNode = null
+  }
+  if (audioWorkletNode) {
+    audioWorkletNode.disconnect()
+    audioWorkletNode = null
+  }
+  if (audioContext) {
+    audioContext.close()
+    audioContext = null
+  }
+  
   // 释放媒体流资源
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop())
     mediaStream = null
   }
+  
   recording.value = false
   paused.value = false
   runningText.value = ''
+  connecting.value = false
+  currentSegmentId = '' // 重置语音段 ID
   showSuccessToast('录音已停止')
 }
 
@@ -980,6 +1326,11 @@ onUnmounted(() => {
   // 如果正在录音，停止录音
   if (recording.value) {
     handleStopRecording()
+  }
+  // 确保 WebSocket 关闭
+  if (websocket) {
+    websocket.close()
+    websocket = null
   }
 })
 </script>

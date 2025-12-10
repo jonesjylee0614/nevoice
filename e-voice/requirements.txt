@@ -13,6 +13,7 @@ modelscope==1.22.3
 protobuf==6.31.1
 pyaudio==0.2.14
 pycorrector==1.1.2
+pypinyin==0.53.0
 pydub==0.25.1
 soundfile==0.13.1
 orjson

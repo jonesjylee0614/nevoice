@@ -11,4 +11,3 @@ type VoiceHotwordPageReq struct {
 	// 日期区间 格式：yyyy-MM-dd,yyyy-MM-dd
 	CreatedTime string `form:"createdTime" json:"createdTime"`
 }
-
