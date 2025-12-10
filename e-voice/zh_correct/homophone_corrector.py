@@ -8,13 +8,14 @@
     from zh_correct.homophone_corrector import HomophoneCorrector
     corrector = HomophoneCorrector()
     result = corrector.correct("阿末西林胶囊")  # → "阿莫西林胶囊"
+
+热词来源：
+    数据库 voice_hotword 表 (status=1)
 """
 
-import os
 import time
 import threading
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 from functools import lru_cache
 
 from loguru import logger
@@ -26,6 +27,14 @@ try:
 except ImportError:
     PYPINYIN_AVAILABLE = False
     logger.warning("pypinyin 未安装，同音词修正功能不可用。请运行: pip install pypinyin")
+
+# 数据库模块（延迟导入）
+DB_AVAILABLE = False
+try:
+    from db.db import get_db
+    DB_AVAILABLE = True
+except ImportError:
+    logger.warning("数据库模块不可用，同音词修正功能将不可用")
 
 
 class HomophoneCorrector:
@@ -80,34 +89,60 @@ class HomophoneCorrector:
         self._max_word_length: int = 0  # 热词最大长度
         self._min_word_length: int = 2  # 热词最小长度（忽略单字）
         self._load_time: float = 0
-        self._file_mtime: float = 0
+        self._db_load_time: float = 0  # 数据库加载时间戳
+        self._db_reload_interval: int = 300  # 数据库热词刷新间隔（秒）
         
-        # 热词文件路径
-        self._hotword_file = Path(__file__).resolve().parent / "custom_word_freq.txt"
-        
-        # 加载热词库
+        # 加载热词库（从数据库）
         self._load_hotwords()
     
     def _load_hotwords(self) -> None:
-        """加载热词库到内存"""
+        """加载热词库到内存（从数据库加载）"""
         if not PYPINYIN_AVAILABLE:
             logger.warning("pypinyin 不可用，跳过热词加载")
             return
         
-        if not self._hotword_file.exists():
-            logger.warning(f"热词文件不存在: {self._hotword_file}")
+        if not DB_AVAILABLE:
+            logger.warning("数据库不可用，跳过热词加载")
             return
         
         start_time = time.time()
         
         try:
-            # 检查文件修改时间
-            current_mtime = os.path.getmtime(self._hotword_file)
-            if current_mtime == self._file_mtime and self._hotwords:
-                logger.debug("热词文件未变化，跳过重新加载")
-                return
+            loaded_from_db = self._load_hotwords_from_db()
+            if loaded_from_db:
+                self._load_time = time.time() - start_time
+                self._db_load_time = time.time()
+                logger.info(
+                    f"✅ 同音词修正器初始化完成: "
+                    f"{len(self._hotwords)} 个热词, "
+                    f"{len(self._pinyin_to_words)} 个拼音映射, "
+                    f"最大词长 {self._max_word_length}, "
+                    f"耗时 {self._load_time:.2f}s"
+                )
+            else:
+                logger.warning("数据库中没有启用状态的热词，同音词修正功能将不可用")
+        except Exception as e:
+            logger.error(f"从数据库加载热词失败: {e}")
+    
+    def _load_hotwords_from_db(self) -> bool:
+        """从数据库 voice_hotword 表加载热词（status=1）
+        
+        Returns:
+            bool: 是否成功加载
+        """
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
             
-            self._file_mtime = current_mtime
+            # 查询启用状态的热词
+            cursor.execute("SELECT word FROM voice_hotword WHERE status = 1")
+            rows = cursor.fetchall()
+            
+            if not rows:
+                logger.warning("数据库中没有启用状态的热词")
+                cursor.close()
+                conn.close()
+                return False
             
             # 清空现有数据
             self._hotwords.clear()
@@ -115,34 +150,31 @@ class HomophoneCorrector:
             self._word_pinyin_cache.clear()
             self._max_word_length = 0
             
-            # 读取热词文件
-            with open(self._hotword_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    word = line.strip()
-                    if not word or len(word) < self._min_word_length:
-                        continue
-                    
-                    self._hotwords.add(word)
-                    self._max_word_length = max(self._max_word_length, len(word))
-                    
-                    # 计算拼音并建立映射
-                    word_pinyin = self._get_pinyin(word)
-                    if word_pinyin:
-                        if word_pinyin not in self._pinyin_to_words:
-                            self._pinyin_to_words[word_pinyin] = []
-                        self._pinyin_to_words[word_pinyin].append(word)
+            # 加载热词
+            for row in rows:
+                word = row[0].strip() if row[0] else ""
+                if not word or len(word) < self._min_word_length:
+                    continue
+                
+                self._hotwords.add(word)
+                self._max_word_length = max(self._max_word_length, len(word))
+                
+                # 计算拼音并建立映射
+                word_pinyin = self._get_pinyin(word)
+                if word_pinyin:
+                    if word_pinyin not in self._pinyin_to_words:
+                        self._pinyin_to_words[word_pinyin] = []
+                    self._pinyin_to_words[word_pinyin].append(word)
             
-            self._load_time = time.time() - start_time
-            logger.info(
-                f"✅ 同音词修正器初始化完成: "
-                f"{len(self._hotwords)} 个热词, "
-                f"{len(self._pinyin_to_words)} 个拼音映射, "
-                f"最大词长 {self._max_word_length}, "
-                f"耗时 {self._load_time:.2f}s"
-            )
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"从数据库加载了 {len(self._hotwords)} 个热词")
+            return True
             
         except Exception as e:
-            logger.error(f"加载热词库失败: {e}")
+            logger.error(f"数据库热词加载失败: {e}")
+            return False
     
     def _get_pinyin(self, text: str) -> str:
         """获取文本的拼音（去声调）"""
@@ -225,8 +257,24 @@ class HomophoneCorrector:
     def reload(self) -> None:
         """重新加载热词库（用于热词更新后）"""
         logger.info("正在重新加载热词库...")
-        self._file_mtime = 0  # 重置文件修改时间，强制重新加载
+        self._db_load_time = 0  # 重置数据库加载时间
         self._load_hotwords()
+    
+    def check_and_reload(self) -> bool:
+        """检查是否需要重新加载热词（定时刷新）
+        
+        Returns:
+            bool: 是否执行了重新加载
+        """
+        if not DB_AVAILABLE:
+            return False
+        
+        # 检查是否超过刷新间隔
+        if time.time() - self._db_load_time > self._db_reload_interval:
+            logger.info(f"热词库定时刷新（间隔 {self._db_reload_interval}s）")
+            self.reload()
+            return True
+        return False
     
     def get_stats(self) -> dict:
         """获取统计信息"""
@@ -236,7 +284,10 @@ class HomophoneCorrector:
             'max_word_length': self._max_word_length,
             'load_time': self._load_time,
             'pypinyin_available': PYPINYIN_AVAILABLE,
-            'cache_size': len(self._word_pinyin_cache)
+            'db_available': DB_AVAILABLE,
+            'db_load_time': self._db_load_time,
+            'cache_size': len(self._word_pinyin_cache),
+            'source': 'database' if self._db_load_time > 0 else 'none'
         }
     
     def find_homophones(self, word: str) -> List[str]:
@@ -297,17 +348,12 @@ _preload_thread.start()
 
 if __name__ == "__main__":
     # 测试
-    print(f"热词文件路径: {Path(__file__).resolve().parent / 'custom_word_freq.txt'}")
-    print(f"文件存在: {(Path(__file__).resolve().parent / 'custom_word_freq.txt').exists()}")
-    
     # 重置单例以便重新初始化
     HomophoneCorrector._instance = None
     HomophoneCorrector._is_initialized = False
     
     corrector = HomophoneCorrector()
     print(f"统计: {corrector.get_stats()}")
-    print(f"热词文件属性: {corrector._hotword_file}")
-    print(f"热词文件存在: {corrector._hotword_file.exists()}")
     
     test_cases = [
         "头胞克洛",

@@ -6,9 +6,10 @@ mode:
 
 audio:
   sample_rate: 16000
-  # 短期优化：从10增加到15，减少在线ASR调用频率约33%
-  # 原来：每600ms调用一次在线ASR -> 现在：每900ms调用一次
-  chunk_interval: 15  # 每 chunk_interval 个 chunk 发送一次在线识别请求
+  # 🚀 性能优化：从15增加到20，减少在线ASR调用频率约25%
+  # 原来：每900ms调用一次在线ASR -> 现在：每1200ms调用一次
+  # 配合方案B降低调用频率，减轻GPU负担
+  chunk_interval: 20  # 每 chunk_interval 个 chunk 发送一次在线识别请求
   chunk_size: [5, 10, 5]  # encoder_chunk_look_back, chunk_size, decoder_chunk_look_back (FunASR官方默认)
 
 timeouts:
@@ -42,17 +43,18 @@ models:
 vad:
   # 单个语音段的最大时长 (毫秒)，超过此时长会强制分段
   # 默认 60000ms = 60秒，适当调小避免单段过长
-  max_single_segment_time: 25000  # 45秒
+  max_single_segment_time: 25000  # 25秒
   
   # 句末静音时长阈值 (毫秒)，静音超过此时长则认为语音结束
   # 默认 800ms，调大让分段更稳定（避免中间停顿被误判为句末）
-  # 短期优化：增加到1000ms减少频繁分段，合并更多连续语音
-  max_end_silence_time: 1000  # 1秒
+  # 🎯 从 1000ms 增加到 1500ms，减少过度切段，合并更多连续语音
+  max_end_silence_time: 1500  # 1.5秒
   
   # 语音vs噪声阈值，范围 (-1, 1)
   # 值越大越严格（需要更明显的语音才会识别为说话）
   # 值越小越敏感（轻微声音也会被识别为说话）
-  speech_noise_thres: 0.7  # 调高更严格，避免"呃"等填充词触发分段
+  # 🎯 从 0.7 提高到 0.85，更严格过滤背景杂音
+  speech_noise_thres: 0.85  # 更严格，避免环境噪音被识别为语音
 
 # ITN (逆文本归一化) 配置
 itn:
@@ -78,4 +80,10 @@ features:
   # 调试模式 - 输出更多日志（排查延迟问题时建议开启）
   # 短期优化：关闭调试模式减少日志I/O开销
   debug: false
+  # 🚀 离线纠正异步化：在线结果立即返回，离线纠正在后台执行
+  # 这样实时识别不会被离线纠正阻塞，大幅降低延迟
+  async_offline_correction: true
+  # 🚀 在线 ASR 异步化：在线识别也放到线程池执行，不阻塞主处理循环
+  # 这是方案C的核心优化，进一步降低延迟
+  async_online_asr: true
 

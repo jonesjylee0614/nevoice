@@ -76,14 +76,14 @@ if "server.logging" not in sys.modules:
     dummy_logging.key_logger = dummy_logger
     sys.modules["server.logging"] = dummy_logging
 
-if "server.hotwords" not in sys.modules:
-    dummy_hotwords = types.ModuleType("server.hotwords")
-    dummy_hotwords.__spec__ = importlib.machinery.ModuleSpec("server.hotwords", loader=None)
-    dummy_hotwords.get_hotword_manager = lambda: types.SimpleNamespace(
-        apply_hotword_replacement=lambda text: text
-    )
-    dummy_hotwords.load_hotword_replace_map = lambda: {}
-    sys.modules["server.hotwords"] = dummy_hotwords
+# Mock zh_correct.homophone_corrector for testing
+if "zh_correct.homophone_corrector" not in sys.modules:
+    dummy_homophone = types.ModuleType("zh_correct.homophone_corrector")
+    dummy_homophone.__spec__ = importlib.machinery.ModuleSpec("zh_correct.homophone_corrector", loader=None)
+    dummy_homophone.correct_homophones = lambda text: text  # 直接返回原文
+    sys.modules["zh_correct.homophone_corrector"] = dummy_homophone
+if "zh_correct" not in sys.modules:
+    sys.modules["zh_correct"] = types.ModuleType("zh_correct")
 
 # ✅ 2025-11-09: 从废弃代码目录加载 session.py
 # 旧架构已被 speech_recognition/streaming/ 替代，此处仅用于历史测试

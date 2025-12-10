@@ -5,8 +5,7 @@
       <div class="hero-bg"></div>
       <div class="hero-content">
         <div class="hero-text">
-          <h1 class="hero-title">智能医疗语音管理平台</h1>
-          <p class="hero-subtitle">企业级语音识别与声纹识别解决方案</p>
+          <h1 class="hero-title">基于人工智能的语音识别系统          </h1>
         </div>
         <div class="hero-visual">
           <div class="sound-wave">

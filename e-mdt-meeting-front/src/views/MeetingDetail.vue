@@ -202,7 +202,7 @@
                 </button>
               </div>
             </div>
-            <div class="dialogs-list" v-if="meeting.dialogs?.length">
+            <div class="dialogs-list" ref="dialogsListRef" v-if="meeting.dialogs?.length">
               <div 
                 v-for="dialog in meeting.dialogs" 
                 :key="dialog.id || dialog.seq" 
@@ -374,6 +374,7 @@
 </template>
 
 <script setup lang="ts">
+import { nextTick } from 'vue'
 import { showSuccessToast, showToast, showConfirmDialog } from 'vant'
 import { onBeforeRouteLeave } from 'vue-router'
 import type { MeetingDetail, MeetingDialog, Participant, MeetingStatus, SummaryStatus } from '@/api/types'
@@ -457,6 +458,18 @@ const getWsHost = () => {
 
 // 音频上传测试
 const showAudioUpload = ref(false)
+
+// 对话列表滚动容器引用
+const dialogsListRef = ref<HTMLElement | null>(null)
+
+// 滚动对话列表到底部
+const scrollDialogsToBottom = () => {
+  nextTick(() => {
+    if (dialogsListRef.value) {
+      dialogsListRef.value.scrollTop = dialogsListRef.value.scrollHeight
+    }
+  })
+}
 
 // 迷你音频播放器状态
 const audioRefs = ref<Record<string | number, HTMLAudioElement | null>>({})
@@ -704,8 +717,9 @@ const startAudioCapture = async () => {
     const source = audioContext.createMediaStreamSource(mediaStream)
     
     // 添加增益节点放大音频信号
+    // 🎯 从 5.0 降低到 3.0，避免背景噪音被过度放大导致误识别
     const gainNode = audioContext.createGain()
-    gainNode.gain.value = 5.0 // 放大 5 倍（提高灵敏度）
+    gainNode.gain.value = 3.0 // 放大 3 倍（平衡灵敏度和噪音）
     
     // 使用 ScriptProcessorNode（兼容性更好）
     const bufferSize = 4096
@@ -722,12 +736,16 @@ const startAudioCapture = async () => {
     let chunksSent = 0
     
     // 客户端 VAD 参数
-    const VAD_THRESHOLD = 0.01 // 音量阈值（降低，更敏感）
-    const SILENCE_TIMEOUT = 2000 // 静音超时（毫秒），增加到 2 秒
+    // 🎯 阈值说明：RMS 范围通常 0.001（静音）到 0.3（大声说话）
+    // 背景噪音一般在 0.003-0.015，正常说话在 0.02-0.15
+    // 🎯 从 0.025 提高到 0.035，配合增益 3.0，过滤更多背景噪音
+    const VAD_THRESHOLD = 0.035 // 音量阈值（调高，避免背景噪音触发）
+    const SILENCE_TIMEOUT = 1500 // 静音超时（毫秒）
+    const SPEECH_CONFIRM_CHUNKS = 3 // 需要连续多少个高能量块才确认语音开始
     let isSpeaking = false // 是否正在说话
     let silenceStart = 0 // 静音开始时间
-    let speechStartSent = false // 是否已发送过语音开始的数据
-    let lastSendTime = Date.now() // 上次发送时间
+    let consecutiveSpeechChunks = 0 // 连续语音块计数
+    let silenceSkippedCount = 0 // 跳过的静音块统计
     
     scriptProcessorNode.onaudioprocess = (event) => {
       if (!recording.value || paused.value || !websocket || websocket.readyState !== WebSocket.OPEN) {
@@ -746,40 +764,61 @@ const startAudioCapture = async () => {
       // 客户端 VAD：检测是否在说话
       const now = Date.now()
       if (rms > VAD_THRESHOLD) {
-        // 检测到语音
-        if (!isSpeaking) {
-          console.log(`[Recording] 语音开始，RMS: ${rms.toFixed(4)}`)
-        }
-        isSpeaking = true
+        // 检测到高能量
+        consecutiveSpeechChunks++
         silenceStart = 0
-        speechStartSent = true
+        
+        // 需要连续多个高能量块才确认语音开始
+        if (!isSpeaking && consecutiveSpeechChunks >= SPEECH_CONFIRM_CHUNKS) {
+          isSpeaking = true
+          console.log(`[Recording] 🎤 语音开始，RMS: ${rms.toFixed(4)}，已跳过 ${silenceSkippedCount} 个静音块`)
+          silenceSkippedCount = 0
+          
+          // 🎯 通知后端新的语音段开始
+          if (websocket && websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({ is_speaking: true, mode: '2pass' }))
+            console.log('[Recording] 📤 语音开始，发送 is_speaking=true 给后端')
+          }
+        }
       } else {
-        // 静音
+        // 静音或低能量
+        consecutiveSpeechChunks = 0
+        
         if (isSpeaking) {
           if (silenceStart === 0) {
             silenceStart = now
           } else if (now - silenceStart > SILENCE_TIMEOUT) {
             // 静音超时，停止发送
             isSpeaking = false
-            speechStartSent = false
-            console.log(`[Recording] 静音超时，暂停发送`)
+            console.log(`[Recording] 🔇 静音超时，暂停发送 (已发送 ${chunksSent} 块)`)
+            
+            // 🎯 通知后端语音段结束，触发 flush
+            // 这样后端可以及时处理缓冲区中的数据
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+              websocket.send(JSON.stringify({ is_speaking: false, mode: '2pass' }))
+              console.log('[Recording] 📤 静音超时，发送 is_speaking=false 给后端')
+            }
           }
         }
       }
       
       // 客户端 VAD：只在说话时发送音频
-      // speechStartSent 保证语音开始后的短暂静音也会发送
-      // lastSendTime 保证即使长时间静音，也间隔发送一些数据保持连接
-      const shouldSend = isSpeaking || speechStartSent || (now - lastSendTime > 5000) // 最多 5 秒发送一次心跳
-      if (!shouldSend) {
+      if (!isSpeaking) {
+        silenceSkippedCount++
+        // 每跳过 100 个块记录一次（约 6 秒）
+        if (silenceSkippedCount % 100 === 0) {
+          console.log(`[Recording] 🔕 静音过滤中... 已跳过 ${silenceSkippedCount} 块 (RMS=${rms.toFixed(4)})`)
+        }
         return // 不发送静音数据，减少后端积压
       }
+      
+      // 🎯 如果之前静音发送过 is_speaking=false，现在重新开始说话，需要通知后端
+      // 这样后端知道新的语音段开始了
       
       // 调试日志
       if (chunksSent % 50 === 0) {
         console.log(`[Recording] chunk#${chunksSent} RMS: ${rms.toFixed(4)}, 说话中: ${isSpeaking}`)
       }
-      lastSendTime = now
       
       // 重采样到 16kHz（如果需要）
       let resampled = inputData
@@ -861,8 +900,8 @@ const handleRecognitionMessage = async (data: any) => {
   const speakerInfo = data.speaker_info || null
   const segmentId = data.segment_id || '' // 语音段 ID
   
-  // 处理实时预览（online 模式）
-  if (mode === '2pass-online' || mode === 'online') {
+  // 处理实时预览（online 模式）- partial 类型
+  if (data.type === 'partial' && (mode === '2pass-online' || mode === 'online')) {
     // 检查是否是新的语音段，如果是则清空预览
     if (segmentId && segmentId !== currentSegmentId) {
       console.log('[Recording] 新语音段开始:', segmentId, '清空预览')
@@ -870,10 +909,13 @@ const handleRecognitionMessage = async (data: any) => {
       currentSegmentId = segmentId
     }
     console.log('[Recording] online 结果:', text)
+    // 🔧 累加增量文本
     runningText.value += text
   } 
-  // 处理最终结果（offline 模式）
-  else if (mode === '2pass-offline' || mode === 'offline') {
+  // 处理最终结果（offline 模式）- correction 类型
+  // 🔧 修复：支持异步离线纠正 '2pass-offline-async'
+  else if (data.type === 'correction' && (mode === '2pass-offline' || mode === 'offline' || mode === '2pass-offline-async')) {
+    console.log('[Recording] 📝 correction 结果:', text, '模式:', mode)
     // 清空实时预览
     runningText.value = ''
     // 重置 segment ID，准备接收下一个语音段
@@ -921,6 +963,8 @@ const handleRecognitionMessage = async (data: any) => {
       if (meeting.value) {
         meeting.value.dialogs = [...(meeting.value.dialogs || []), dialog]
         meeting.value.dialogCount = meeting.value.dialogs.length
+        // 滚动对话列表到底部
+        scrollDialogsToBottom()
       }
       
       // 保存到后端
@@ -1008,6 +1052,8 @@ const handleFileDialogReceived = async (dialog: Partial<MeetingDialog>) => {
   if (meeting.value) {
     meeting.value.dialogs = [...(meeting.value.dialogs || []), dialog as MeetingDialog]
     meeting.value.dialogCount = meeting.value.dialogs.length
+    // 滚动对话列表到底部
+    scrollDialogsToBottom()
   }
 }
 

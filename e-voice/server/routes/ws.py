@@ -300,6 +300,21 @@ def register_ws_routes(sock: Sock) -> None:
         state.metrics["total_audio_ms"] = 0  # 累计音频时长
         state.metrics["max_rtf"] = 0  # 最大实时因子
         
+        # 🚀 注册异步离线纠正的回调函数
+        # 当离线纠正完成时，通过此回调将结果发送给客户端
+        def async_correction_callback(event: dict):
+            """异步离线纠正完成后的回调"""
+            try:
+                ws.send(json.dumps(event, ensure_ascii=False))
+                ws_logger.info(
+                    f"[ws] session={session_id} async correction sent: "
+                    f"text_len={len(event.get('text', ''))} latency_ms={event.get('async_latency_ms', 0)}"
+                )
+            except Exception as e:
+                ws_logger.warning(f"[ws] session={session_id} async callback send failed: {e}")
+        
+        engine.register_async_callback(session_id, async_correction_callback)
+        
         ws_logger.info(f"[ws] session={session_id} engine_ready={engine.is_ready}")
 
         try:
@@ -539,6 +554,8 @@ def register_ws_routes(sock: Sock) -> None:
             ws_logger.info(
                 f"[WS-FLUSH] session={session_id} final_flush events={len(events)} took={flush_ms:.1f}ms"
             )
+            # 🚀 注销异步回调
+            engine.unregister_async_callback(session_id)
             engine.cleanup_session(session_id)
             manager.close_session(session_id)
             ws_logger.info(f"[ws] 会话结束 session={session_id}")

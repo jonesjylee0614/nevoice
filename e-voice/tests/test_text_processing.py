@@ -55,11 +55,12 @@ dummy_logging.audio_logger = _dummy_logger
 dummy_logging.key_logger = _dummy_logger
 sys.modules['server.logging'] = dummy_logging
 
-dummy_hotwords = types.ModuleType('server.hotwords')
-dummy_hotwords.__spec__ = importlib.machinery.ModuleSpec('server.hotwords', loader=None)
-dummy_hotwords.get_hotword_manager = lambda: types.SimpleNamespace(apply_hotword_replacement=lambda text: text)
-dummy_hotwords.load_hotword_replace_map = lambda: {}
-sys.modules['server.hotwords'] = dummy_hotwords
+# Mock zh_correct.homophone_corrector for testing
+dummy_homophone = types.ModuleType('zh_correct.homophone_corrector')
+dummy_homophone.__spec__ = importlib.machinery.ModuleSpec('zh_correct.homophone_corrector', loader=None)
+dummy_homophone.correct_homophones = lambda text: text  # 直接返回原文
+sys.modules['zh_correct.homophone_corrector'] = dummy_homophone
+sys.modules['zh_correct'] = types.ModuleType('zh_correct')
 
 _SPEC = importlib.util.spec_from_file_location(
     'server.text_processing',

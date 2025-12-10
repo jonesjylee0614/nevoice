@@ -193,4 +193,6 @@ type Voice struct {
 	ModelTrain         string `yaml:"model-train" default:"/home/leozy/.cache/model/speech_train"`
 	// 热词文件路径（用于同步到Python语音识别服务）
 	HotwordFilePath string `yaml:"hotword-file-path" default:""`
+	// Python 语音服务地址（用于热词缓存刷新等）
+	PyServer string `yaml:"py-server" default:"http://localhost:8210"`
 }

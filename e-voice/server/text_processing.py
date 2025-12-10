@@ -7,7 +7,6 @@ from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
 from typing import Dict, List, Optional
 
-from .hotwords import get_hotword_manager, load_hotword_replace_map
 from .logging import recognition_logger
 
 __all__ = [
@@ -160,20 +159,12 @@ def normalize_text(text: str) -> str:
         t = format_numbers(t)
         t = re.sub(r"\bipo\b", "IPO", t, flags=re.IGNORECASE)
         t = re.sub(r"\bipo(?=\.|\s|$)", "IPO", t, flags=re.IGNORECASE)
+        # 同音词修正（热词来自数据库）
         try:
-            hotword_manager = get_hotword_manager()
-            t = hotword_manager.apply_hotword_replacement(t)
+            from zh_correct.homophone_corrector import correct_homophones
+            t = correct_homophones(t)
         except Exception as exc:  # pragma: no cover - defensive logging
-            recognition_logger.warning(f"热词替换失败: {exc}")
-            rep = load_hotword_replace_map()
-            if rep:
-                for key, value in rep.items():
-                    if not key:
-                        continue
-                    try:
-                        t = t.replace(key, value)
-                    except Exception:  # pragma: no cover - defensive
-                        pass
+            recognition_logger.warning(f"同音词修正失败: {exc}")
         return t
     except Exception:  # pragma: no cover - defensive logging
         return text

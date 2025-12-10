@@ -29,19 +29,30 @@
       <ADivider />
       <!-- 搜索与操作 -->
       <ARow :gutter="16">
-        <ACol :span="14">
+        <ACol :span="16">
           <ASpace>
             <AInput
               v-model="formModel.word"
               placeholder="请输入热词关键字"
               allow-clear
-              style="width: 200px"
+              style="width: 180px"
               @press-enter="search"
             />
+            <ASelect
+              v-model="formModel.status"
+              placeholder="状态筛选"
+              style="width: 120px"
+              allow-clear
+              @change="search"
+            >
+              <AOption :value="-1">全部状态</AOption>
+              <AOption :value="1">已启用</AOption>
+              <AOption :value="0">未启用</AOption>
+            </ASelect>
             <ARangePicker
               v-model="formModel.createdTime"
-              style="width: 240px"
-              :placeholder="['创建开始时间', '创建结束时间']"
+              style="width: 220px"
+              :placeholder="['创建开始', '创建结束']"
             />
             <AButton type="primary" @click="search">
               <template #icon>
@@ -52,7 +63,7 @@
             <AButton @click="reset">重置</AButton>
           </ASpace>
         </ACol>
-        <ACol :span="10" style="text-align: right">
+        <ACol :span="8" style="text-align: right">
           <ASpace>
             <AButton type="primary" @click="handleAdd">
               <template #icon>
@@ -208,7 +219,8 @@ const pagination = reactive({
 // 查询条件
 const formModel = reactive({
   word: '',
-  createdTime: [] as string[]
+  createdTime: [] as string[],
+  status: -1 // -1=全部, 0=未启用, 1=已启用
 });
 
 // 表单数据
@@ -243,7 +255,8 @@ const fetchData = async () => {
       page: pagination.current,
       pageSize: pagination.pageSize,
       word: formModel.word,
-      createdTime: formModel.createdTime.length > 0 ? formModel.createdTime.join(',') : ''
+      createdTime: formModel.createdTime.length > 0 ? formModel.createdTime.join(',') : '',
+      status: formModel.status
     };
     const data = await getList(params);
     renderData.value = data.items || [];
@@ -266,6 +279,7 @@ const search = () => {
 const reset = () => {
   formModel.word = '';
   formModel.createdTime = [];
+  formModel.status = -1;
   pagination.current = 1;
   fetchData();
 };

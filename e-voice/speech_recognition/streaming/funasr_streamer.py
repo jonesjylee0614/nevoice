@@ -54,6 +54,10 @@ class FunASRStreamerConfig:
     vad_max_single_segment_time: int = 45000  # 单段最大时长 ms
     vad_max_end_silence_time: int = 1200  # 句末静音阈值 ms
     vad_speech_noise_thres: float = 0.7  # 语音/噪声阈值
+    
+    # 🚀 性能优化配置
+    async_offline_correction: bool = False  # 离线纠正异步化（不阻塞在线识别）
+    async_online_asr: bool = False  # 在线ASR异步化（不阻塞主处理循环）
 
 
 @dataclass(slots=True)
@@ -291,23 +295,43 @@ class FunASRStreamer:
         
         if should_run_online:
             if self.config.mode in ("2pass", "online") and self.model_asr_online is not None:
-                t_online_start = time.time()
-                online_event = self._run_online_asr(state)
-                t_online_end = time.time()
-                online_ms = (t_online_end - t_online_start) * 1000
-                
-                if online_event:
-                    events.append(online_event)
-                    logger.info(
-                        f"[TIMING] {session_tag} online_asr_triggered: "
-                        f"chunk#{chunk_count}, took={online_ms:.1f}ms, "
-                        f"text_len={len(online_event.text)}, final={online_event.is_final}"
-                    )
+                # 🚀 异步在线 ASR 模式
+                if self.config.async_online_asr:
+                    # 返回 pending_online 事件，由调用者异步执行
+                    audio_for_online = b"".join(state.frames_asr_online)
+                    if audio_for_online:
+                        pending_online_event = StreamingEvent(
+                            type="pending_online",
+                            mode="2pass-online-async",
+                            text="",
+                            is_final=state.online_is_final,
+                            wav_name=state.wav_name,
+                            audio_data=audio_for_online,
+                        )
+                        events.append(pending_online_event)
+                        logger.debug(
+                            f"[ASYNC] {session_tag} chunk#{chunk_count} pending_online queued, "
+                            f"audio_len={len(audio_for_online)}"
+                        )
                 else:
-                    # 【诊断日志】在线ASR返回空结果
-                    logger.debug(
-                        f"[DIAG] {session_tag} chunk#{chunk_count} online_asr returned None, took={online_ms:.1f}ms"
-                    )
+                    # 同步模式：直接执行在线 ASR
+                    t_online_start = time.time()
+                    online_event = self._run_online_asr(state)
+                    t_online_end = time.time()
+                    online_ms = (t_online_end - t_online_start) * 1000
+                    
+                    if online_event:
+                        events.append(online_event)
+                        logger.info(
+                            f"[TIMING] {session_tag} online_asr_triggered: "
+                            f"chunk#{chunk_count}, took={online_ms:.1f}ms, "
+                            f"text_len={len(online_event.text)}, final={online_event.is_final}"
+                        )
+                    else:
+                        # 【诊断日志】在线ASR返回空结果
+                        logger.debug(
+                            f"[DIAG] {session_tag} chunk#{chunk_count} online_asr returned None, took={online_ms:.1f}ms"
+                        )
             else:
                 # 【诊断日志】在线ASR被跳过的原因
                 logger.debug(
@@ -321,20 +345,31 @@ class FunASRStreamer:
             state.frames_asr.append(audio_chunk)
             state.current_segment_audio.append(audio_chunk)
         
-        # 4. VAD 检测（在在线 ASR 之后执行，与 FunASR Demo 顺序一致）
+        # 4. VAD 检测（优化：不是每个 chunk 都调用，减少 GPU 开销）
+        # 🎯 性能优化：VAD 每 5 个 chunk 调用一次，或在语音结束时调用
+        # 这样可以将 VAD 开销降低 80%，同时保持足够的检测精度
+        # 5 个 chunk ≈ 300ms，足够检测语音端点
         speech_start_i, speech_end_i = -1, -1
-        if self.config.enable_vad and self.model_vad is not None:
+        vad_interval = 5  # 每隔 5 个 chunk 调用一次 VAD
+        should_run_vad = (
+            self.config.enable_vad 
+            and self.model_vad is not None
+            and (chunk_count % vad_interval == 0 or not state.is_speaking)
+        )
+        
+        if should_run_vad:
             t_vad_start = time.time()
             try:
+                # 累积多个 chunk 的音频进行 VAD（如果需要）
                 speech_start_i, speech_end_i = self._run_vad(audio_chunk, state)
             except Exception as e:
                 logger.error(f"VAD 执行失败: {e}")
                 speech_start_i, speech_end_i = -1, -1
             vad_ms = (time.time() - t_vad_start) * 1000
             
-            # 【诊断日志】增强VAD状态跟踪（每10个chunk或状态变化时）
+            # 【诊断日志】增强VAD状态跟踪
             vad_state_changed = speech_start_i != -1 or speech_end_i != -1
-            if vad_ms > 30 or vad_state_changed or chunk_count % 10 == 0:
+            if vad_ms > 30 or vad_state_changed or chunk_count % 30 == 0:
                 logger.info(
                     f"[VAD] {session_tag} chunk#{chunk_count}: "
                     f"took={vad_ms:.1f}ms, start_i={speech_start_i}, end_i={speech_end_i}, "
@@ -396,20 +431,57 @@ class FunASRStreamer:
             )
             
             if self.config.mode in ("2pass", "offline") and self.model_asr is not None:
-                offline_event = self._run_offline_asr(state, force_final=True)
-                if offline_event:
-                    events.append(offline_event)
-                    # 关键日志：记录离线 ASR 结果
-                    logger.info(
-                        f"[FunASRStreamer] {session_tag} offline_asr result: "
-                        f"text_len={len(offline_event.text)}, mode={offline_event.mode}"
-                    )
+                # 🚀 异步离线纠正模式：不在此处同步执行离线 ASR
+                # 而是返回一个 pending_correction 事件，由调用者异步处理
+                if self.config.async_offline_correction:
+                    # 保存当前段的音频数据用于异步处理
+                    audio_bytes_for_async = b"".join(state.frames_asr) if state.frames_asr else b""
+                    segment_audio_for_async = b"".join(state.current_segment_audio) if state.current_segment_audio else audio_bytes_for_async
+                    
+                    # 计算时间信息
+                    start_offset_ms = state.current_segment_start_ms
+                    segment_duration_ms = len(audio_bytes_for_async) // 32 if audio_bytes_for_async else 0
+                    end_offset_ms = start_offset_ms + segment_duration_ms
+                    
+                    # 更新上一段结束时间
+                    state.last_segment_end_ms = end_offset_ms
+                    
+                    if audio_bytes_for_async:
+                        # 返回 pending_correction 事件，包含异步处理所需的数据
+                        pending_event = StreamingEvent(
+                            type="pending_correction",
+                            mode="2pass-offline-async",
+                            text="",  # 文本由异步处理后填充
+                            is_final=True if not state.is_speaking else False,
+                            wav_name=state.wav_name,
+                            start_offset_ms=start_offset_ms,
+                            end_offset_ms=end_offset_ms,
+                            duration_ms=segment_duration_ms,
+                            audio_data=segment_audio_for_async,
+                        )
+                        events.append(pending_event)
+                        logger.info(
+                            f"[FunASRStreamer] {session_tag} pending_correction queued: "
+                            f"audio_bytes={len(audio_bytes_for_async)}, duration_ms={segment_duration_ms}"
+                        )
+                else:
+                    # 同步模式：直接执行离线 ASR
+                    offline_event = self._run_offline_asr(state, force_final=True)
+                    if offline_event:
+                        events.append(offline_event)
+                        # 关键日志：记录离线 ASR 结果
+                        logger.info(
+                            f"[FunASRStreamer] {session_tag} offline_asr result: "
+                            f"text_len={len(offline_event.text)}, mode={offline_event.mode}"
+                        )
             
             # 重置状态
             state.frames_asr = []
             state.speech_start = False
             state.frames_asr_online = []
             state.online_cache = {}
+            # 清理片段音频缓冲
+            state.current_segment_audio = []
             
             if not state.is_speaking:
                 # 关键日志：记录完全复位
@@ -662,6 +734,149 @@ class FunASRStreamer:
             )
         except Exception as e:
             logger.error(f"在线 ASR 执行失败: {e}")
+            return None
+    
+    def run_online_asr_standalone(
+        self,
+        audio_bytes: bytes,
+        is_final: bool = False,
+        hotwords: Optional[Dict[str, Any]] = None,
+        online_cache: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[Optional[StreamingEvent], Dict[str, Any]]:
+        """独立执行在线 ASR（用于异步处理）。
+        
+        此方法可以在线程池中调用。
+        
+        Args:
+            audio_bytes: 音频数据
+            is_final: 是否为最终结果
+            hotwords: 热词配置
+            online_cache: 在线 ASR 缓存（用于增量识别）
+            
+        Returns:
+            (StreamingEvent 或 None, 更新后的 cache)
+        """
+        if not audio_bytes or self.model_asr_online is None:
+            return None, online_cache or {}
+        
+        t_start = time.time()
+        cache = online_cache or {}
+        
+        try:
+            asr_params = {
+                "cache": cache,
+                "is_final": is_final,
+                "chunk_size": self.config.chunk_size,
+                "encoder_chunk_look_back": self.config.encoder_chunk_look_back,
+                "decoder_chunk_look_back": self.config.decoder_chunk_look_back,
+            }
+            
+            if hotwords:
+                asr_params["hotword"] = hotwords
+            
+            result = self.model_asr_online.generate(input=audio_bytes, **asr_params)[0]
+            new_cache = result.get("cache", cache)
+            text = result.get("text", "")
+            
+            elapsed_ms = (time.time() - t_start) * 1000
+            
+            if not text:
+                return None, new_cache
+            
+            # 2pass 模式下，如果是 final 则跳过（等待离线结果）
+            if self.config.mode == "2pass" and is_final:
+                return None, new_cache
+            
+            # 简单标点（在线模式不使用缓存标点）
+            if text and self.config.enable_punc and self.model_punc is not None:
+                try:
+                    punc_result = self.model_punc.generate(input=text)[0]
+                    text = punc_result.get("text", text)
+                except Exception:
+                    pass  # 忽略标点错误
+            
+            logger.info(
+                f"[TIMING] online_asr_standalone took={elapsed_ms:.1f}ms, "
+                f"audio_bytes={len(audio_bytes)}, text_len={len(text)}"
+            )
+            
+            mode = "2pass-online" if self.config.mode == "2pass" else self.config.mode
+            event = StreamingEvent(
+                type="partial",
+                mode=mode,
+                text=text,
+                is_final=is_final,
+                wav_name="async",
+            )
+            return event, new_cache
+            
+        except Exception as e:
+            logger.error(f"在线 ASR 独立执行失败: {e}")
+            return None, cache
+    
+    def run_offline_asr_standalone(
+        self, 
+        audio_bytes: bytes, 
+        hotwords: Optional[Dict[str, Any]] = None,
+        start_offset_ms: int = 0,
+        duration_ms: int = 0,
+    ) -> Optional[StreamingEvent]:
+        """独立执行离线 ASR（用于异步处理）。
+        
+        此方法可以在线程池中调用，不依赖 state 对象。
+        
+        Args:
+            audio_bytes: 音频数据
+            hotwords: 热词配置
+            start_offset_ms: 起始时间偏移
+            duration_ms: 音频时长
+            
+        Returns:
+            StreamingEvent 或 None
+        """
+        if not audio_bytes or self.model_asr is None:
+            return None
+        
+        t_start = time.time()
+        try:
+            asr_params = {}
+            if hotwords:
+                asr_params["hotword"] = hotwords
+            
+            result = self.model_asr.generate(input=audio_bytes, **asr_params)[0]
+            text = result.get("text", "")
+            
+            # 应用标点
+            if text and self.config.enable_punc and self.model_punc is not None:
+                try:
+                    punc_result = self.model_punc.generate(input=text)[0]
+                    text = punc_result.get("text", text)
+                except Exception as e:
+                    logger.warning(f"标点处理失败: {e}")
+            
+            # 应用 ITN
+            if text:
+                text = self._apply_itn(text)
+            
+            elapsed_ms = (time.time() - t_start) * 1000
+            logger.info(
+                f"[TIMING] offline_asr_standalone took={elapsed_ms:.1f}ms, "
+                f"audio_bytes={len(audio_bytes)}, text_len={len(text)}"
+            )
+            
+            return StreamingEvent(
+                type="correction",
+                mode="2pass-offline",
+                text=text,
+                is_final=True,
+                wav_name="async",
+                start_offset_ms=start_offset_ms,
+                end_offset_ms=start_offset_ms + duration_ms,
+                duration_ms=duration_ms,
+                audio_data=audio_bytes,
+            )
+        except Exception as e:
+            logger.error(f"离线 ASR 独立执行失败: {e}")
             return None
     
     def _run_offline_asr(self, state: FunASRStreamerState, *, force_final: bool = False) -> Optional[StreamingEvent]:

@@ -100,3 +100,5 @@ voice:
      model-train: /home/leozy/.cache/model/speech_train
      # 热词文件路径（同步到Python服务使用）
      hotword-file-path: /mnt/d/WorkSpace/code/2025/evoice/nevoice/e-voice/zh_correct/custom_word_freq.txt
+     # Python 语音服务地址（用于热词缓存刷新）
+     py-server: http://localhost:8210

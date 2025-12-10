@@ -30,6 +30,7 @@ class SystemMonitor:
         self.log_interval = log_interval
         self.is_monitoring = False
         self.monitor_thread = None
+        self._stop_event = threading.Event()  # 用于快速中断 sleep
         
         # 历史数据存储（最近1小时）
         self.history_size = 120  # 30秒间隔 * 120 = 1小时
@@ -71,6 +72,7 @@ class SystemMonitor:
             return
             
         self.is_monitoring = True
+        self._stop_event.clear()
         self.monitor_thread = threading.Thread(target=self._monitoring_loop, daemon=True)
         self.monitor_thread.start()
         self.monitor_logger.success("🚀 系统监控已启动")
@@ -78,8 +80,9 @@ class SystemMonitor:
     def stop_monitoring(self):
         """停止监控"""
         self.is_monitoring = False
+        self._stop_event.set()  # 立即唤醒正在等待的线程
         if self.monitor_thread:
-            self.monitor_thread.join(timeout=5)
+            self.monitor_thread.join(timeout=2)  # 减少超时时间，因为线程现在可以快速响应
         self.monitor_logger.info("⏹️ 系统监控已停止")
     
     def _monitoring_loop(self):
@@ -117,11 +120,15 @@ class SystemMonitor:
                 except Exception as _:
                     pass
                 
-                time.sleep(self.log_interval)
+                # 使用 Event.wait() 替代 time.sleep()，支持快速中断
+                if self._stop_event.wait(timeout=self.log_interval):
+                    break  # 收到停止信号，立即退出循环
                 
             except Exception as e:
                 self.monitor_logger.error(f"❌ 监控循环异常: {e}")
-                time.sleep(10)  # 异常时降低频率
+                # 异常时降低频率，同样使用可中断的等待
+                if self._stop_event.wait(timeout=10):
+                    break
     
     def _collect_system_metrics(self) -> Dict[str, Any]:
         """收集系统资源指标（GPU失败不影响CPU/内存采集）"""

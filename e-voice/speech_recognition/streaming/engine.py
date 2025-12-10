@@ -1,6 +1,10 @@
 """StreamingEngine push/flush 实现。
 
 使用 FunASRStreamer 进行完整的 VAD + 流式 ASR + 纠错 + 标点 + ITN。
+
+🚀 优化策略：
+1. 离线纠正异步化：在线识别结果立即返回，离线纠正在后台线程执行
+2. 这样实时识别不会被离线ASR阻塞，大幅降低延迟
 """
 
 from __future__ import annotations
@@ -11,7 +15,9 @@ import time
 import uuid
 import wave
 import threading
-from typing import Iterable, List, Optional, Tuple
+import queue
+from concurrent.futures import ThreadPoolExecutor
+from typing import Iterable, List, Optional, Tuple, Callable
 
 from loguru import logger
 from server.logging import ws_logger
@@ -43,6 +49,75 @@ SENTENCE_END_PATTERN = re.compile(r'([。！？!?])')
 PUNCTUATION_ONLY_PATTERN = re.compile(r'^[。！？!?，,、；;：:""''""\'\'()（）【】\[\]《》<>—\-…·\s]+$')
 # 开头的标点符号正则（需要移除的）
 LEADING_PUNCTUATION_PATTERN = re.compile(r'^[。！？!?，,、；;：:""''""\'\'()（）【】\[\]《》<>—\-…·\s]+')
+# 移除所有标点符号的正则（用于计算纯文字长度）
+ALL_PUNCTUATION_PATTERN = re.compile(r'[。！？!?，,、；;：:""''""\'\'()（）【】\[\]《》<>—\-…·\s]+')
+
+# 无意义填充词集合（会被过滤的短句内容）
+# 这些词单独出现时通常是背景噪音、叹息、杂声等，语义价值很低
+FILLER_WORDS = {
+    '嗯', '啊', '呃', '额', '哦', '哎', '嘿', '噢', '唔',
+    '是', '对', '好', '行', '嗯嗯', '哦哦', '啊啊', '嘘',
+    '嗯啊', '啊嗯', '是是', '对对', '好好', '行行',
+    '然后', '那个', '这个', '就是', '所以',
+    # 补充：短促回应和叹息
+    '嗨', '喂', '诶', '欸', '呀', '呐', '哇', '哈', '嘻',
+    '嗯哼', '啊哈', '哎呀', '哦哦哦', '啊啊啊',
+}
+
+# 最小有效句子长度（去掉标点后）
+MIN_MEANINGFUL_LENGTH = 2
+
+# 最小有效语音段时长（毫秒）
+# 如果时长小于此值且是填充词，则过滤
+MIN_MEANINGFUL_DURATION_MS = 500
+
+
+def is_meaningless_sentence(text: str, duration_ms: int = 0) -> bool:
+    """
+    判断句子是否无意义（应该被过滤）。
+    
+    过滤标准：
+    1. 去掉标点后长度小于 MIN_MEANINGFUL_LENGTH（默认2）
+    2. 只包含填充词（嗯、是、啊等）
+    3. 🎯 新增：时长小于 MIN_MEANINGFUL_DURATION_MS 且是填充词
+    
+    Args:
+        text: 待检查的文本
+        duration_ms: 语音段时长（毫秒），0 表示不检查时长
+        
+    Returns:
+        True 表示无意义应过滤，False 表示有意义应保留
+    """
+    if not text:
+        return True
+    
+    # 去掉所有标点符号
+    pure_text = ALL_PUNCTUATION_PATTERN.sub('', text)
+    
+    # 空文本
+    if not pure_text:
+        return True
+    
+    # 长度检查：少于最小长度的句子大概率是噪音
+    if len(pure_text) < MIN_MEANINGFUL_LENGTH:
+        return True
+    
+    # 填充词检查：如果纯文本完全是填充词，则过滤
+    if pure_text in FILLER_WORDS:
+        return True
+    
+    # 🎯 时长+填充词组合检查：短时长的疑似填充词更可能是噪音
+    # 即使文本长度>=2，如果时长很短且包含填充词成分，也过滤
+    if duration_ms > 0 and duration_ms < MIN_MEANINGFUL_DURATION_MS:
+        # 检查是否以填充词开头或结尾
+        for filler in FILLER_WORDS:
+            if pure_text.startswith(filler) or pure_text.endswith(filler):
+                # 如果去掉填充词后剩余内容很少，则过滤
+                remaining = pure_text.replace(filler, '', 1)
+                if len(remaining) < MIN_MEANINGFUL_LENGTH:
+                    return True
+    
+    return False
 
 
 def clean_sentence_text(text: str) -> str:
@@ -115,12 +190,27 @@ def split_by_punctuation(text: str) -> List[str]:
 
 
 class StreamingEngine:
-    """处理音频 chunk 并输出识别事件。"""
+    """处理音频 chunk 并输出识别事件。
+    
+    🚀 支持离线纠正异步化：
+    - 在线识别结果立即返回给前端
+    - 离线纠正在后台线程池执行
+    - 纠正完成后通过回调函数发送结果
+    """
 
     def __init__(self) -> None:
         self._loader = ModelLoader.current()
         self._funasr_streamer: Optional[FunASRStreamer] = None
         self._funasr_state_map: dict[str, FunASRStreamerState] = {}
+        
+        # 🚀 异步 ASR 的线程池和回调
+        self._async_executor: Optional[ThreadPoolExecutor] = None
+        self._async_callbacks: dict[str, Callable] = {}  # session_id -> callback
+        self._async_enabled: bool = False
+        self._async_online_enabled: bool = False
+        
+        # 🚀 在线 ASR 异步缓存管理（用于增量识别）
+        self._online_cache_map: dict[str, dict] = {}
         
         self._init_funasr_streamer()
 
@@ -140,6 +230,17 @@ class StreamingEngine:
             itn_config = config.get("itn", {})
             vad_config = config.get("vad", {})  # VAD 分段参数
             
+            # 🚀 读取异步配置
+            self._async_enabled = features.get("async_offline_correction", False)
+            self._async_online_enabled = features.get("async_online_asr", False)
+            
+            if self._async_enabled or self._async_online_enabled:
+                # 为离线和在线 ASR 创建共享的线程池
+                self._async_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="asr_async_")
+                logger.info(
+                    f"🚀 异步化已启用: offline={self._async_enabled}, online={self._async_online_enabled}"
+                )
+            
             streamer_config = FunASRStreamerConfig(
                 mode=mode_config.get("default", "2pass"),
                 chunk_interval=audio_config.get("chunk_interval", 10),
@@ -155,6 +256,9 @@ class StreamingEngine:
                 vad_max_single_segment_time=vad_config.get("max_single_segment_time", 45000),
                 vad_max_end_silence_time=vad_config.get("max_end_silence_time", 1200),
                 vad_speech_noise_thres=vad_config.get("speech_noise_thres", 0.7),
+                # 异步配置
+                async_offline_correction=self._async_enabled,
+                async_online_asr=self._async_online_enabled,
             )
             
             self._funasr_streamer = FunASRStreamer(
@@ -189,6 +293,23 @@ class StreamingEngine:
     
     # 向后兼容别名
     _get_funasr_state = get_funasr_state
+    
+    def register_async_callback(self, session_id: str, callback: Callable[[dict], None]) -> None:
+        """注册异步离线纠正的回调函数。
+        
+        当离线纠正完成时，会通过此回调发送结果。
+        
+        Args:
+            session_id: 会话 ID
+            callback: 回调函数，接收 event dict 作为参数
+        """
+        if self._async_enabled:
+            self._async_callbacks[session_id] = callback
+            ws_logger.info(f"[async] session={session_id} registered callback")
+    
+    def unregister_async_callback(self, session_id: str) -> None:
+        """注销异步回调。"""
+        self._async_callbacks.pop(session_id, None)
     
     def _save_audio_segment(
         self,
@@ -363,11 +484,162 @@ class StreamingEngine:
         state.text_accumulator = accumulator
         
         for event in events:
+            # 🚀 处理异步离线纠正事件
+            if event.type == "pending_correction":
+                # 异步模式：提交到线程池执行离线 ASR
+                if self._async_enabled and self._async_executor and event.audio_data:
+                    # 捕获必要的上下文
+                    session_id = state.session_id
+                    hotwords = dict(state.hotwords) if state.hotwords else None
+                    start_offset_ms = event.start_offset_ms
+                    duration_ms = event.duration_ms
+                    audio_data = event.audio_data
+                    segment_id = state.ensure_segment()
+                    
+                    def async_offline_task():
+                        """异步执行离线 ASR 并通过回调发送结果"""
+                        try:
+                            t_start = time.time()
+                            offline_result = self._funasr_streamer.run_offline_asr_standalone(
+                                audio_bytes=audio_data,
+                                hotwords=hotwords,
+                                start_offset_ms=start_offset_ms,
+                                duration_ms=duration_ms,
+                            )
+                            
+                            if offline_result and offline_result.text:
+                                # 清理文本
+                                cleaned_text = clean_sentence_text(offline_result.text)
+                                
+                                # 🎯 过滤无意义短句（异步任务也过滤）
+                                # 传入时长参数，对短时长+填充词的组合进行更严格过滤
+                                if is_meaningless_sentence(cleaned_text, duration_ms):
+                                    ws_logger.info(
+                                        f"[ASYNC] session={session_id} 过滤无意义: "
+                                        f"'{offline_result.text}' -> '{cleaned_text}', duration={duration_ms}ms"
+                                    )
+                                    return  # 直接返回，不发送
+                                
+                                # 同音词修正
+                                if HOMOPHONE_CORRECTION_AVAILABLE:
+                                    try:
+                                        corrected_text = correct_homophones(cleaned_text)
+                                        if corrected_text != cleaned_text:
+                                            cleaned_text = corrected_text
+                                    except Exception:
+                                        pass
+                                
+                                # 声纹匹配
+                                speaker_info = self._match_speaker(audio_data, session_id)
+                                
+                                # 保存音频
+                                audio_path = self._save_audio_segment(audio_data, session_id, segment_id)
+                                
+                                # 构建结果事件
+                                result_event = {
+                                    "type": "correction",
+                                    "mode": "2pass-offline-async",
+                                    "text": cleaned_text,
+                                    "is_final": True,
+                                    "session_id": session_id,
+                                    "segment_id": segment_id,
+                                    "start_offset_ms": start_offset_ms,
+                                    "end_offset_ms": start_offset_ms + duration_ms,
+                                    "duration_ms": duration_ms,
+                                    "audio_path": audio_path,
+                                    "async_latency_ms": int((time.time() - t_start) * 1000),
+                                }
+                                
+                                if speaker_info:
+                                    result_event["speaker_info"] = speaker_info
+                                
+                                # 通过回调发送结果
+                                callback = self._async_callbacks.get(session_id)
+                                if callback:
+                                    callback(result_event)
+                                    ws_logger.info(
+                                        f"[ASYNC] session={session_id} correction sent via callback, "
+                                        f"text_len={len(cleaned_text)}, latency_ms={result_event['async_latency_ms']}"
+                                    )
+                                else:
+                                    ws_logger.warning(
+                                        f"[ASYNC] session={session_id} no callback registered, result dropped"
+                                    )
+                        except Exception as e:
+                            ws_logger.error(f"[ASYNC] session={session_id} offline_asr failed: {e}")
+                    
+                    # 提交异步任务
+                    self._async_executor.submit(async_offline_task)
+                    ws_logger.info(f"[ASYNC] session={state.session_id} offline_asr task submitted")
+                continue
+            
+            # 🚀 处理异步在线 ASR 事件
+            if event.type == "pending_online":
+                if self._async_online_enabled and self._async_executor and event.audio_data:
+                    session_id = state.session_id
+                    hotwords = dict(state.hotwords) if state.hotwords else None
+                    is_final = event.is_final
+                    audio_data = event.audio_data
+                    
+                    # 获取或创建在线 ASR 缓存
+                    online_cache = self._online_cache_map.get(session_id, {})
+                    
+                    def async_online_task():
+                        """异步执行在线 ASR 并通过回调发送结果"""
+                        try:
+                            t_start = time.time()
+                            online_result, new_cache = self._funasr_streamer.run_online_asr_standalone(
+                                audio_bytes=audio_data,
+                                is_final=is_final,
+                                hotwords=hotwords,
+                                online_cache=online_cache,
+                            )
+                            
+                            # 更新缓存
+                            self._online_cache_map[session_id] = new_cache
+                            
+                            if online_result and online_result.text:
+                                # 🎯 过滤无意义短句
+                                if is_meaningless_sentence(online_result.text):
+                                    return
+                                
+                                # 构建结果事件
+                                # 🔧 mode 使用 "2pass-online" 而不是 "2pass-online-async"
+                                # 这样前端可以统一处理，不需要额外判断
+                                result_event = {
+                                    "type": "partial",
+                                    "mode": "2pass-online",  # 与同步模式保持一致
+                                    "text": online_result.text,
+                                    "is_final": False,
+                                    "session_id": session_id,
+                                    "async_latency_ms": int((time.time() - t_start) * 1000),
+                                }
+                                
+                                # 通过回调发送结果
+                                callback = self._async_callbacks.get(session_id)
+                                if callback:
+                                    callback(result_event)
+                                    ws_logger.debug(
+                                        f"[ASYNC] session={session_id} online sent via callback, "
+                                        f"text_len={len(online_result.text)}"
+                                    )
+                        except Exception as e:
+                            ws_logger.error(f"[ASYNC] session={session_id} online_asr failed: {e}")
+                    
+                    # 提交异步任务
+                    self._async_executor.submit(async_online_task)
+                continue
+            
             text = event.text
             if not text:
                 continue
             
             if event.type == "partial":
+                # 🎯 过滤无意义短句（partial 也过滤，避免干扰实时预览）
+                if is_meaningless_sentence(text):
+                    ws_logger.debug(f"[filter] session={state.session_id} partial 过滤无意义: '{text}'")
+                    continue
+                
                 # 实时 partial 结果不分段
                 revision = state.next_revision()
                 segment_id = state.ensure_segment()
@@ -383,14 +655,26 @@ class StreamingEngine:
                     "text_state": snapshot,
                 }
                 result_events.append(result_event)
-            else:  # correction / final - 按说话人合并，不分句
+            elif event.type == "correction":  # correction / final - 按说话人合并，不分句
                 # 按说话人合并：同一个 VAD 段内的所有内容作为一条记录
                 # 因为声纹匹配是对整个 VAD 段进行的，所以同一段内说话人相同
                 
-                # 获取原始时间信息
+                # 获取原始时间信息（需要在过滤前获取，用于时长判断）
                 total_start_ms = event.start_offset_ms
                 total_duration_ms = event.duration_ms
                 total_end_ms = total_start_ms + total_duration_ms
+                
+                # 清理文本：移除开头标点，确保结尾有标点
+                cleaned_text = clean_sentence_text(text)
+                
+                # 🎯 过滤无意义短句（correction 也过滤，避免产生无效记录）
+                # 传入时长参数，对短时长+填充词的组合进行更严格过滤
+                if is_meaningless_sentence(cleaned_text, total_duration_ms):
+                    ws_logger.info(
+                        f"[filter] session={state.session_id} correction 过滤无意义: "
+                        f"'{text}' -> '{cleaned_text}', duration={total_duration_ms}ms"
+                    )
+                    continue
                 
                 # 声纹匹配（使用整个 VAD 段的音频）
                 speaker_info = None
@@ -399,7 +683,7 @@ class StreamingEngine:
                 
                 revision = state.next_revision()
                 segment_id = state.ensure_segment()
-                snapshot = accumulator.apply_correction(text)
+                snapshot = accumulator.apply_correction(cleaned_text)
                 
                 # 保存整个 VAD 段的音频
                 audio_path = None
@@ -409,9 +693,6 @@ class StreamingEngine:
                         state.session_id,
                         segment_id
                     )
-                
-                # 清理文本：移除开头标点，确保结尾有标点
-                cleaned_text = clean_sentence_text(text)
                 
                 # 同音词修正（热词替换）
                 if HOMOPHONE_CORRECTION_AVAILABLE:
@@ -509,15 +790,24 @@ class StreamingEngine:
             # 与 push 方法保持一致：按 VAD 段整体处理，不分割句子
             # 因为分割句子会导致所有子句使用相同的时间戳，这是不正确的
             
+            # 获取时间信息（需要在过滤前获取，用于时长判断）
+            start_offset_ms = getattr(event, 'start_offset_ms', 0)
+            duration_ms = getattr(event, 'duration_ms', 0)
+            end_offset_ms = start_offset_ms + duration_ms
+            
             # 清理文本：移除开头标点，确保结尾有标点
             cleaned_text = clean_sentence_text(text)
             if not cleaned_text:
                 continue
             
-            # 获取时间信息
-            start_offset_ms = getattr(event, 'start_offset_ms', 0)
-            duration_ms = getattr(event, 'duration_ms', 0)
-            end_offset_ms = start_offset_ms + duration_ms
+            # 🎯 过滤无意义短句（flush 时也过滤，确保最终结果干净）
+            # 传入时长参数，对短时长+填充词的组合进行更严格过滤
+            if is_meaningless_sentence(cleaned_text, duration_ms):
+                ws_logger.info(
+                    f"[filter] session={state.session_id} flush 过滤无意义: "
+                    f"'{text}' -> '{cleaned_text}', duration={duration_ms}ms"
+                )
+                continue
             
             # 声纹匹配（使用整个 VAD 段的音频）
             speaker_info = None
@@ -567,6 +857,11 @@ class StreamingEngine:
         """清理会话状态。"""
         if session_id in self._funasr_state_map:
             del self._funasr_state_map[session_id]
+        # 清理在线 ASR 缓存
+        if session_id in self._online_cache_map:
+            del self._online_cache_map[session_id]
+        # 清理异步回调
+        self.unregister_async_callback(session_id)
 
     @property
     def is_ready(self) -> bool:

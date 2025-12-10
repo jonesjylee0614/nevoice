@@ -345,10 +345,32 @@ let currentGain = 15.0; // 默认增益（网络推荐范围内）
 const chunkIntervalMs = ref(DEMO_CHUNK_MS); // 固定 ~60ms
 const chunkSamples = ref(DEMO_PCM_SAMPLES); // 实际发送 960 样本
 const APPLY_CUSTOM_AGC = ref(false); // 是否应用自定义AGC
-const DROP_SILENCE = ref(false); // 默认不过滤静音，避免误删有效语音
+const DROP_SILENCE = ref(true); // 默认开启静音过滤，减少无效音频推送
 const DISABLE_WEBRTC_DSP = true; // 关闭浏览器内置回声/降噪/自动增益
 const seq = 0; // 分片序号，用于排查丢包乱序
 let pendingPcm: number[] = []; // 缓冲 960 样本对齐发送
+
+// 🎯 增强静音检测状态（智能 VAD 前置）
+let consecutiveSilenceChunks = 0; // 连续静音块计数
+let consecutiveSpeechChunks = 0; // 连续语音块计数
+let isInSpeech = false; // 当前是否处于语音状态
+// 阈值说明：RMS 范围通常在 0.0001（静音）到 0.3（大声说话）之间
+// 背景噪音一般在 0.001-0.01，正常说话在 0.02-0.15
+const SILENCE_THRESHOLD = 0.01; // 静音 RMS 阈值（低于此值认为是静音）
+const SPEECH_THRESHOLD = 0.02; // 语音 RMS 阈值（高于此值认为是语音）
+const SILENCE_CHUNKS_TO_END = 20; // 连续多少个静音块后认为语音结束（约 1.2 秒）
+const SPEECH_CHUNKS_TO_START = 3; // 连续多少个语音块后认为语音开始（约 180ms）
+let silenceSkippedCount = 0; // 被跳过的静音块统计
+let totalChunksReceived = 0; // 总共收到的音频块数
+
+// 重置静音检测状态
+function resetVadState() {
+  consecutiveSilenceChunks = 0;
+  consecutiveSpeechChunks = 0;
+  isInSpeech = false;
+  silenceSkippedCount = 0;
+  totalChunksReceived = 0;
+}
 
 // 🔧 根据时间间隔计算采样数
 function calculateChunkSamples(intervalMs: number): number {
@@ -712,6 +734,10 @@ async function startRealtime() {
     // 🔧 重置缓存对齐 960 样本
     pendingPcm = [];
     sentChunkCount = 0;
+    
+    // 🎯 重置静音检测状态（重要！）
+    resetVadState();
+    addLog('info', `静音检测已重置，阈值: 静音<${SILENCE_THRESHOLD} 语音>${SPEECH_THRESHOLD}`);
 
     // 🔧 使用配置的chunk大小创建音频处理器
     scriptProcessor = audioContext.createScriptProcessor(PROCESSOR_BUFFER_SIZE, 1, 1);
@@ -739,9 +765,75 @@ async function startRealtime() {
         amplifiedRMS = Math.sqrt(amplifiedSum / amplifiedInput.length);
       }
 
-      // 🔧 修复静音检测：放宽阈值，避免过滤有效语音
-      const silenceThreshold = 0.0005; // 降低阈值，从0.001调整到0.0005
-      if (DROP_SILENCE.value && amplifiedRMS < silenceThreshold) return;
+      // 🎯 增强静音检测：智能 VAD 前置过滤
+      // 核心思路：不是简单的能量阈值，而是基于状态机的智能判断
+      // - 语音开始需要连续 N 个高能量块确认
+      // - 语音结束需要连续 M 个低能量块确认
+      // - 这样可以避免误删有效语音，同时大幅减少无效静音推送
+      
+      totalChunksReceived++;
+      
+      if (DROP_SILENCE.value) {
+        const isSilentChunk = amplifiedRMS < SILENCE_THRESHOLD;
+        const isSpeechChunk = amplifiedRMS >= SPEECH_THRESHOLD;
+        
+        // 🔍 每 50 个块输出一次当前状态（约 3 秒）
+        if (totalChunksReceived % 50 === 0) {
+          addLog('info', 
+            `📊 VAD状态: RMS=${amplifiedRMS.toFixed(4)}, ` +
+            `isInSpeech=${isInSpeech}, ` +
+            `静音块=${consecutiveSilenceChunks}, 语音块=${consecutiveSpeechChunks}, ` +
+            `已发送=${sentChunkCount}, 已跳过=${silenceSkippedCount}`
+          );
+        }
+        
+        if (isSpeechChunk) {
+          // 明确的语音能量
+          consecutiveSpeechChunks++;
+          consecutiveSilenceChunks = 0;
+          
+          if (!isInSpeech && consecutiveSpeechChunks >= SPEECH_CHUNKS_TO_START) {
+            // 状态转换：静音 → 语音
+            isInSpeech = true;
+            addLog('info', `🎤 检测到语音开始 (RMS=${amplifiedRMS.toFixed(4)}, 跳过了 ${silenceSkippedCount} 个静音块)`);
+            silenceSkippedCount = 0;
+          }
+        } else if (isSilentChunk) {
+          // 明确的静音
+          consecutiveSilenceChunks++;
+          consecutiveSpeechChunks = 0;
+          
+          if (isInSpeech && consecutiveSilenceChunks >= SILENCE_CHUNKS_TO_END) {
+            // 状态转换：语音 → 静音
+            isInSpeech = false;
+            addLog('info', `🔇 检测到语音结束 (${consecutiveSilenceChunks} 个连续静音块, 已发送 ${sentChunkCount} 块)`);
+          }
+        } else {
+          // 中间能量（SILENCE_THRESHOLD <= RMS < SPEECH_THRESHOLD）
+          // 如果已经在说话中，认为是语音的一部分（避免轻声被切断）
+          // 如果还没开始说话，保持静音状态（避免背景噪音触发）
+          if (isInSpeech) {
+            consecutiveSilenceChunks = 0;
+            consecutiveSpeechChunks = 0; // 重置，需要重新确认语音
+          } else {
+            // 中间能量但还没开始说话，算作静音
+            consecutiveSilenceChunks++;
+            consecutiveSpeechChunks = 0;
+          }
+        }
+        
+        // 如果当前不在语音状态，跳过发送
+        if (!isInSpeech) {
+          silenceSkippedCount++;
+          // 每跳过 100 个块记录一次（约 6 秒）
+          if (silenceSkippedCount % 100 === 0) {
+            addLog('info', `🔕 静音过滤中... 已跳过 ${silenceSkippedCount} 块 (当前RMS=${amplifiedRMS.toFixed(4)})`);
+          }
+          // 更新音量显示但不发送
+          volumePercent.value = Math.min(100, Math.max(0, Math.floor(amplifiedRMS * 500)));
+          return;
+        }
+      }
 
       // 更新音量显示（基于增益后的RMS）
       volumePercent.value = Math.min(100, Math.max(0, Math.floor(amplifiedRMS * 100)));

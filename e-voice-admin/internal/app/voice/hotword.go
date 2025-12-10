@@ -13,8 +13,10 @@ import (
 	"gofly/pkg/utils/gf"
 	"gofly/pkg/utils/results"
 	"io"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,6 +42,12 @@ func (s *Hotword) Get_list(c *gin.Context) {
 		datetimeArr := strings.Split(req.CreatedTime, ",")
 		cond.Where(req.CreatedTime, "create_time between ? and ?", datetimeArr[0]+" 00:00:00", datetimeArr[1]+" 23:59:59")
 	}
+
+	// 状态筛选：-1 表示全部，0 表示未启用，1 表示已启用
+	if req.Status >= 0 {
+		cond.Where(true, "status = ?", req.Status)
+	}
+
 	cond.Order = "id desc"
 
 	list, err := s.svc.Page(c, &req.IPage, cond)
@@ -254,7 +262,50 @@ func (s *Hotword) syncToFile() error {
 	}
 
 	logx.Infof("热词已同步到文件: %s, 共 %d 条", filePath, len(list))
+
+	// 通知 Python 后端刷新热词缓存
+	go s.notifyPythonReload()
+
 	return nil
+}
+
+// notifyPythonReload 通知 Python 后端刷新热词缓存
+func (s *Hotword) notifyPythonReload() {
+	pyServer := config.Inst.Voice.PyServer
+	if pyServer == "" {
+		logx.Warnf("Python 服务地址未配置，跳过热词缓存刷新")
+		return
+	}
+
+	// 构建 API 地址
+	url := fmt.Sprintf("%s/api/hotwords/reload", pyServer)
+
+	// 创建带超时的 HTTP 客户端
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// 发送 POST 请求
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		logx.Errorf("创建热词刷新请求失败: %v", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logx.Errorf("调用 Python 热词刷新接口失败: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		logx.Infof("Python 热词缓存刷新成功")
+	} else {
+		body, _ := io.ReadAll(resp.Body)
+		logx.Errorf("Python 热词缓存刷新失败: status=%d, body=%s", resp.StatusCode, string(body))
+	}
 }
 
 // Get_stats 获取统计信息 /voice/hotword/get_stats [GET]
@@ -289,4 +340,3 @@ func (s *Hotword) Perms() map[string][]gin.HandlerFunc {
 		"vh:sync":     {s.Sync},
 	}
 }
-
