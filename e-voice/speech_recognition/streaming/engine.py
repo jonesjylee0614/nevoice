@@ -26,6 +26,7 @@ from .loader import ModelLoader, FunASRModelBundle
 from .state import StreamingState
 from .text_accumulator import TextAccumulator
 from .funasr_streamer import FunASRStreamer, FunASRStreamerConfig, FunASRStreamerState
+from .segment_merge import SegmentMergeManager
 
 # 导入同音词修正器
 try:
@@ -244,6 +245,9 @@ class StreamingEngine:
         # 🚀 在线 ASR 异步缓存管理（用于增量识别）
         self._online_cache_map: dict[str, dict] = {}
         
+        # 🎯 片段合并管理器（同步/异步路径共用）
+        self._segment_merge_manager: Optional[SegmentMergeManager] = None
+        
         self._init_funasr_streamer()
 
     def _init_funasr_streamer(self) -> None:
@@ -261,6 +265,7 @@ class StreamingEngine:
             features = config.get("features", {})
             itn_config = config.get("itn", {})
             vad_config = config.get("vad", {})  # VAD 分段参数
+            segment_merge_config = config.get("segment_merge", {})  # 🎯 片段合并配置
             
             # 🚀 读取异步配置
             self._async_enabled = features.get("async_offline_correction", False)
@@ -272,6 +277,13 @@ class StreamingEngine:
                 logger.info(
                     f"🚀 异步化已启用: offline={self._async_enabled}, online={self._async_online_enabled}"
                 )
+            
+            # 🎯 初始化片段合并管理器
+            self._segment_merge_manager = SegmentMergeManager.current(segment_merge_config)
+            logger.info(
+                f"🎯 片段合并已初始化: enabled={self._segment_merge_manager.enabled}, "
+                f"max_gap_ms={self._segment_merge_manager.config.max_gap_ms}"
+            )
             
             streamer_config = FunASRStreamerConfig(
                 mode=mode_config.get("default", "2pass"),
@@ -543,14 +555,9 @@ class StreamingEngine:
                                 # 清理文本
                                 cleaned_text = clean_sentence_text(offline_result.text)
                                 
-                                # 🎯 过滤无意义短句（异步任务也过滤）
-                                # 传入时长参数，对短时长+填充词的组合进行更严格过滤
-                                if is_meaningless_sentence(cleaned_text, duration_ms):
-                                    ws_logger.info(
-                                        f"[ASYNC] session={session_id} 过滤无意义: "
-                                        f"'{offline_result.text}' -> '{cleaned_text}', duration={duration_ms}ms"
-                                    )
-                                    return  # 直接返回，不发送
+                                # 空文本直接跳过
+                                if not cleaned_text or not cleaned_text.strip():
+                                    return
                                 
                                 # 同音词修正
                                 if HOMOPHONE_CORRECTION_AVAILABLE:
@@ -579,6 +586,7 @@ class StreamingEngine:
                                     "end_offset_ms": start_offset_ms + duration_ms,
                                     "duration_ms": duration_ms,
                                     "audio_path": audio_path,
+                                    "audio_data": audio_data,  # 用于合并后重新保存
                                     "async_latency_ms": int((time.time() - t_start) * 1000),
                                 }
                                 
@@ -588,11 +596,24 @@ class StreamingEngine:
                                 # 通过回调发送结果
                                 callback = self._async_callbacks.get(session_id)
                                 if callback:
-                                    callback(result_event)
-                                    ws_logger.info(
-                                        f"[ASYNC] session={session_id} correction sent via callback, "
-                                        f"text_len={len(cleaned_text)}, latency_ms={result_event['async_latency_ms']}"
-                                    )
+                                    # 🎯 通过片段合并模块处理（异步路径也使用同一套逻辑）
+                                    if self._segment_merge_manager and self._segment_merge_manager.enabled:
+                                        merged_events = self._segment_merge_manager.process_event(
+                                            session_id, result_event
+                                        )
+                                        for evt in merged_events:
+                                            evt["async_latency_ms"] = int((time.time() - t_start) * 1000)
+                                            callback(evt)
+                                            ws_logger.info(
+                                                f"[ASYNC] session={session_id} merged correction sent, "
+                                                f"text_len={len(evt.get('text', ''))}"
+                                            )
+                                    else:
+                                        callback(result_event)
+                                        ws_logger.info(
+                                            f"[ASYNC] session={session_id} correction sent via callback, "
+                                            f"text_len={len(cleaned_text)}, latency_ms={result_event['async_latency_ms']}"
+                                        )
                                 else:
                                     ws_logger.warning(
                                         f"[ASYNC] session={session_id} no callback registered, result dropped"
@@ -695,11 +716,10 @@ class StreamingEngine:
                     "text_state": snapshot,
                 }
                 result_events.append(result_event)
-            elif event.type == "correction":  # correction / final - 按说话人合并，不分句
-                # 按说话人合并：同一个 VAD 段内的所有内容作为一条记录
-                # 因为声纹匹配是对整个 VAD 段进行的，所以同一段内说话人相同
+            elif event.type == "correction":  # correction / final - 通过片段合并模块处理
+                # 🎯 片段合并模块处理：短句优先合并，不是直接过滤
                 
-                # 获取原始时间信息（需要在过滤前获取，用于时长判断）
+                # 获取原始时间信息
                 total_start_ms = event.start_offset_ms
                 total_duration_ms = event.duration_ms
                 total_end_ms = total_start_ms + total_duration_ms
@@ -710,13 +730,8 @@ class StreamingEngine:
                 # 清理文本：移除开头标点，确保结尾有标点
                 cleaned_text = clean_sentence_text(text)
                 
-                # 🎯 过滤无意义短句（correction 也过滤，避免产生无效记录）
-                # 传入时长参数，对短时长+填充词的组合进行更严格过滤
-                if is_meaningless_sentence(cleaned_text, total_duration_ms):
-                    ws_logger.info(
-                        f"[filter] session={state.session_id} correction 过滤无意义: "
-                        f"'{text}' -> '{cleaned_text}', duration={total_duration_ms}ms"
-                    )
+                # 空文本直接跳过
+                if not cleaned_text or not cleaned_text.strip():
                     continue
                 
                 # 声纹匹配（使用整个 VAD 段的音频）
@@ -762,6 +777,8 @@ class StreamingEngine:
                     "duration_ms": total_duration_ms,
                     # 音频路径 - 整个 VAD 段的音频
                     "audio_path": audio_path,
+                    # 音频数据 - 用于合并后重新保存
+                    "audio_data": event.audio_data,
                 }
                 
                 # 添加声纹匹配结果
@@ -774,7 +791,16 @@ class StreamingEngine:
                 # 🎯 清空累积的 partial 文本（这段语音已经结束）
                 state.clear_partial_text()
                 
-                result_events.append(result_event)
+                # 🎯 通过片段合并模块处理
+                # 短句优先尝试合并，只有无法合并时才按阈值过滤
+                if self._segment_merge_manager and self._segment_merge_manager.enabled:
+                    merged_events = self._segment_merge_manager.process_event(
+                        state.session_id, result_event
+                    )
+                    result_events.extend(merged_events)
+                else:
+                    # 合并功能禁用，直接输出
+                    result_events.append(result_event)
         
         # 【诊断日志】push方法总耗时
         t_push_end = time.time()
@@ -804,6 +830,9 @@ class StreamingEngine:
             return []
         
         if state.session_id not in self._funasr_state_map:
+            # 即使没有 funasr_state，也要刷新 segment_merge 缓冲区
+            if self._segment_merge_manager and self._segment_merge_manager.enabled:
+                return self._segment_merge_manager.flush_session(state.session_id)
             return []
         
         funasr_state = self._funasr_state_map[state.session_id]
@@ -833,10 +862,7 @@ class StreamingEngine:
             if not text:
                 continue
             
-            # 与 push 方法保持一致：按 VAD 段整体处理，不分割句子
-            # 因为分割句子会导致所有子句使用相同的时间戳，这是不正确的
-            
-            # 获取时间信息（需要在过滤前获取，用于时长判断）
+            # 获取时间信息
             start_offset_ms = getattr(event, 'start_offset_ms', 0)
             duration_ms = getattr(event, 'duration_ms', 0)
             end_offset_ms = start_offset_ms + duration_ms
@@ -844,15 +870,6 @@ class StreamingEngine:
             # 清理文本：移除开头标点，确保结尾有标点
             cleaned_text = clean_sentence_text(text)
             if not cleaned_text:
-                continue
-            
-            # 🎯 过滤无意义短句（flush 时也过滤，确保最终结果干净）
-            # 传入时长参数，对短时长+填充词的组合进行更严格过滤
-            if is_meaningless_sentence(cleaned_text, duration_ms):
-                ws_logger.info(
-                    f"[filter] session={state.session_id} flush 过滤无意义: "
-                    f"'{text}' -> '{cleaned_text}', duration={duration_ms}ms"
-                )
                 continue
             
             # 声纹匹配（使用整个 VAD 段的音频）
@@ -888,14 +905,32 @@ class StreamingEngine:
                 "duration_ms": duration_ms,
                 # 音频路径 - 整个 VAD 段的音频
                 "audio_path": audio_path,
+                # 音频数据 - 用于合并后重新保存
+                "audio_data": audio_data,
             }
             
             # 添加声纹匹配结果
             if speaker_info:
                 result_event["speaker_info"] = speaker_info
             
-            result_events.append(result_event)
             state.mark_segment_final(segment_id)
+            
+            # 🎯 通过片段合并模块处理
+            if self._segment_merge_manager and self._segment_merge_manager.enabled:
+                merged_events = self._segment_merge_manager.process_event(
+                    state.session_id, result_event
+                )
+                result_events.extend(merged_events)
+            else:
+                result_events.append(result_event)
+        
+        # 🎯 刷新片段合并缓冲区，输出所有待处理的片段
+        if self._segment_merge_manager and self._segment_merge_manager.enabled:
+            flush_events = self._segment_merge_manager.flush_session(state.session_id)
+            result_events.extend(flush_events)
+            ws_logger.info(
+                f"[segment_merge] session={state.session_id} flush 输出 {len(flush_events)} 个缓冲事件"
+            )
         
         return result_events
 
@@ -908,6 +943,9 @@ class StreamingEngine:
             del self._online_cache_map[session_id]
         # 清理异步回调
         self.unregister_async_callback(session_id)
+        # 🎯 清理片段合并缓冲区
+        if self._segment_merge_manager:
+            self._segment_merge_manager.cleanup_session(session_id)
 
     @property
     def is_ready(self) -> bool:
