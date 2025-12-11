@@ -717,9 +717,9 @@ const startAudioCapture = async () => {
     const source = audioContext.createMediaStreamSource(mediaStream)
     
     // 添加增益节点放大音频信号
-    // 🎯 从 5.0 降低到 3.0，避免背景噪音被过度放大导致误识别
+    // 🎯 从 3.0 降低到 1.5，避免键盘敲击等背景噪音被过度放大导致误识别
     const gainNode = audioContext.createGain()
-    gainNode.gain.value = 3.0 // 放大 3 倍（平衡灵敏度和噪音）
+    gainNode.gain.value = 1.5 // 放大 1.5 倍（降低增益，减少噪音干扰）
     
     // 使用 ScriptProcessorNode（兼容性更好）
     const bufferSize = 4096
@@ -738,8 +738,8 @@ const startAudioCapture = async () => {
     // 客户端 VAD 参数
     // 🎯 阈值说明：RMS 范围通常 0.001（静音）到 0.3（大声说话）
     // 背景噪音一般在 0.003-0.015，正常说话在 0.02-0.15
-    // 🎯 从 0.025 提高到 0.035，配合增益 3.0，过滤更多背景噪音
-    const VAD_THRESHOLD = 0.035 // 音量阈值（调高，避免背景噪音触发）
+    // 🎯 从 0.035 提高到 0.045，配合降低后的增益 1.5，更严格过滤键盘敲击等噪音
+    const VAD_THRESHOLD = 0.045 // 音量阈值（调高，过滤键盘敲击等背景噪音）
     const SILENCE_TIMEOUT = 1500 // 静音超时（毫秒）
     const SPEECH_CONFIRM_CHUNKS = 3 // 需要连续多少个高能量块才确认语音开始
     let isSpeaking = false // 是否正在说话
@@ -902,22 +902,36 @@ const handleRecognitionMessage = async (data: any) => {
   
   // 处理实时预览（online 模式）- partial 类型
   if (data.type === 'partial' && (mode === '2pass-online' || mode === 'online')) {
-    // 检查是否是新的语音段，如果是则清空预览
+    // 检查是否是新的语音段，如果是则更新 segment ID
     if (segmentId && segmentId !== currentSegmentId) {
-      console.log('[Recording] 新语音段开始:', segmentId, '清空预览')
-      runningText.value = ''
+      console.log('[Recording] 新语音段开始:', segmentId)
       currentSegmentId = segmentId
     }
-    console.log('[Recording] online 结果:', text)
-    // 🔧 累加增量文本
-    runningText.value += text
+    
+    // 🎯 优化：使用 full_text 覆写显示（避免累加导致的重复问题）
+    // 如果后端返回了 full_text（累积的完整文本），直接覆写
+    // 否则保持向后兼容的累加逻辑
+    const fullText = data.full_text || ''
+    if (fullText) {
+      console.log('[Recording] 🔄 覆写预览:', fullText.substring(0, 50) + (fullText.length > 50 ? '...' : ''))
+      runningText.value = fullText
+    } else {
+      // 向后兼容：如果没有 full_text，使用增量累加
+      console.log('[Recording] online 结果:', text)
+      runningText.value += text
+    }
   } 
   // 处理最终结果（offline 模式）- correction 类型
   // 🔧 修复：支持异步离线纠正 '2pass-offline-async'
   else if (data.type === 'correction' && (mode === '2pass-offline' || mode === 'offline' || mode === '2pass-offline-async')) {
     console.log('[Recording] 📝 correction 结果:', text, '模式:', mode)
-    // 清空实时预览
-    runningText.value = ''
+    
+    // 🎯 优化：平滑替换而不是突然清空
+    // 1. 先用纠正后的文本替换预览（让用户看到优化后的结果）
+    if (text) {
+      runningText.value = text + ' ✓'  // 加一个 ✓ 表示已优化
+    }
+    
     // 重置 segment ID，准备接收下一个语音段
     currentSegmentId = ''
     
@@ -959,15 +973,23 @@ const handleRecognitionMessage = async (data: any) => {
         audioPath: fullAudioUrl
       }
       
-      // 添加到本地对话列表
-      if (meeting.value) {
-        meeting.value.dialogs = [...(meeting.value.dialogs || []), dialog]
-        meeting.value.dialogCount = meeting.value.dialogs.length
-        // 滚动对话列表到底部
-        scrollDialogsToBottom()
-      }
+      // 🎯 优化：延迟 500ms 后再移到对话记录，让用户有时间看到优化后的结果
+      setTimeout(() => {
+        // 添加到本地对话列表
+        if (meeting.value) {
+          meeting.value.dialogs = [...(meeting.value.dialogs || []), dialog]
+          meeting.value.dialogCount = meeting.value.dialogs.length
+          // 滚动对话列表到底部
+          scrollDialogsToBottom()
+        }
+        
+        // 清空预览（如果当前预览还是这条内容的话）
+        if (runningText.value === text + ' ✓') {
+          runningText.value = ''
+        }
+      }, 500)
       
-      // 保存到后端
+      // 保存到后端（不需要等延迟）
       try {
         await saveDialog({
           meetingId: meetingId.value,

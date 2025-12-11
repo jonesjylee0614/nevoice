@@ -148,6 +148,38 @@ def clean_sentence_text(text: str) -> str:
     return text
 
 
+# 重复字符过滤正则：去除连续重复 1-3 个字符重复 2 次以上的情况
+# 例如："这这这这" -> "这"，"一个一个一个" -> "一个"
+REPEATED_PATTERN = re.compile(r'(.{1,3})\1{2,}')
+
+
+def remove_repeated_chars(text: str) -> str:
+    """
+    去除文本中的重复字符/短语。
+    
+    当键盘敲击、背景噪音等被误识别时，常会产生重复字符，
+    如 "这这这这这" 或 "一个一个一个"。
+    
+    Args:
+        text: 待处理的文本
+        
+    Returns:
+        去重后的文本
+    """
+    if not text:
+        return text
+    
+    # 去除连续重复的字符或短语
+    # (.{1,3})\1{2,} 匹配 1-3 个字符重复 3 次以上
+    cleaned = REPEATED_PATTERN.sub(r'\1', text)
+    
+    # 记录去重情况
+    if cleaned != text:
+        ws_logger.debug(f"[去重] '{text}' -> '{cleaned}'")
+    
+    return cleaned
+
+
 def split_by_punctuation(text: str) -> List[str]:
     """
     基于句末标点将文本分割成语义完整的句子。
@@ -635,6 +667,9 @@ class StreamingEngine:
                 continue
             
             if event.type == "partial":
+                # 🎯 去除重复字符（键盘敲击等噪音可能产生重复）
+                text = remove_repeated_chars(text)
+                
                 # 🎯 过滤无意义短句（partial 也过滤，避免干扰实时预览）
                 if is_meaningless_sentence(text):
                     ws_logger.debug(f"[filter] session={state.session_id} partial 过滤无意义: '{text}'")
@@ -643,12 +678,17 @@ class StreamingEngine:
                 # 实时 partial 结果不分段
                 revision = state.next_revision()
                 segment_id = state.ensure_segment()
+                
+                # 🎯 累积 partial 文本，供前端覆写显示
+                full_text = state.append_partial_text(text)
+                
                 snapshot = accumulator.update_partial(text, revision)
                 result_event = {
                     "type": "partial",
                     "mode": event.mode,
                     "revision": revision,
-                    "text": text,
+                    "text": text,  # 增量文本（兼容旧逻辑）
+                    "full_text": full_text,  # 🎯 累积的完整文本（前端覆写用）
                     "is_final": False,
                     "session_id": state.session_id,
                     "segment_id": segment_id,
@@ -663,6 +703,9 @@ class StreamingEngine:
                 total_start_ms = event.start_offset_ms
                 total_duration_ms = event.duration_ms
                 total_end_ms = total_start_ms + total_duration_ms
+                
+                # 🎯 去除重复字符（键盘敲击等噪音可能产生重复）
+                text = remove_repeated_chars(text)
                 
                 # 清理文本：移除开头标点，确保结尾有标点
                 cleaned_text = clean_sentence_text(text)
@@ -727,6 +770,9 @@ class StreamingEngine:
                 
                 if event.is_final:
                     state.mark_segment_final(segment_id)
+                
+                # 🎯 清空累积的 partial 文本（这段语音已经结束）
+                state.clear_partial_text()
                 
                 result_events.append(result_event)
         

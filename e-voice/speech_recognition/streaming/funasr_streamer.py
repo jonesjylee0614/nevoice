@@ -103,8 +103,12 @@ class FunASRStreamerState:
     # 音频片段缓冲（用于保存音频片段文件）
     current_segment_audio: List[bytes] = field(default_factory=list)
     
-    def reset(self) -> None:
-        """重置所有状态。"""
+    def reset(self, preserve_time: bool = True) -> None:
+        """重置状态。
+        
+        Args:
+            preserve_time: 是否保留时间累积（默认True，用于语音段间隔时保持全局时间）
+        """
         self.vad_cache = {}
         self.vad_pre_idx = 0
         self.speech_start = False
@@ -118,9 +122,13 @@ class FunASRStreamerState:
         self.frames_asr_online = []
         self.is_speaking = True
         self.current_segment_audio = []
-        self.total_audio_ms = 0
-        self.current_segment_start_ms = 0
-        self.last_segment_end_ms = 0
+        
+        # 🎯 时间字段默认保留，保持会话全局时间连续
+        # 只有在完全结束会话时才重置时间（preserve_time=False）
+        if not preserve_time:
+            self.total_audio_ms = 0
+            self.current_segment_start_ms = 0
+            self.last_segment_end_ms = 0
 
 
 @dataclass(slots=True)
