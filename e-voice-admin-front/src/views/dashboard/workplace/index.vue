@@ -5,7 +5,7 @@
       <div class="hero-bg"></div>
       <div class="hero-content">
         <div class="hero-text">
-          <h1 class="hero-title">基于人工智能的语音识别系统          </h1>
+          <h1 class="hero-title">实时转写、多说话人分离、声纹注册与会议 AI 总结 </h1>
         </div>
         <div class="hero-visual">
           <div class="sound-wave">
