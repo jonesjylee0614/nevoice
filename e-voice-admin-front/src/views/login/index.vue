@@ -4,7 +4,6 @@
       <img alt="logo" src="/logo.png" style="width: 35px" />
       <div class="logo-text">{{ AppTitle }}</div>
     </div>
-    <LoginBanner />
     <div class="content">
       <div class="content-inner">
         <LoginForm v-if="showType == 'login'" @reback="GoToType" />
@@ -19,7 +18,6 @@
 
 <script lang="ts" setup>
 import Footer from '@/components/footer/index.vue';
-import LoginBanner from './components/banner.vue';
 import LoginForm from './components/login-form.vue';
 import ForgetForm from './components/forget-form.vue';
 // 获取网站配置-应用名称
@@ -34,11 +32,7 @@ const GoToType = (keys: string) => {
 .container {
   display: flex;
   height: 100vh;
-
-  .banner {
-    width: 550px;
-    background: linear-gradient(163.85deg, #1d2129 0%, #00308f 100%);
-  }
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
   .content {
     position: relative;
@@ -47,6 +41,13 @@ const GoToType = (keys: string) => {
     align-items: center;
     justify-content: center;
     padding-bottom: 40px;
+  }
+
+  .content-inner {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
 
   .footer {
@@ -68,21 +69,14 @@ const GoToType = (keys: string) => {
   &-text {
     margin-right: 4px;
     margin-left: 4px;
-    color: var(--color-fill-1);
+    color: #fff;
     font-size: 20px;
+    font-weight: 500;
   }
 }
 </style>
 
 <style lang="less" scoped>
-// responsive
-@media (max-width: @screen-lg) {
-  .container {
-    .banner {
-      width: 25%;
-    }
-  }
-}
 .logo-text {
   padding-top: 5px;
   padding-left: 5px;

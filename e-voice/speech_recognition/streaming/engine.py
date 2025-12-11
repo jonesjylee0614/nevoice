@@ -300,6 +300,7 @@ class StreamingEngine:
                 vad_max_single_segment_time=vad_config.get("max_single_segment_time", 45000),
                 vad_max_end_silence_time=vad_config.get("max_end_silence_time", 1200),
                 vad_speech_noise_thres=vad_config.get("speech_noise_thres", 0.7),
+                vad_max_beg_bias=vad_config.get("max_beg_bias", 25),  # 语音开始时最大回溯帧数
                 # 异步配置
                 async_offline_correction=self._async_enabled,
                 async_online_asr=self._async_online_enabled,

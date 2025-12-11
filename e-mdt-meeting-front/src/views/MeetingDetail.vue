@@ -445,6 +445,7 @@ let audioWorkletNode: AudioWorkletNode | null = null
 let scriptProcessorNode: ScriptProcessorNode | null = null
 let currentSeq = 0
 let currentSegmentId = '' // 用于跟踪当前语音段，避免预览重叠
+let baseTimeOffset = 0 // 用于累加时间偏移，确保暂停后时间连续
 
 // 获取 WebSocket 地址
 const getWsHost = () => {
@@ -651,6 +652,17 @@ const handleStartRecording = async () => {
       await startMeeting(meetingId.value)
       meeting.value.status = 1
       showSuccessToast('会议已开始')
+    }
+    
+    // 计算时间基线偏移：从上一条对话的结束时间开始，确保时间连续
+    const dialogs = meeting.value.dialogs || []
+    if (dialogs.length > 0) {
+      const lastDialog = dialogs[dialogs.length - 1]
+      // 使用上一条对话的结束偏移作为新录音的基线
+      baseTimeOffset = (lastDialog.endOffset || 0) + 1000 // +1秒作为间隔
+      console.log('[Recording] 时间基线偏移:', baseTimeOffset, 'ms (从上条对话结束时间继续)')
+    } else {
+      baseTimeOffset = 0
     }
     
     // 建立 WebSocket 连接
@@ -893,8 +905,9 @@ const handleRecognitionMessage = async (data: any) => {
   
   const mode = data.mode || ''
   const text = data.text || ''
-  const startOffsetMs = data.start_offset_ms || 0
-  const endOffsetMs = data.end_offset_ms || 0
+  // 应用时间基线偏移，确保暂停后时间连续
+  const startOffsetMs = (data.start_offset_ms || 0) + baseTimeOffset
+  const endOffsetMs = (data.end_offset_ms || 0) + baseTimeOffset
   const durationMs = data.duration_ms || (endOffsetMs - startOffsetMs)
   const audioPath = data.audio_path || ''
   const speakerInfo = data.speaker_info || null

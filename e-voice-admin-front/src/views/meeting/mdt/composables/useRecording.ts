@@ -12,6 +12,7 @@ const PROCESSOR_BUFFER_SIZE = 1024; // 浏览器要求 2 的幂回调尺寸
 export interface RecordingOptions {
   meetingId: number;
   onDialogReceived?: (dialog: Partial<MeetingDialog>) => void;
+  getLastDialogEndOffset?: () => number; // 获取上一条对话的结束偏移，用于时间连续
 }
 
 export function useRecording(options: RecordingOptions) {
@@ -44,6 +45,7 @@ export function useRecording(options: RecordingOptions) {
   let mediaStream: MediaStream | null = null;
   let pendingPcm: number[] = [];
   let sentChunkCount = 0;
+  let baseTimeOffset = 0; // 用于累加时间偏移，确保暂停后时间连续
 
   // 建立WebSocket连接
   const connect = (): Promise<boolean> => {
@@ -139,9 +141,9 @@ export function useRecording(options: RecordingOptions) {
         committedText.value = corrected;
         liveText.value = '';
 
-        // 获取时间偏移和音频路径
-        const startOffsetMs = data.start_offset_ms || 0;
-        const endOffsetMs = data.end_offset_ms || 0;
+        // 获取时间偏移和音频路径（应用时间基线偏移，确保暂停后时间连续）
+        const startOffsetMs = (data.start_offset_ms || 0) + baseTimeOffset;
+        const endOffsetMs = (data.end_offset_ms || 0) + baseTimeOffset;
         const durationMs = data.duration_ms || 0;
         const audioPath = data.audio_path || '';
         const speakerInfo = data.speaker_info || null;
@@ -237,6 +239,15 @@ export function useRecording(options: RecordingOptions) {
     if (recording.value) return;
 
     connecting.value = true;
+
+    // 计算时间基线偏移：从上一条对话的结束时间开始，确保时间连续
+    if (options.getLastDialogEndOffset) {
+      const lastEndOffset = options.getLastDialogEndOffset();
+      baseTimeOffset = lastEndOffset > 0 ? lastEndOffset + 1000 : 0; // +1秒作为间隔
+      console.log('[Recording] 时间基线偏移:', baseTimeOffset, 'ms');
+    } else {
+      baseTimeOffset = 0;
+    }
 
     // 先连接WebSocket
     const connected = await connect();

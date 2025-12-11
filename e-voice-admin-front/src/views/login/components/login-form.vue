@@ -1,10 +1,7 @@
 <template>
   <div class="login-form-wrapper">
     <div class="login-form-title">{{ loginTitle }}</div>
-    <div class="login-form-sub-title">
-      {{ loginSubTitle }}
-    </div>
-    <div class="login-form-error-msg">{{ errorMessage }}</div>
+    <div v-if="errorMessage" class="login-form-error-msg">{{ errorMessage }}</div>
     <AForm :model="userInfo" class="login-form" layout="vertical" @submit="handleSubmit">
       <AFormItem
         field="username"
@@ -55,7 +52,6 @@ const emit = defineEmits(['reback']);
 const router = useRouter();
 // 获取标题
 const loginTitle = `登录${import.meta.env.VITE_APP_TITLE}`;
-const loginSubTitle = '';
 const errorMessage = ref('');
 const { loading, setLoading } = useLoading();
 const userStore = useUserStore();
@@ -112,22 +108,19 @@ async function handleSubmit({
   }
 
   &-title {
-    color: var(--color-text-1);
-    font-weight: 500;
+    color: #1d2129;
+    font-weight: 600;
     font-size: 24px;
     line-height: 32px;
-  }
-
-  &-sub-title {
-    color: var(--color-text-3);
-    font-size: 16px;
-    line-height: 24px;
+    text-align: center;
+    margin-bottom: 24px;
   }
 
   &-error-msg {
     height: 32px;
     color: rgb(var(--red-6));
     line-height: 32px;
+    text-align: center;
   }
 
   &-password-actions {

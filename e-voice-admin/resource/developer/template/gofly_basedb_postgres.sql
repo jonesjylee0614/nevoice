@@ -987,9 +987,9 @@ COMMENT ON COLUMN "common_logininfo"."update_time" IS '更新时间';
 -- ----------------------------
 BEGIN;
 INSERT INTO "common_logininfo" ("id", "type", "title", "des", "image", "status", "weigh", "create_time", "update_time") VALUES 
-(1, 'common', '开箱即用Go应用系统', '为您开发搭建基础，您只专注业务开发，并能快速开始，我们做到同等功能少其他语言框架的的一半代码，这是做好用的Go语言web开发框架。', '/common/uploadfile/get_image?url=resource/uploads/20230607/f1fbf7039464d632d9b5fcecb1e41fab.png', 0, 1, '2025-07-10 15:06:21', '2025-07-10 15:06:21'),
-(2, 'common', 'GoFly简单易用的服务端', '我们为您做了自动路由，统一配置文件，日志文件，简单易用ORM，接口验证，防止高频攻击，Token验证，简介开发架构等等！', '/common/uploadfile/get_image?url=resource/uploads/20230607/4825b3bc4721d2e6266b9696f47b23c5.png', 0, 2, '2025-07-10 15:06:21', '2025-07-10 15:06:21'),
-(3, 'common', '轻量集成快速开发Admin/中台', '我们采用vue3、vite、ts搭建，采用最优美的UI，集成了自动加载路由，权限管理，账号管理，多语言包自动加载等等，用上我们框架保你快人一倍！', '/common/uploadfile/get_image?url=resource/uploads/20230607/33926ec2fcbc2da95e9cae158e00019e.png', 0, 3, '2025-07-10 15:06:21', '2025-07-10 15:06:21');
+(1, 'common', '智能语音识别', '基于深度学习的端到端语音识别引擎，支持实时流式识别与离线转写，识别准确率领先业界水平。', '/common/uploadfile/get_image?url=resource/uploads/20230607/f1fbf7039464d632d9b5fcecb1e41fab.png', 0, 1, '2025-07-10 15:06:21', '2025-07-10 15:06:21'),
+(2, 'common', '声纹识别管理', '精准的声纹特征提取与比对技术，一次注册即可实现说话人身份识别，广泛应用于身份验证场景。', '/common/uploadfile/get_image?url=resource/uploads/20230607/4825b3bc4721d2e6266b9696f47b23c5.png', 0, 2, '2025-07-10 15:06:21', '2025-07-10 15:06:21'),
+(3, 'common', '智能会议转写', '支持多人会议的语音转文字与说话人分离，自动识别发言人并生成结构化会议纪要。', '/common/uploadfile/get_image?url=resource/uploads/20230607/33926ec2fcbc2da95e9cae158e00019e.png', 0, 3, '2025-07-10 15:06:21', '2025-07-10 15:06:21');
 SELECT setval('common_logininfo_id_seq', (SELECT max(id) FROM common_logininfo));
 COMMIT;
 

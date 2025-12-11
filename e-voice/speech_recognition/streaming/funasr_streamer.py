@@ -54,6 +54,7 @@ class FunASRStreamerConfig:
     vad_max_single_segment_time: int = 45000  # 单段最大时长 ms
     vad_max_end_silence_time: int = 1200  # 句末静音阈值 ms
     vad_speech_noise_thres: float = 0.7  # 语音/噪声阈值
+    vad_max_beg_bias: int = 25  # 语音开始时最大回溯帧数，每帧约60ms
     
     # 🚀 性能优化配置
     async_offline_correction: bool = False  # 离线纠正异步化（不阻塞在线识别）
@@ -202,7 +203,8 @@ class FunASRStreamer:
     def _init_itn(self) -> None:
         """初始化 ITN 组件。"""
         if InverseNormalizer is None:
-            logger.warning("ITN 初始化失败：fun_text_processing 未安装")
+            # InverseNormalizer 已弃用，改用 cn2an 实现 ITN，无需警告
+            logger.debug("使用 cn2an 实现 ITN 功能（InverseNormalizer 已弃用）")
             return
         
         try:
@@ -405,8 +407,8 @@ class FunASRStreamer:
             beg_bias = (state.vad_pre_idx - speech_start_i) // duration_ms if duration_ms > 0 else 0
             
             # 限制最大回溯帧数，避免包含上一段的内容
-            # 15帧 ≈ 0.9秒，足够覆盖语音开始前的静音，但不会包含太多历史音频
-            max_beg_bias = 15
+            # 使用配置的 max_beg_bias，默认 25帧 ≈ 1.5秒，确保能回溯到语音开头
+            max_beg_bias = self.config.vad_max_beg_bias
             if beg_bias > 0 and beg_bias <= len(state.frames):
                 # 限制回溯量
                 actual_bias = min(beg_bias, max_beg_bias)

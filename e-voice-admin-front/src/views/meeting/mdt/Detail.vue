@@ -252,6 +252,14 @@ const {
       meeting.value.dialogs = [...(meeting.value.dialogs || []), dialog as MeetingDialog];
       meeting.value.dialogCount = meeting.value.dialogs.length;
     }
+  },
+  // 获取上一条对话的结束偏移，用于时间连续
+  getLastDialogEndOffset: () => {
+    const dialogs = meeting.value?.dialogs || [];
+    if (dialogs.length > 0) {
+      return dialogs[dialogs.length - 1].endOffset || 0;
+    }
+    return 0;
   }
 });
 

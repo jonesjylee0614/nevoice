@@ -85,11 +85,21 @@ func (s *Print) GetUserPrints(c *gin.Context) {
 func (s *Print) SaveUserPrint(c *gin.Context) {
 	files, form := gf.ReqMultipartForm(c, "audio")
 
+	// 获取用户ID
+	userId := anyx.ToInt64(form.Value["userId"][0])
+
+	// 查询用户真实姓名（而非用户名）
+	user, err := s.BusinessAccount.GetById(c, userId)
+	userName := form.Value["userName"][0] // 默认使用前端传入的值
+	if err == nil && user != nil && user.Name != "" {
+		userName = user.Name // 使用数据库中的真实姓名
+	}
+
 	request := httpclient.NewRequest(config.Inst.App.Micro[pyVoiceServer].Host + "/voice-register")
 	request.Timeout(time.Second * 30)
 	params := collx.M{
-		"userid":   anyx.ToInt64(form.Value["userId"][0]),
-		"username": form.Value["userName"][0],
+		"userid":   userId,
+		"username": userName,
 	}
 	res := request.PostMultipart(files, params)
 	m, err := res.BodyToMap()
