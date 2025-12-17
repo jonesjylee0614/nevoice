@@ -1,0 +1,13 @@
+modelscope
+numpy
+torch
+datasets
+simplejson
+sortedcontainers
+matplotlib
+addict
+librosa
+ttsfrd
+unidecode
+pytorch_wavelets
+tensorboardX
