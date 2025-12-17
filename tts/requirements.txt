@@ -11,3 +11,4 @@ ttsfrd
 unidecode
 pytorch_wavelets
 tensorboardX
+requests

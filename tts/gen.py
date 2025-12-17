@@ -10,10 +10,11 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from demo_duoren import zhibei_emo
+# from demo_duoren import zhibei_emo
+from aliyun import qwen_tts
 
 # 确保输出目录存在
-os.makedirs('./v', exist_ok=True)
+os.makedirs('./v_qwen', exist_ok=True)
 os.makedirs('./output', exist_ok=True)
 
 
@@ -29,10 +30,13 @@ def process_line(line):
     unique_id = str(uuid.uuid4())
 
     # 生成语音文件路径
-    output_wav_path = f'./v/{unique_id}.wav'
+    output_wav_path = f'./v_qwen/{unique_id}.wav'
 
     # 调用语音生成函数
-    zhibei_emo(text=line, out_path=output_wav_path)
+    # zhibei_emo(text=line, out_path=output_wav_path)
+
+    qwen_tts(text=line, out_path=output_wav_path)
+
     print(f'Generated speech for line:[{line}] ,path:[{output_wav_path}]')
 
     # 组装 JSON 数据
@@ -47,7 +51,7 @@ def process_line(line):
     return data
 
 
-def generate_speech_and_json(input_file='custom_word_freq.txt', max_workers=50):
+def generate_speech_and_json(input_file='custom_word_freq.txt', max_workers=3):
     # 读取输入文件并处理每一行
     with open(input_file, 'r', encoding='utf-8') as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -68,8 +72,6 @@ def generate_speech_and_json(input_file='custom_word_freq.txt', max_workers=50):
                 except Exception as exc:
                     line = future_to_line[future]
                     print(f'Line {line} generated an exception: {exc}')
-
-
 
 # 执行主函数
 if __name__ == "__main__":
