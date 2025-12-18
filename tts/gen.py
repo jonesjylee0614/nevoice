@@ -9,6 +9,7 @@ import uuid
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 # from demo_duoren import zhibei_emo
 from aliyun import qwen_tts
@@ -16,6 +17,9 @@ from aliyun import qwen_tts
 # 确保输出目录存在
 os.makedirs('./v_qwen', exist_ok=True)
 os.makedirs('./output', exist_ok=True)
+
+# 创建一个锁用于保护对train.jsonl文件的访问
+jsonl_lock = threading.Lock()
 
 
 def process_line(line):
@@ -62,16 +66,18 @@ def generate_speech_and_json(input_file='custom_word_freq.txt', max_workers=3):
         future_to_line = {executor.submit(process_line, line): line for line in lines}
 
         # 收集结果并写入JSONL文件
-        with open('./output/train.jsonl', 'a', encoding='utf-8') as jsonl_file:
-            for future in as_completed(future_to_line):
-                try:
-                    result = future.result()
-                    if result:
-                        # 写入 JSONL 文件
-                        jsonl_file.write(json.dumps(result, ensure_ascii=False) + '\n')
-                except Exception as exc:
-                    line = future_to_line[future]
-                    print(f'Line {line} generated an exception: {exc}')
+        for future in as_completed(future_to_line):
+            try:
+                result = future.result()
+                if result:
+                    # 使用锁确保线程安全地写入JSONL文件
+                    with jsonl_lock:
+                        with open('./output/train.jsonl', 'a', encoding='utf-8') as jsonl_file:
+                            # 写入 JSONL 文件
+                            jsonl_file.write(json.dumps(result, ensure_ascii=False) + '\n')
+            except Exception as exc:
+                line = future_to_line[future]
+                print(f'Line {line} generated an exception: {exc}')
 
 # 执行主函数
 if __name__ == "__main__":

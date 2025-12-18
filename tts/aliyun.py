@@ -4,6 +4,7 @@ import uuid
 import requests
 import os
 import time
+import threading
 
 # 获取环境变量中的 DASHSCOPE_API_KEY
 api_key = os.getenv('DASHSCOPE_API_KEY')
@@ -15,6 +16,9 @@ url = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation
 headers = {
     "Authorization": f"Bearer {api_key}",
 }
+
+# 为日志文件写入操作创建锁
+log_lock = threading.Lock()
 
 # 记录最后一次请求的时间
 last_request_time = 0
@@ -88,12 +92,14 @@ def qwen_tts(text: str, out_path: str):
 
         os.makedirs(os.path.dirname('./logs/error.txt'), exist_ok=True)
 
-        # 把错误信息保存到文件
-        with open('./logs/error.txt', 'a') as f:
-            f.write(f'Request failed with status code: {res.status_code} res: {res.text}\n' )
-        # 把错误的词保存到文件
-        with open('./logs/word.txt', 'a') as f:
-            f.write(f'{text}\n')
+        # 使用锁确保线程安全地写入日志文件
+        with log_lock:
+            # 把错误信息保存到文件
+            with open('./logs/error.txt', 'a') as f:
+                f.write(f'Request failed with status code: {res.status_code} res: {res.text}\n' )
+            # 把错误的词保存到文件
+            with open('./logs/word.txt', 'a') as f:
+                f.write(f'{text}\n')
     # 发起 POST 请求
     return False
 
