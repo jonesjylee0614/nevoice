@@ -83,8 +83,17 @@ def qwen_tts(text: str, out_path: str):
             f.write(requests.get(audio_url).content)
             return True
     else:
-        print(f'Request failed with status code: {res.status_code}')
-        print(res.text)  # 打印详细错误信息
+        # 打印详细错误信息
+        print(f'Request failed with status code: {res.status_code} res: {res.text} ')
+
+        os.makedirs(os.path.dirname('./logs/error.txt'), exist_ok=True)
+
+        # 把错误信息保存到文件
+        with open('./logs/error.txt', 'a') as f:
+            f.write(f'Request failed with status code: {res.status_code} res: {res.text}\n' )
+        # 把错误的词保存到文件
+        with open('./logs/word.txt', 'a') as f:
+            f.write(f'{text}\n')
     # 发起 POST 请求
     return False
 

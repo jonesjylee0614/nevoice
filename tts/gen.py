@@ -62,7 +62,7 @@ def generate_speech_and_json(input_file='custom_word_freq.txt', max_workers=3):
         future_to_line = {executor.submit(process_line, line): line for line in lines}
 
         # 收集结果并写入JSONL文件
-        with open('./output/train.jsonl', 'w', encoding='utf-8') as jsonl_file:
+        with open('./output/train.jsonl', 'a', encoding='utf-8') as jsonl_file:
             for future in as_completed(future_to_line):
                 try:
                     result = future.result()
