@@ -51,3 +51,12 @@ data/voice/
 outputs
 tests/server/static
 tests/server/static/upload
+*.wav
+
+# ffmpeg / runtime cache
+/e-voice/ffcache*
+
+# elasticsearch logs
+/es/es_logs/gc.log.*
+/es/es_logs/*.log
+/es/es_logs/*.log.*
